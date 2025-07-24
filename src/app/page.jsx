@@ -1,5 +1,9 @@
-import WardenLogin from "../components/WardenLogin";
+import Sidebar from "@/components/layout/sidebar";
+import Navbar from "@/components/layout/navbar";
+import MainContent from "@/components/warden_dashboard/Warden_DB";
 
-export default function Page() {
-  return <WardenLogin />;
-}
+export default function DashboardPage() {
+  return (
+    <>hello</>
+  );
+} 
