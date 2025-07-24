@@ -1,6 +1,6 @@
-import Sidebar from "@/components/Sidebar";
-import Navbar from "@/components/Navbar";
-import EmergencyContact from "@/components/EmergencyContactTable";
+import Sidebar from "@/components/layout/sidebar";
+import Navbar from "@/components/layout/navbar";
+import EmergencyContact from "@/components/emergencycontact/EmergencyContactTable";
 
 export default function EmergencyContactPage() {
   return (
