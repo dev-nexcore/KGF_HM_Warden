@@ -47,7 +47,7 @@ export default function Sidebar() {
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 h-screen w-60 bg-[#A4B494] py-8 pl-5 flex flex-col justify-between rounded-tr-4xl shadow
+          fixed top-0 left-0 h-full w-60 bg-[#A4B494] py-8 pl-5 flex flex-col justify-between rounded-tr-4xl shadow
           transform transition-transform duration-300 ease-in-out
           z-40
 
@@ -85,7 +85,7 @@ export default function Sidebar() {
               <FiBox className="text-lg" />
               Bed Allotment
             </Link>
-            <Link href="/student" className={getLinkClass("/student")}>
+            <Link href="/students" className={getLinkClass("/students")}>
               <FiUsers className="text-lg" />
               Student Management
             </Link>
