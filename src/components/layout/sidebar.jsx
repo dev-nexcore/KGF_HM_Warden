@@ -85,7 +85,7 @@ export default function Sidebar() {
               <FiBox className="text-lg" />
               Bed Allotment
             </Link>
-            <Link href="/students" className={getLinkClass("/students")}>
+            <Link href="/student" className={getLinkClass("/student")}>
               <FiUsers className="text-lg" />
               Student Management
             </Link>
@@ -93,15 +93,15 @@ export default function Sidebar() {
               <FiClipboard className="text-lg" />
               Inspection
             </Link>
-            <Link href="/leave" className={getLinkClass("/leave")}>
+            <Link href="/w-leave" className={getLinkClass("/w-leave")}>
               <FiMail className="text-lg" />
               Leave Request
             </Link>
-            <Link href="/profile" className={getLinkClass("/profile")}>
+            <Link href="/w-profile" className={getLinkClass("/w-profile")}>
               <FiUser className="text-lg" />
               Warden Profile
             </Link>
-            <Link href="/emergency" className={getLinkClass("/emergency")}>
+            <Link href="/emergency-contact" className={getLinkClass("/emergency-contact")}>
               <FiPhone className="text-lg" />
               Emergency Contact
             </Link>

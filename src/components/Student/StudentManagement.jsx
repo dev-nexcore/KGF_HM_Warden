@@ -11,8 +11,11 @@ export default function StudentManagement() {
   const getStatusStyle = (status) => (status === 'Active' ? 'text-green-600' : 'text-red-500');
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-gray-800">Student Management</h2>
+    <div className="space-y-6 p-6">
+      <div className="flex items-center mb-4">
+          <div className="w-1 h-7 bg-red-500 mr-3"></div>
+          <h2 className="text-lg md:text-xl font-bold">Student Management</h2>
+        </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-black">

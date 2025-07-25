@@ -6,7 +6,7 @@
 
 :root {
   --background: white;
-  --foreground: white;
+  --foreground: black;
 }
 
 @theme inline {
@@ -19,7 +19,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --background: white;
-    --foreground: white;
+    --foreground: black;
   }
 }
 

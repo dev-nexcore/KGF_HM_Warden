@@ -53,9 +53,9 @@ export default function WardenLogin() {
 
           {/* Login Button */}
           <div className="w-3/4 flex justify-center">
-            <button className="w-1/2 bg-[#BEC5AD] hover:bg-[#a9b29d] text-black font-bold py-3 rounded-xl shadow-md transition duration-200">
+            <a href="/warden-dashboard" className="w-1/2 bg-[#BEC5AD] hover:bg-[#a9b29d] text-black font-bold py-3 rounded-xl shadow-md transition duration-200">
               Login
-            </button>
+            </a>
           </div>
         </div>
       </div>
