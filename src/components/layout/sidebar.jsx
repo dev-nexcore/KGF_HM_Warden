@@ -85,7 +85,7 @@ export default function Sidebar() {
               <FiBox className="text-lg" />
               Bed Allotment
             </Link>
-            <Link href="/students" className={getLinkClass("/students")}>
+            <Link href="/student" className={getLinkClass("/student")}>
               <FiUsers className="text-lg" />
               Student Management
             </Link>
