@@ -1,15 +1,8 @@
 import React from "react";
-import {
-  FiUsers,
-  FiCheckSquare,
-  FiXCircle,
-  FiLayers,
-  FiAlertCircle
-} from "react-icons/fi";
 
 export default function MainContent() {
   return (
-    <main className="flex-1 bg-[#f5f8f1] px-4 md:px-6 py-4">
+    <main className="flex-1 px-4 md:px-6 py-4">
       <section className="mb-8">
         {/* Section Header */}
         <div className="flex items-center mb-4">
@@ -18,17 +11,68 @@ export default function MainContent() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-6">
-          <StatCard label="Total Students" value="75" icon={<FiUsers />} />
-          <StatCard label="Occupied Beds" value="70" valueClass="text-[#e0b300]" icon={<FiCheckSquare />} />
-          <StatCard label="Vacant Beds" value="3" icon={<FiLayers />} />
-          <StatCard label="Damaged Beds" value="2" valueClass="text-[#c83939]" icon={<FiXCircle />} />
-          <StatCard label="Total Beds" value="75" icon={<FiLayers />} />
-        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-6 justify-items-center sm:justify-items-stretch">
 
-        {/* Additional Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <StatCard label="Upcoming Inspections" value="2" icon={<FiAlertCircle />} />
+          {/* Total Students */}
+          <div className="bg-[#bfc8ad] rounded-2xl p-4 relative shadow w-60 h-24 flex flex-col">
+            <img
+              src="/dashboard-icons/t-students.png"
+              alt="Users Icon"
+              className="absolute top-0 right-0 w-7 h-7 object-contain"
+            />
+            <span className="text-sm md:text-md font-semibold">Total Students</span>
+            <span className="text-xl md:text-2xl mt-2 font-semibold">75</span>
+          </div>
+
+          {/* Occupied Beds */}
+          <div className="bg-[#bfc8ad] rounded-2xl p-4 relative shadow w-60 h-24 flex flex-col">
+            <img 
+              src="dashboard-icons/beds.png" 
+              alt="Checkmark Icon" 
+              className="absolute top-0 right-0 w-7 h-7 object-contain"
+            />
+            <span className="text-sm md:text-md font-semibold">Occupied Beds</span>
+            <span className="text-xl md:text-2xl mt-2 font-semibold text-[#e0b300]">70</span>
+          </div>
+
+          {/* Vacant Beds */}
+          <div className="bg-[#bfc8ad] rounded-2xl p-4 relative shadow w-60 h-24 flex flex-col">
+            <img
+              src="dashboard-icons/beds.png"
+              alt="Layers Icon"
+              className="absolute top-0 right-0 w-7 h-7 object-contain"
+            />
+            <span className="text-sm md:text-md font-semibold">Vacant Beds</span>
+            <span className="text-xl md:text-2xl mt-2 font-semibold">3</span>
+          </div>
+
+          {/* Damaged Beds */}
+          <div className="bg-[#bfc8ad] rounded-2xl p-4 relative shadow w-60 h-24 flex flex-col">
+            <img
+              src="dashboard-icons/beds.png"
+              alt="Cross Icon"
+              className="absolute top-0 right-0 w-7 h-7 object-contain"
+            />
+            <span className="text-sm md:text-md font-semibold">Damaged Beds</span>
+            <span className="text-xl md:text-2xl mt-2 font-semibold text-[#c83939]">2</span>
+          </div>
+
+          {/* Total Beds */}
+          <div className="bg-[#bfc8ad] rounded-2xl p-4 relative shadow w-60 h-24 flex flex-col">
+            <img
+              src="dashboard-icons/beds.png"
+              alt="Layers Icon"
+              className="absolute top-0 right-0 w-7 h-7 object-contain"
+            />
+            <span className="text-sm md:text-md font-semibold">Total Beds</span>
+            <span className="text-xl md:text-2xl mt-2 font-semibold">75</span>
+          </div>
+
+          {/* Upcoming Inspections */}
+          <div className="bg-[#bfc8ad] rounded-2xl p-4 relative shadow w-60 h-24 flex flex-col">
+            <span className="text-sm md:text-md font-semibold">Upcoming Inspections</span>
+            <span className="text-xl md:text-2xl mt-2 font-semibold">2</span>
+          </div>
         </div>
       </section>
 
@@ -36,38 +80,22 @@ export default function MainContent() {
       <section>
         <div className="bg-[#d9ddce] rounded-xl shadow">
           <h3 className="text-base md:text-lg font-semibold mb-2 p-4">Recent Activities</h3>
-          <ul className="divide-y divide-gray-300 bg-white rounded-b-xl px-4">
-            <Activity desc="Student Ayesha Ali Khan checked in to Bed 101" time="10:30 AM" />
-            <Activity desc="Student Mohammed Shariq Shaikh checked out from Bed 205" time="09:30 AM" />
-            <Activity desc="Student Nida Fatima Konkan checked in to Bed 310" time="08:45 AM" />
+          <ul className="bg-white rounded-b-xl px-4">
+            <li className="flex justify-between items-center py-3 text-sm md:text-base">
+              <span>Student Ayesha Ali Khan checked in to Bed 101</span>
+              <span className="text-xs text-gray-500 whitespace-nowrap">10:30 AM</span>
+            </li>
+            <li className="flex justify-between items-center py-3 text-sm md:text-base">
+              <span>Student Mohammed Shariq Shaikh checked out from Bed 205</span>
+              <span className="text-xs text-gray-500 whitespace-nowrap">09:30 AM</span>
+            </li>
+            <li className="flex justify-between items-center py-3 text-sm md:text-base">
+              <span>Student Nida Fatima Konkan checked in to Bed 310</span>
+              <span className="text-xs text-gray-500 whitespace-nowrap">08:45 AM</span>
+            </li>
           </ul>
         </div>
       </section>
     </main>
-  );
-}
-
-function StatCard({ label, value, valueClass = "", icon = null }) {
-  return (
-    <div className="bg-[#bfc8ad] rounded-lg p-4 relative shadow w-full h-full">
-      {icon && (
-        <div className="absolute top-3 right-3 text-2xl text-[#1a312a]">
-          {icon}
-        </div>
-      )}
-      <div className="flex flex-col items-center text-center">
-        <span className="text-sm md:text-md font-medium">{label}</span>
-        <span className={`text-xl md:text-2xl mt-2 font-semibold ${valueClass}`}>{value}</span>
-      </div>
-    </div>
-  );
-}
-
-function Activity({ desc, time }) {
-  return (
-    <li className="flex justify-between items-center py-3 text-sm md:text-base">
-      <span>{desc}</span>
-      <span className="text-xs text-gray-500 whitespace-nowrap">{time}</span>
-    </li>
   );
 }
