@@ -25,12 +25,17 @@ export default function Sidebar() {
       <>
         {/* Hamburger button visible on small screens */}
         <button
-          aria-label="Open sidebar"
-          className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-[#A4B494] text-black shadow-md"
-          onClick={() => setSidebarOpen(true)}
-        >
-          <img src="/sidebar-icons/menu.svg" alt="Menu" className="w-6 h-6" />
-        </button>
+  aria-label="Open sidebar"
+  className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-[#A4B494] text-black shadow-md"
+  onClick={() => setSidebarOpen(true)}
+>
+  <div className="space-y-1.5">
+    <span className="block w-6 h-0.5 bg-black"></span>
+    <span className="block w-6 h-0.5 bg-black"></span>
+    <span className="block w-6 h-0.5 bg-black"></span>
+  </div>
+</button>
+
 
         {/* Sidebar */}
         <aside
@@ -48,13 +53,17 @@ export default function Sidebar() {
             className="md:hidden absolute top-4 right-4 p-2 rounded-md text-black hover:bg-gray-300"
             onClick={() => setSidebarOpen(false)}
           >
-            <img src="/sidebar-icons/close.svg" alt="Close" className="w-7 h-7" />
+            <div className="relative w-6 h-6">
+  <span className="absolute top-1/2 left-0 w-6 h-0.5 bg-black transform rotate-45 origin-center"></span>
+  <span className="absolute top-1/2 left-0 w-6 h-0.5 bg-black transform -rotate-45 origin-center"></span>
+</div>
+
           </button>
 
           <div>
             {/* Logo */}
-            <div className="flex justify-center mb-6">
-              <img src="/logo.png" className="h-20 w-20 object-contain" alt="Logo" />
+            <div className="w-full flex justify-center mb-6">
+              <img src="/logo.png" className="h-20 w-20 object-contain mx-auto" alt="Logo" />
             </div>
 
             {/* Navigation Links */}

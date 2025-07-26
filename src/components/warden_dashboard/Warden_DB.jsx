@@ -2,7 +2,7 @@ import React from "react";
 
 export default function MainContent() {
   return (
-    <main className="flex-1 bg-[#f5f8f1] px-4 md:px-6 py-4">
+    <main className="flex-1 px-4 md:px-6 py-4">
       <section className="mb-8">
         {/* Section Header */}
         <div className="flex items-center mb-4">
@@ -11,72 +11,66 @@ export default function MainContent() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-6 justify-items-center sm:justify-items-stretch">
+
           {/* Total Students */}
-          <div className="bg-[#bfc8ad] rounded-lg p-4 relative shadow w-full h-full flex flex-col items-center text-center">
+          <div className="bg-[#bfc8ad] rounded-2xl p-4 relative shadow w-60 h-24 flex flex-col">
             <img
-              src="https://cdn-icons-png.flaticon.com/512/1077/1077012.png"
+              src="/dashboard-icons/t-students.png"
               alt="Users Icon"
-              className="absolute top-3 right-3 w-7 h-7 object-contain"
+              className="absolute top-0 right-0 w-7 h-7 object-contain"
             />
-            <span className="text-sm md:text-md font-medium">Total Students</span>
+            <span className="text-sm md:text-md font-semibold">Total Students</span>
             <span className="text-xl md:text-2xl mt-2 font-semibold">75</span>
           </div>
 
           {/* Occupied Beds */}
-          <div className="bg-[#bfc8ad] rounded-lg p-4 relative shadow w-full h-full flex flex-col items-center text-center">
+          <div className="bg-[#bfc8ad] rounded-2xl p-4 relative shadow w-60 h-24 flex flex-col">
             <img 
-              src="https://cdn-icons-png.flaticon.com/512/190/190411.png" 
+              src="dashboard-icons/beds.png" 
               alt="Checkmark Icon" 
-              className="absolute top-3 right-3 w-7 h-7 object-contain"
+              className="absolute top-0 right-0 w-7 h-7 object-contain"
             />
-            <span className="text-sm md:text-md font-medium">Occupied Beds</span>
+            <span className="text-sm md:text-md font-semibold">Occupied Beds</span>
             <span className="text-xl md:text-2xl mt-2 font-semibold text-[#e0b300]">70</span>
           </div>
 
           {/* Vacant Beds */}
-          <div className="bg-[#bfc8ad] rounded-lg p-4 relative shadow w-full h-full flex flex-col items-center text-center">
+          <div className="bg-[#bfc8ad] rounded-2xl p-4 relative shadow w-60 h-24 flex flex-col">
             <img
-              src="https://cdn-icons-png.flaticon.com/512/992/992700.png"
+              src="dashboard-icons/beds.png"
               alt="Layers Icon"
-              className="absolute top-3 right-3 w-7 h-7 object-contain"
+              className="absolute top-0 right-0 w-7 h-7 object-contain"
             />
-            <span className="text-sm md:text-md font-medium">Vacant Beds</span>
+            <span className="text-sm md:text-md font-semibold">Vacant Beds</span>
             <span className="text-xl md:text-2xl mt-2 font-semibold">3</span>
           </div>
 
           {/* Damaged Beds */}
-          <div className="bg-[#bfc8ad] rounded-lg p-4 relative shadow w-full h-full flex flex-col items-center text-center">
+          <div className="bg-[#bfc8ad] rounded-2xl p-4 relative shadow w-60 h-24 flex flex-col">
             <img
-              src="https://cdn-icons-png.flaticon.com/512/1828/1828665.png"
+              src="dashboard-icons/beds.png"
               alt="Cross Icon"
-              className="absolute top-3 right-3 w-7 h-7 object-contain"
+              className="absolute top-0 right-0 w-7 h-7 object-contain"
             />
-            <span className="text-sm md:text-md font-medium">Damaged Beds</span>
+            <span className="text-sm md:text-md font-semibold">Damaged Beds</span>
             <span className="text-xl md:text-2xl mt-2 font-semibold text-[#c83939]">2</span>
           </div>
 
           {/* Total Beds */}
-          <div className="bg-[#bfc8ad] rounded-lg p-4 relative shadow w-full h-full flex flex-col items-center text-center">
+          <div className="bg-[#bfc8ad] rounded-2xl p-4 relative shadow w-60 h-24 flex flex-col">
             <img
-              src="https://cdn-icons-png.flaticon.com/512/992/992700.png"
+              src="dashboard-icons/beds.png"
               alt="Layers Icon"
-              className="absolute top-3 right-3 w-7 h-7 object-contain"
+              className="absolute top-0 right-0 w-7 h-7 object-contain"
             />
-            <span className="text-sm md:text-md font-medium">Total Beds</span>
+            <span className="text-sm md:text-md font-semibold">Total Beds</span>
             <span className="text-xl md:text-2xl mt-2 font-semibold">75</span>
           </div>
-        </div>
 
-        {/* Additional Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-[#bfc8ad] rounded-lg p-4 relative shadow w-full h-full flex flex-col items-center text-center">
-            <img
-              src="https://cdn-icons-png.flaticon.com/512/1827/1827504.png"
-              alt="Alert Icon"
-              className="absolute top-3 right-3 w-7 h-7 object-contain"
-            />
-            <span className="text-sm md:text-md font-medium">Upcoming Inspections</span>
+          {/* Upcoming Inspections */}
+          <div className="bg-[#bfc8ad] rounded-2xl p-4 relative shadow w-60 h-24 flex flex-col">
+            <span className="text-sm md:text-md font-semibold">Upcoming Inspections</span>
             <span className="text-xl md:text-2xl mt-2 font-semibold">2</span>
           </div>
         </div>
