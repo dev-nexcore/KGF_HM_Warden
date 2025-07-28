@@ -27,7 +27,7 @@ export default function MainContent() {
           {/* Occupied Beds */}
           <div className="bg-[#bfc8ad] rounded-2xl p-4 relative shadow w-60 h-24 flex flex-col">
             <img 
-              src="dashboard-icons/beds.png" 
+              src="dashboard-icons/bed.png" 
               alt="Checkmark Icon" 
               className="absolute top-0 right-0 w-7 h-7 object-contain"
             />
@@ -38,7 +38,7 @@ export default function MainContent() {
           {/* Vacant Beds */}
           <div className="bg-[#bfc8ad] rounded-2xl p-4 relative shadow w-60 h-24 flex flex-col">
             <img
-              src="dashboard-icons/beds.png"
+              src="dashboard-icons/bed.png"
               alt="Layers Icon"
               className="absolute top-0 right-0 w-7 h-7 object-contain"
             />
@@ -49,7 +49,7 @@ export default function MainContent() {
           {/* Damaged Beds */}
           <div className="bg-[#bfc8ad] rounded-2xl p-4 relative shadow w-60 h-24 flex flex-col">
             <img
-              src="dashboard-icons/beds.png"
+              src="dashboard-icons/bed.png"
               alt="Cross Icon"
               className="absolute top-0 right-0 w-7 h-7 object-contain"
             />
@@ -60,7 +60,7 @@ export default function MainContent() {
           {/* Total Beds */}
           <div className="bg-[#bfc8ad] rounded-2xl p-4 relative shadow w-60 h-24 flex flex-col">
             <img
-              src="dashboard-icons/beds.png"
+              src="dashboard-icons/bed.png"
               alt="Layers Icon"
               className="absolute top-0 right-0 w-7 h-7 object-contain"
             />

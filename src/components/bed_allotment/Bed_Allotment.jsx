@@ -17,7 +17,7 @@ export default function BedAllotment() {
           </div>
           <div className="absolute top-0 right-0  rounded-full  shadow w-12 h-12 flex items-center justify-center">
             <img 
-              src="/bed-allotment/beds.png" 
+              src="/bed-allotment/bed.png" 
               alt="Occupied Beds" 
               className="w-full h-full object-contain"
             />
@@ -32,7 +32,7 @@ export default function BedAllotment() {
           </div>
           <div className="absolute top-0 right-0  rounded-full shadow w-12 h-12 flex items-center justify-center">
             <img 
-              src="/bed-allotment/beds.png" 
+              src="/bed-allotment/bed.png" 
               alt="Vacant Beds" 
               className="w-full h-full object-contain"
             />
@@ -47,7 +47,7 @@ export default function BedAllotment() {
           </div>
           <div className="absolute top-0 right-0 bg-white rounded-full border-1 shadow w-12 h-12 flex items-center justify-center">
             <img 
-              src="/bed-allotment/image.png" 
+              src="/bed-allotment/d-bed.png" 
               alt="Damaged Beds" 
               className="w-9 h-9 object-contain"
             />
