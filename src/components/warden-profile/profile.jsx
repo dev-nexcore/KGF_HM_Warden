@@ -2,84 +2,95 @@
 
 export default function WardenProfile() {
   return (
-    <div className="h-full bg-[#f5f6fa] pl-5 pr-5 flex flex-col">
+    <div className="min-h-screen bg-[#f5f6fa] px-2 sm:px-4 md:px-10 flex flex-col">
+
       {/* Section Title with Red Line */}
-      <div className="flex items-center mt-8 mb-5">
+      <div className="flex items-center ml-1 md:ml-2 mt-2 mb-5"> {/* Changed from mt-8 to mt-2 */}
         <div className="h-7 w-1 bg-[#FF0000] rounded mr-3" />
-        <span className="text-lg font-semibold">Warden Profile</span>
+        <span className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-black select-none">
+          Warden Profile
+        </span>
       </div>
 
-      {/* Flex container for Profile Info and Basic Info */}
-      <div className="flex flex-row items-start ml-0 space-x-6">
+      {/* Main Responsive Wrapper */}
+      <div className="flex flex-col lg:flex-row items-start lg:space-x-8 space-y-6 lg:space-y-0 ml-0">
+
         {/* Profile Info */}
         <div
-          className="bg-[#BEC5AD] rounded-[20px] shadow-md flex flex-col items-center justify-center"
-          style={{ width: "223px", height: "300px", opacity: 1 }}
+          className="
+            bg-[#BEC5AD] rounded-[20px] shadow-md flex flex-col items-center justify-center
+            w-full max-w-xs mx-auto lg:mx-0
+            py-6
+          "
+          style={{ minWidth: 0, opacity: 1 }}
         >
-          {/* Centered Circle Avatar */}
+          {/* Responsive Avatar */}
           <div
-            className="rounded-full bg-[#FFFFFF]"
-            style={{ width: "80px", height: "80px", marginBottom: "20px" }}
+            className="rounded-full bg-white mb-5"
+            style={{ width: 80, height: 80, minWidth: 80, minHeight: 80 }}
           />
-          {/* Name */}
-          <div className="text-[#232323] font-bold text-2xl mt-2">Nouman Khan</div>
-          {/* Student ID */}
-          <div className="text-sm text-gray-700 mt-3">Student ID: HFL-001</div>
-          {/* Edit Profile button */}
-          <button className="mt-6 px-8 py-2 rounded-md bg-[#A4B494] text-[#232323] font-bold shadow transition hover:bg-[#FFFFFF]">
+          {/* Name & ID */}
+          <div className="text-[#232323] font-bold text-xl md:text-2xl mt-2 text-center break-words">
+            Nouman Khan
+          </div>
+          <div className="text-sm text-gray-700 mt-3 text-center break-words">
+            Student ID: HFL-001
+          </div>
+          {/* Edit Profile Button */}
+          <button className="mt-6 px-6 md:px-8 py-2 rounded-md bg-[#A4B494] text-[#232323] font-bold shadow transition hover:bg-white">
             Edit Profile
           </button>
         </div>
 
         {/* Basic Information */}
         <div
-          className="rounded-[20px] px-5 py-4 flex-1"
+          className="
+            rounded-[20px] flex flex-col flex-1 bg-white shadow-lg
+            px-4 py-6 md:px-8
+            max-w-full min-w-0
+          "
           style={{
-            backgroundColor: "#FFFFFF",
             boxShadow: "0px 4px 20px 0px #00000040",
-            height: "300px",
-            overflowY: "auto",
           }}
         >
-          <div className="w-full flex justify-center mb-4">
-            {/* Basic Information Title Box */}
-            <div
-              className="flex items-center justify-center rounded-[20px] px-6"
-              style={{
-                maxWidth: 1200,
-                height: 50,
-                backgroundColor: "#BEC5AD",
-                opacity: 1,
-                borderRadius: "20px",
-                marginBottom: "10px",
-              }}
-            >
-              <span className="text-2xl font-bold text-[#232323] font-poppins whitespace-nowrap">
-                Basic Information
-              </span>
-            </div>
+          {/* Green Header */}
+          <div
+            className="flex items-center justify-center rounded-[20px] w-full min-h-[44px] sm:min-h-[50px] mb-6"
+            style={{
+              backgroundColor: "#BEC5AD",
+              opacity: 1,
+              borderRadius: 20,
+              marginBottom: 10,
+            }}
+          >
+            <span className="text-lg sm:text-xl md:text-2xl font-bold text-[#232323] font-poppins whitespace-nowrap select-none">
+              Basic Information
+            </span>
           </div>
-          <div className="grid grid-cols-2 gap-y-2 text-[15px] font-poppins">
-            <div className="font-semibold text-gray-800">First Name:</div>
-            <div>Nouman</div>
 
-            <div className="font-semibold text-gray-800">Last Name:</div>
-            <div>Khan</div>
-
-            <div className="font-semibold text-gray-800">Email Address:</div>
-            <div className="break-all">gawadechinmay01@gmail.com</div>
-
-            <div className="font-semibold text-gray-800">Warden ID:</div>
-            <div>WDN - 001</div>
-
-            <div className="font-semibold text-gray-800">Phone No:</div>
-            <div>9321625533</div>
-
-            <div className="font-semibold text-gray-800">Department:</div>
-            <div>Student Affairs</div>
+          {/* Information List */}
+          <div className="flex flex-col gap-4 sm:gap-3 px-1">
+            {[
+              { label: "First Name:", value: "Nouman" },
+              { label: "Last Name:", value: "Khan" },
+              { label: "Email Address:", value: "gawadechinmay01@gmail.com" },
+              { label: "Warden ID:", value: "WDN - 001" },
+              { label: "Phone No:", value: "9321625533" },
+              { label: "Department:", value: "Student Affairs" },
+            ].map(({ label, value }) => (
+              <div
+                key={label}
+                className="flex flex-col sm:flex-row sm:justify-between sm:items-center break-words"
+              >
+                <span className="font-semibold text-gray-800">{label}</span>
+                <span className="text-gray-900 break-words sm:text-right mt-1 sm:mt-0 max-w-full sm:max-w-[70%]">
+                  {value}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
-      </div> {/* end flex container */}
+      </div>
     </div>
   );
 }
