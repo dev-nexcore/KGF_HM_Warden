@@ -50,39 +50,74 @@ export default function InspectionManagement() {
       </select>
     </div>
 
-    {/* Date with icon */}
+   {/* Date with icon */}
 <div className="relative">
-  <label className="block text-sm font-semibold text-gray-800 mb-1">Date Range</label>
+  <label className="block text-sm font-semibold text-gray-800 mb-1">Date</label>
   <div className="flex items-center bg-gray-100 rounded px-2 relative">
-    {/* Hidden but functional date input */}
+    {/* Display selected date */}
+    <span
+      id="selected-date"
+      className="px-2 py-2 text-sm text-black w-full"
+    >
+      Select Date
+    </span>
+    {/* Hidden functional date input */}
     <input
       type="date"
-      className="absolute left-0 top-0 w-full h-full opacity-0 cursor-pointer"
       id="custom-date"
+      className="absolute left-0 top-0 w-full h-full opacity-0 cursor-pointer"
+      onChange={(e) => {
+        const date = e.target.value;
+        document.getElementById("selected-date").innerText = date || "Select Date";
+      }}
     />
-    {/* Custom calendar icon */}
+    {/* Custom icon */}
     <img
       src="/images/calendar-icon.png"
       alt="Calendar"
-      className="w-5 h-5 ml-2 opacity-70 cursor-pointer"
-      onClick={() => document.getElementById("custom-date").showPicker?.() || document.getElementById("custom-date").click()}
+      className="w-8 h-8 ml-3 opacity-80 cursor-pointer"
+      onClick={() =>
+        document.getElementById("custom-date").showPicker?.() ||
+        document.getElementById("custom-date").click()
+      }
     />
   </div>
 </div>
-
 
 {/* Time with icon */}
-<div>
+<div className="relative">
   <label className="block text-sm font-semibold text-gray-800 mb-1">Time</label>
-  <div className="flex items-center bg-gray-100 rounded px-2">
-    <input className="bg-gray-100 rounded px-2 py-2 w-full text-sm text-black focus:outline-none" />
-    <img 
-      src="/images/clock-icon.png" 
-      alt="Clock" 
-      className="w-5 h-5 ml-2 opacity-70"
+  <div className="flex items-center bg-gray-100 rounded px-2 relative">
+    {/* Display selected time */}
+    <span
+      id="selected-time"
+      className="px-2 py-2 text-sm text-black w-full"
+    >
+      Select Time
+    </span>
+    {/* Hidden functional time input */}
+    <input
+      type="time"
+      id="custom-time"
+      className="absolute left-0 top-0 w-full h-full opacity-0 cursor-pointer"
+      onChange={(e) => {
+        const time = e.target.value;
+        document.getElementById("selected-time").innerText = time || "Select Time";
+      }}
+    />
+    {/* Custom icon */}
+    <img
+      src="/images/clock-icon.png"
+      alt="Clock"
+      className="w-8 h-8 ml-3 opacity-80 cursor-pointer"
+      onClick={() =>
+        document.getElementById("custom-time").showPicker?.() ||
+        document.getElementById("custom-time").click()
+      }
     />
   </div>
 </div>
+
 
 
     {/* Filter button with icon */}

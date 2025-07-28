@@ -68,7 +68,7 @@ export default function Sidebar() {
                 Bed Allotment
               </Link>
               <Link href="/student" className={getLinkClass("/student")}>
-                <img src="/sidebar-icons/std-management.png" alt="Student Management" className="w-5 h-5" />
+                <img src="/sidebar-icons/student.png" alt="Student Management" className="w-5 h-5" />
                 Student Management
               </Link>
               <Link href="/inspection" className={getLinkClass("/inspection")}>
@@ -76,15 +76,15 @@ export default function Sidebar() {
                 Inspection
               </Link>
               <Link href="/w-leave" className={getLinkClass("/w-leave")}>
-                <img src="/sidebar-icons/leave-req.png" alt="Leave Request" className="w-5 h-5" />
+                <img src="/sidebar-icons/leave.png" alt="Leave Request" className="w-5 h-5" />
                 Leave Request
               </Link>
               <Link href="/w-profile" className={getLinkClass("/w-profile")}>
-                <img src="/sidebar-icons/warden-profile.png" alt="Warden Profile" className="w-5 h-5" />
+                <img src="/sidebar-icons/profile.png" alt="Warden Profile" className="w-5 h-5" />
                 Warden Profile
               </Link>
               <Link href="/emergency-contact" className={getLinkClass("/emergency-contact")}>
-                <img src="/sidebar-icons/emergency_contact.png" alt="Emergency contact" className="w-5 h-5" />
+                <img src="/sidebar-icons/contact.png" alt="Emergency contact" className="w-5 h-5" />
                 Emergency Contact
               </Link>
             </div>
