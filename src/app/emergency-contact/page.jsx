@@ -2,15 +2,13 @@ import Sidebar from "@/components/layout/sidebar";
 import Navbar from "@/components/layout/navbar";
 import EmergencyContact from "@/components/emergencycontact/EmergencyContact";
 
-export default function EmergencyContactPage() {
+export default function BedAllotmentPage() {
   return (
-    <div className="flex h-screen">
+    <div className="min-h-screen flex flex-col md:flex-row">
       <Sidebar />
-      <div className="flex flex-col flex-1">
+      <div className="flex-1 flex flex-col">
         <Navbar />
-        <main className="flex-1 overflow-y-auto bg-[#f5f5f5]">
-          <EmergencyContact />
-        </main>
+        <EmergencyContact />
       </div>
     </div>
   );

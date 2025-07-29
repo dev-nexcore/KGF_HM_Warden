@@ -14,14 +14,40 @@ export default function InspectionManagement() {
     <div className="space-y-6 p-6">
       <div className="flex items-center mb-4">
         <div className="w-1 h-7 bg-red-500 mr-3"></div>
-        <h2 className="text-lg md:text-xl font-bold">Inspection Management</h2>
+        <h2 className="text-lg sm:text-xl md:text-2xl lg:text-2xl font-bold">Inspection Management</h2>
       </div>
 
       {/* Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-black ">
+      {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-black ">
         <Card label="Total Inspection" value="75" />
         <Card label="Pending Inspection" value="5" color="text-orange-500" />
         <Card label="Completed Inspection" value="70" color="text-green-600" />
+      </div> */}
+
+      {/* Total Inspections */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-black">
+        <div className="bg-[#dce0d4] rounded-3xl px-6 py-5 flex items-center justify-between shadow relative">
+          <div>
+            <div className="text-sm font-semibold">Total Inspections</div>
+            <div className="text-3xl font-bold text-black">75</div>
+          </div>
+        </div>
+
+        {/* Pending Inspection */}
+        <div className="bg-[#dce0d4] rounded-3xl px-6 py-5 flex items-center justify-between shadow relative">
+          <div>
+            <div className="text-sm font-semibold">Pending Inspection</div>
+            <div className="text-3xl font-bold text-orange-500">5</div>
+          </div>
+        </div>
+
+        {/* Complete inspection */}
+        <div className="bg-[#dce0d4] rounded-3xl px-6 py-5 flex items-center justify-between shadow relative">
+          <div>
+            <div className="text-sm font-semibold">Completed Inspection</div>
+            <div className="text-3xl font-bold text-green-600">70</div>
+          </div>
+        </div>
       </div>
 
       {/* Filters */}

@@ -84,11 +84,11 @@ export default function Sidebar() {
                 <img src="/sidebar-icons/inspection.png" alt="Inspection" className="w-5 h-5" />
                 Inspection
               </Link>
-              <Link href="/w-leave" className={getLinkClass("/w-leave")}>
+              <Link href="/warden-leave" className={getLinkClass("/warden-leave")}>
                 <img src="/sidebar-icons/leave.png" alt="Leave Request" className="w-5 h-5" />
                 Leave Request
               </Link>
-              <Link href="/w-profile" className={getLinkClass("/w-profile")}>
+              <Link href="/warden-profile" className={getLinkClass("/warden-profile")}>
                 <img src="/sidebar-icons/profile.png" alt="Warden Profile" className="w-5 h-5" />
                 Warden Profile
               </Link>

@@ -2,7 +2,7 @@ export default function BedAllotment() {
   return (
     <div className="p-6">
       {/* Header */}
-      <h2 className="font-bold text-xl mb-4 flex items-center">
+      <h2 className="font-bold text-lg sm:text-xl md:text-2xl lg:text-2xl mb-4 flex items-center">
         <span className="border-l-4 border-red-600 mr-2 h-6 inline-block"></span>
         Bed Allotment
       </h2>
@@ -10,12 +10,12 @@ export default function BedAllotment() {
       {/* Statistics */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
         {/* Occupied Beds */}
-        <div className="bg-[#bfc8ad] rounded-3xl px-6 py-5 flex items-center justify-between shadow relative">
+        <div className="bg-[#dce0d4] rounded-3xl px-6 py-5 flex items-center justify-between shadow relative">
           <div>
             <div className="text-sm font-semibold">Occupied Beds</div>
             <div className="text-3xl font-bold text-black">70</div>
           </div>
-          <div className="absolute top-0 right-0  rounded-full  shadow w-12 h-12 flex items-center justify-center">
+          <div className="absolute top-0 right-0 rounded-full shadow w-12 h-12 flex items-center justify-center">
             <img 
               src="/bed-allotment/bed.png" 
               alt="Occupied Beds" 
@@ -25,12 +25,12 @@ export default function BedAllotment() {
         </div>
 
         {/* Vacant Beds */}
-        <div className="bg-[#bfc8ad] rounded-3xl px-6 py-5 flex items-center justify-between shadow relative">
+        <div className="bg-[#dce0d4] rounded-3xl px-6 py-5 flex items-center justify-between shadow relative">
           <div>
             <div className="text-sm font-semibold">Vacant Beds</div>
             <div className="text-3xl font-bold text-black">3</div>
           </div>
-          <div className="absolute top-0 right-0  rounded-full shadow w-12 h-12 flex items-center justify-center">
+          <div className="absolute top-0 right-0 rounded-full shadow w-12 h-12 flex items-center justify-center">
             <img 
               src="/bed-allotment/bed.png" 
               alt="Vacant Beds" 
@@ -40,7 +40,7 @@ export default function BedAllotment() {
         </div>
 
         {/* Damaged Beds */}
-        <div className="bg-[#bfc8ad] rounded-3xl px-6 py-5 flex items-center justify-between shadow relative">
+        <div className="bg-[#dce0d4] rounded-3xl px-6 py-5 flex items-center justify-between shadow relative">
           <div>
             <div className="text-sm font-semibold">Damaged Beds</div>
             <div className="text-3xl font-bold text-red-600">2</div>
@@ -56,7 +56,7 @@ export default function BedAllotment() {
       </div>
 
       {/* Filter Beds */}
-      <div className="bg-white rounded-3xl shadow p-6 mb-6">
+      <div className="bg-white rounded-3xl drop-shadow-lg p-6 mb-6">
         {/* Filter Beds Heading */}
         <h3 className="font-bold text-lg mb-4 flex items-center">
           Filter Beds
@@ -67,33 +67,40 @@ export default function BedAllotment() {
             <label className="text-xs font-semibold mb-1 block">Block</label>
             <select className="rounded bg-gray-100 px-4 py-2 outline-none w-full">
               <option>All Blocks</option>
+              <option>Block A</option>
+              <option>Block B</option>
+              <option>Block C</option>
             </select>
           </div>
           <div className="flex flex-col">
             <label className="text-xs font-semibold mb-1 block">Floor</label>
             <select className="rounded bg-gray-100 px-4 py-2 outline-none w-full">
               <option>All Floors</option>
+              <option>Floor 1</option>
+              <option>Floor 2</option>
+              <option>Floor 3</option>
             </select>
           </div>
           <div className="flex flex-col">
             <label className="text-xs font-semibold mb-1 block">Room Number</label>
             <select className="rounded bg-gray-100 px-4 py-2 outline-none w-full">
               <option>All Rooms</option>
+              <option>Room 101</option>
+              <option>Room 102</option>
+              <option>Room 103</option>
             </select>
           </div>
           <div className="flex flex-col justify-end">
-            <button className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-5 py-2 rounded flex items-center justify-center w-full">
-              Apply Filters
-              <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                <path d="M19 9l-7 7-7-7"/>
-              </svg>
+            <button className="flex items-center justify-center gap-2 bg-blue-500 text-white rounded px-4 py-2 text-sm hover:bg-blue-600 w-full">
+              <span>Apply Filters</span>
+              <img src="/images/filter-icon.png" alt="Filter" className="w-3 h-3" />
             </button>
           </div>
         </div>
       </div>
 
       {/* Bed Status Overview */}
-      <div className="bg-white rounded-xl shadow p-6">
+      <div className="bg-white rounded-xl drop-shadow-lg p-6">
         <h3 className="mb-4 font-semibold">Bed Status Overview</h3>
         <div className="rounded-xl bg-[#bfc8ad] p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           

@@ -12,33 +12,53 @@ export default function StudentManagement() {
     <div className="space-y-6 p-6">
       <div className="flex items-center mb-4">
         <div className="w-1 h-7 bg-red-500 mr-3"></div>
-        <h2 className="text-lg md:text-xl font-bold">Student Management</h2>
+        <h2 className="text-lg sm:text-xl md:text-2xl lg:text-2xl font-bold">Student Management</h2>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-black">
-        <div className="relative bg-[#dce0d4] w-64 h-32 mx-auto p-4 rounded-3xl shadow transition duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer flex flex-col justify-center text-center">
-          <div className="rounded-full w-11 h-11 bg-white absolute top-0 right-0 border">
-          <img src="/images/students.png" alt="Icon" className="w-6 h-6 m-2"/>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+        {/* Total students */}
+        <div className="bg-[#dce0d4] rounded-3xl px-6 py-5 flex items-center justify-between shadow relative">
+          <div>
+            <div className="text-sm font-semibold">Total Students</div>
+            <div className="text-3xl font-bold text-black">75</div>
           </div>
-          <p className="text-base font-medium mt-4">Total Students</p>
-          <p className="text-3xl font-bold text-gray-800">75</p>
+          <div className="absolute top-0 right-0 rounded-full bg-white border shadow w-12 h-12 flex items-center justify-center">
+            <img 
+              src="/std-management/students.png" 
+              alt="Total Students" 
+              className="object-contain"
+            />
+          </div>
         </div>
 
-        <div className="relative bg-[#dce0d4] w-64 h-32 mx-auto p-4 rounded-3xl shadow transition duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer flex flex-col justify-center text-center">
-          <div className="rounded-full w-11 h-11 bg-white absolute top-0 right-0 border">
-          <img src="/images/active.png" alt="Icon" className="w-6 h-6 m-2" />
+        {/* Active students */}
+        <div className="bg-[#dce0d4] rounded-3xl px-6 py-5 flex items-center justify-between shadow relative">
+          <div>
+            <div className="text-sm font-semibold">Active Students</div>
+            <div className="text-3xl font-bold text-black">70</div>
           </div>
-          <p className="text-base font-medium mt-4">Active Students</p>
-          <p className="text-3xl font-bold text-gray-800">70</p>
+          <div className="absolute top-0 right-0 rounded-full bg-white border shadow w-12 h-12 flex items-center justify-center">
+            <img 
+              src="/std-management/active.png" 
+              alt="Active Students" 
+              className="object-contain"
+            />
+          </div>
         </div>
 
-        <div className="relative bg-[#dce0d4] w-64 h-32 mx-auto p-4 rounded-3xl shadow transition duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer flex flex-col justify-center text-center">
-          <div className="rounded-full w-11 h-11 bg-white absolute top-0 right-0 border">
-          <img src="/images/leave.png" alt="Icon" className="w-6 h-6 m-2" />
+        <div className="bg-[#dce0d4] rounded-3xl px-6 py-5 flex items-center justify-between shadow relative">
+          <div>
+            <div className="text-sm font-semibold">Students On Leave</div>
+            <div className="text-3xl font-bold text-red-600">5</div>
           </div>
-          <p className="text-base font-medium mt-4">Students On Leave</p>
-          <p className="text-3xl font-bold text-red-600">5</p>
+          <div className="absolute top-0 right-0 rounded-full bg-white border shadow w-12 h-12 flex items-center justify-center">
+            <img 
+              src="/std-management/leave-std.png" 
+              alt="Students On Leave" 
+              className="object-contain"
+            />
+          </div>
         </div>
       </div>
 

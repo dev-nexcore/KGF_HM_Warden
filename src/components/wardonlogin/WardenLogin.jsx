@@ -81,7 +81,7 @@ function WardenLogin() {
 
             {/* Forgot Password */}
             <div className="w-3/4 flex justify-end mb-6">
-              <a href="#" className="text-sm text-blue-600 hover:underline">
+              <a href="/forgotpassword" className="text-sm text-blue-600 hover:underline">
                 Forget Password?
               </a>
             </div>

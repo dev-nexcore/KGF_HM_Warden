@@ -2,19 +2,20 @@
 
 import React from "react";
 
-export default function Navbar({ children, title = "Welcome Back, Warden", subtitle = "-have a great day" }) {
+export default function Navbar(){
   return (
-    <section className="flex-1 bg-white flex flex-col">
-      <header className="flex items-center justify-between px-8 py-4 bg-[#BEC5AD] md:px-8 pl-16 md:pl-8">
-        <div className="flex-1 pl-3">
-          <h1 className="text-2xl font-semibold text-black">{title}</h1>
-          <p className="italic text-black text-sm -mt-1">{subtitle}</p>
-        </div>
-        <div className="w-15 h-15 bg-white rounded-full border border-gray-300 flex-shrink-0" />
-      </header>
-      <main className="flex-1 p-6 md:p-6 pt-4">
-        {children}
-      </main>
-    </section>
+    <>
+  <nav className="flex w-full items-center justify-between px-8 py-4 pl-16 md:pl-8 bg-[#BEC5AD]">
+    <div className="flex-1 pl-3">
+      <h1 className="text-2xl font-semibold text-black">Welcome Back, Warden</h1>
+      <p className="italic text-black text-sm -mt-1">-have a great day</p>
+    </div>
+    <div className="ml-auto">
+      {/* <div className="w-15 h-15 bg-white rounded-full border border-gray-300 flex-shrink-0" /> */}
+      <img src="/logo.png" alt="Profile" className="w-15 h-15 rounded-full border border-gray-300 flex-shrink-0" />
+    </div>
+  </nav>
+</>
+
   );
 }
