@@ -45,13 +45,23 @@ export default function LeaveRequestManagement() {
     return colors[status.toLowerCase()] || 'text-gray-600 bg-gray-100 border border-gray-200';
   };
 
+  // Function to handle calendar icon click
+  const handleCalendarClick = () => {
+    const dateInput = document.getElementById('dateInput');
+    if (dateInput) {
+      dateInput.showPicker();
+    }
+  };
+
   return (
     <div className="p-2 xs:p-3 sm:p-4 md:p-5 lg:p-6 xl:p-8 2xl:p-10 space-y-3 bg-white min-h-screen max-w-full overflow-x-hidden">
       
-      {/* Page Header */}
+      {/* Page Header with 20px font size */}
       <div className="flex items-center mb-4">
         <div className="w-1 h-6 sm:h-8 bg-red-500 mr-2 rounded-full flex-shrink-0"></div>
-        <h1 className="text-lg sm:text-xl md:text-2xl xl:text-3xl font-bold text-gray-900">
+        <h1 
+          className="font-bold text-gray-900 text-lg sm:text-xl md:text-2xl lg:text-2xl"
+        >
           Leave Request Management
         </h1>
       </div>
@@ -94,16 +104,29 @@ export default function LeaveRequestManagement() {
               <option>Rejected</option>
             </select>
           </div>
+          {/* Updated Date Range with functional date input */}
           <div>
             <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Date Range</label>
             <div className="relative flex items-center">
-              <input type="text" placeholder="dd-mm-yyyy"
-                className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-md pr-10"
+              <input 
+                id="dateInput"
+                type="date"
+                className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                 style={{ backgroundColor: '#D9D9D9', color: '#000' }}
               />
-              <div className="absolute right-3">
-                <Image src="/leave/calender.png" alt="Calendar" width={20} height={20} className="rounded" />
-              </div>
+              <button
+                type="button"
+                onClick={handleCalendarClick}
+                className="absolute right-3 cursor-pointer hover:opacity-80 transition-opacity duration-200"
+              >
+                <Image 
+                  src="/leave/calender.png" 
+                  alt="Calendar" 
+                  width={20} 
+                  height={20} 
+                  className="rounded" 
+                />
+              </button>
             </div>
           </div>
           <div className="flex items-end">

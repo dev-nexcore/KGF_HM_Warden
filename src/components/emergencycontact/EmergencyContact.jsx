@@ -47,12 +47,11 @@ export default function EmergencyContact() {
   );
 
   return (
-    <div className="min-h-screen w-full bg-[#f5f5f5] px-4 py-4 sm:px-6 md:px-8 lg:px-12 xl:px-5 flex flex-col">
-  {/* Page Header with 20px left offset */}
-  <h2 className="text-lg sm:text-xl md:text-2xl lg:text-2xl font-bold text-black border-l-4 border-red-600 pl-3 mb-4 sm:mb-6 ml-5">
-    Emergency Contact
-  </h2>
-
+    <div className="min-h-screen w-full bg-[#ffffff] px-4 py-4 sm:px-6 md:px-8 lg:px-12 xl:px-5 flex flex-col">
+      {/* Page Header with 20px left offset */}
+      <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-black border-l-4 border-red-600 pl-3 mb-4 sm:mb-6 ml-5">
+        Emergency Contact
+      </h2>
 
       {/* Search and Buttons - Centered container with max width */}
       <div className="w-full max-w-6xl mx-auto">
@@ -62,7 +61,7 @@ export default function EmergencyContact() {
             <input
               type="text"
               placeholder="Search contacts..."
-              className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base rounded-lg shadow placeholder:text-gray-600 text-black bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base rounded-lg shadow-[0px_4px_10px_0px_#00000040] placeholder:text-gray-600 text-black bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -131,23 +130,19 @@ export default function EmergencyContact() {
                   </p>
                 </div>
                 
+                {/* Updated Mobile Actions - Same as Desktop */}
                 <div className="flex items-center justify-end gap-4 pt-2">
-                  <button className="flex items-center gap-2 px-3 py-2 bg-green-50 hover:bg-green-100 rounded-lg transition-colors duration-200">
-                    <img
-                      src="/icons/phone.svg"
-                      alt="Phone Icon"
-                      className="w-4 h-4 sm:w-5 sm:h-5"
-                    />
-                    <span className="text-xs sm:text-sm font-medium text-green-700">Call</span>
-                  </button>
-                  <button className="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors duration-200">
-                    <img
-                      src="/icons/edit.svg"
-                      alt="Edit Icon"
-                      className="w-4 h-4 sm:w-5 sm:h-5"
-                    />
-                    <span className="text-xs sm:text-sm font-medium text-blue-700">Edit</span>
-                  </button>
+                  <img
+                    src="/emergency/phone.png"
+                    alt="Phone Icon"
+                    className="w-5 h-5 cursor-pointer hover:scale-110 transition-transform"
+                  />
+                  <div className="w-px h-5 bg-gray-800" />
+                  <img
+                    src="/emergency/edit.png"
+                    alt="Edit Icon"
+                    className="w-5 h-5 cursor-pointer hover:scale-110 transition-transform"
+                  />
                 </div>
               </div>
             </div>
@@ -187,13 +182,12 @@ export default function EmergencyContact() {
                 </tr>
               ) : (
                 filteredContacts.map((contact, index) => (
-                 <tr
-                   key={index}
-                     className={`hover:bg-gray-50 transition-colors duration-150 relative ${
-                       index !== filteredContacts.length - 1 ? "after:content-[''] after:absolute after:bottom-0 after:left-9 after:right-27 after:h-px after:bg-gray-400" : ""
-                       }`}
+                  <tr
+                    key={index}
+                    className={`hover:bg-gray-50 transition-colors duration-150 relative ${
+                      index !== filteredContacts.length - 1 ? "after:content-[''] after:absolute after:bottom-0 after:left-9 after:right-27 after:h-px after:bg-gray-400" : ""
+                    }`}
                   >
-
                     <td className="px-6 xl:px-8 py-4 xl:py-5 font-semibold text-black text-sm xl:text-base">
                       {contact.student}
                     </td>
@@ -208,21 +202,17 @@ export default function EmergencyContact() {
                     </td>
                     <td className="px-6 xl:px-8 py-4 xl:py-5">
                       <div className="flex items-center gap-3 xl:gap-4">
-                        <button className="p-2 hover:bg-green-50 rounded-lg transition-colors duration-200 group">
-                          <img
-                            src="/emergency/phone.png"
-                            alt="Phone Icon"
-                            className="w-5 h-5 xl:w-6 xl:h-6 group-hover:scale-110 transition-transform duration-200"
-                          />
-                        </button>
+                        <img
+                          src="/emergency/phone.png"
+                          alt="Phone Icon"
+                          className="w-5 h-5 xl:w-6 xl:h-6 cursor-pointer hover:scale-110 transition-transform"
+                        />
                         <div className="w-px h-6 bg-gray-800" />
-                        <button className="p-2 hover:bg-blue-50 rounded-lg transition-colors duration-200 group">
-                          <img
-                            src="/emergency/edit.png"
-                            alt="Edit Icon"
-                            className="w-5 h-5 xl:w-6 xl:h-6 group-hover:scale-110 transition-transform duration-200"
-                          />
-                        </button>
+                        <img
+                          src="/emergency/edit.png"
+                          alt="Edit Icon"
+                          className="w-5 h-5 xl:w-6 xl:h-6 cursor-pointer hover:scale-110 transition-transform"
+                        />
                       </div>
                     </td>
                   </tr>
@@ -231,7 +221,7 @@ export default function EmergencyContact() {
             </tbody>
           </table>
         </div>
-      </div>      
+      </div>
     </div>
   );
 }
