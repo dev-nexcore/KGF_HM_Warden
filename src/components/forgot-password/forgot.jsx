@@ -30,7 +30,7 @@ export default function ForgetPassword() {
         </form>
 
         <div className="text-center mt-6">
-          <p className="text-sm text-gray-700 hover:underline cursor-pointer">Back To Login</p>
+          <a href="/" className="text-sm text-gray-700 hover:underline cursor-pointer">Back To Login</a>
         </div>
       </div>
     </div>
