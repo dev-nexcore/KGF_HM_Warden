@@ -241,581 +241,6 @@
 
 
 
-// "use client";
-// import { useState, useEffect } from "react";
-// import axios from "axios";
-// import { FiPhone, FiSearch, FiPlus, FiFilter } from "react-icons/fi";
-// import { FaEdit } from "react-icons/fa";
-
-// const mockContacts = [
-//   { id: 1, name: "Police Station", phone: "100" },
-//   { id: 2, name: "Fire Department", phone: "101" },
-//   { id: 3, name: "Hospital", phone: "102" },
-// ];
-
-// export default function EmergencyContact() {
-//   const [contacts, setContacts] = useState(mockContacts);
-//   const [editingId, setEditingId] = useState(null);
-//   const [editValues, setEditValues] = useState({ name: "", phone: "" });
-
-//   const [tableContacts, setTableContacts] = useState([]);
-//   const [search, setSearch] = useState("");
-
-//   // Fetch filtered data from backend
-//   const fetchContacts = async () => {
-//     try {
-//       const params = {};
-//       if (search) {
-//         params.studentName = search;
-//         params.studentId = search;
-//       }
-
-//       const res = await axios.get("http://localhost:5000/api/wardenauth/emergency-contact", {
-//         params,
-//       });
-
-//       if (res.data.success) {
-//         const formatted = res.data.contacts.map((item) => ({
-//           id: item.studentId,
-//           student: item.studentName,
-//           contact: item.emergencyContactName,
-//           relation: item.relation,
-//           phone: item.emergencyContactNumber,
-//         }));
-//         setTableContacts(formatted);
-//       }
-//     } catch (err) {
-//       console.error("Error fetching emergency contacts:", err);
-//     }
-//   };
-
-//   // Fetch on mount and when search updates (with debounce)
-//   useEffect(() => {
-//     const delayDebounce = setTimeout(() => {
-//       fetchContacts();
-//     }, 400); // delay for typing
-
-//     return () => clearTimeout(delayDebounce);
-//   }, [search]);
-
-//   const handleEdit = (contact) => {
-//     setEditingId(contact.id);
-//     setEditValues({ name: contact.name, phone: contact.phone });
-//   };
-
-//   const handleSave = (id) => {
-//     setContacts((prev) =>
-//       prev.map((c) => (c.id === id ? { ...c, ...editValues } : c))
-//     );
-//     setEditingId(null);
-//   };
-
-//   return (
-//     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-10">
-      
-//       {/* Section 2: Table */}
-//       <section>
-//         <div className="flex items-center mb-4">
-//           <div className="w-1 h-7 bg-red-500 mr-3"></div>
-//           <h2 className="text-xl font-bold">Emergency Contact</h2>
-//         </div>
-
-//         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
-//           <div className="relative w-full md:w-1/2">
-//             <FiSearch className="absolute top-3.5 left-3 text-gray-400" />
-//             <input
-//               type="text"
-//               placeholder="Search by Student ID or Name..."
-//               className="w-full pl-10 pr-4 py-2 rounded-lg shadow focus:outline-none text-black bg-white"
-//               value={search}
-//               onChange={(e) => setSearch(e.target.value)}
-//             />
-//           </div>
-//           <div className="flex gap-3 flex-wrap">
-//             {/* <button className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-medium px-4 py-2 rounded-lg shadow">
-//               <FiFilter />
-//               Filter
-//             </button> */}
-//             <button className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-medium px-4 py-2 rounded-lg shadow">
-//               <FiPlus />
-//               Add Contact
-//             </button>
-//           </div>
-//         </div>
-
-//         <div className="overflow-x-auto rounded-xl border border-black">
-//           <table className="min-w-full bg-white">
-//             <thead className="bg-[#A4B494] text-gray-800">
-//               <tr>
-//                 <th className="text-left px-4 py-3">Student ID</th>
-//                 <th className="text-left px-4 py-3">Student Name</th>
-//                 <th className="text-left px-4 py-3">Contact Name</th>
-//                 <th className="text-left px-4 py-3">Relation</th>
-//                 <th className="text-left px-4 py-3">Phone No.</th>
-//                 <th className="text-left px-4 py-3">Actions</th>
-//               </tr>
-//             </thead>
-//             <tbody>
-//               {tableContacts.length === 0 ? (
-//                 <tr>
-//                   <td colSpan={6} className="text-center text-gray-500 py-8">
-//                     No contacts found.
-//                   </td>
-//                 </tr>
-//               ) : (
-//                 tableContacts.map((c, idx) => (
-//                   <tr
-//                     key={idx}
-//                     className="border-t border-gray-200 hover:bg-gray-50 transition"
-//                   >
-//                     <td className="px-4 py-3">{c.id}</td>
-//                     <td className="px-4 py-3">{c.student}</td>
-//                     <td className="px-4 py-3">{c.contact}</td>
-//                     <td className="px-4 py-3">{c.relation}</td>
-//                     <td className="px-4 py-3">{c.phone}</td>
-//                     <td className="px-4 py-3 flex items-center gap-4">
-//                       <FiPhone className="cursor-pointer text-gray-700 hover:text-black" />
-//                       <FaEdit className="cursor-pointer text-gray-700 hover:text-black" />
-//                     </td>
-//                   </tr>
-//                 ))
-//               )}
-//             </tbody>
-//           </table>
-//         </div>
-//       </section>
-//     </div>
-//   );
-// }
-
-
-
-
-
-
-
-
-// "use client";
-// import { useState, useEffect } from "react";
-// import axios from "axios";
-// import { FiPhone, FiSearch, FiPlus, FiFilter } from "react-icons/fi";
-// import { FaEdit, FaSave } from "react-icons/fa";
-
-// export default function EmergencyContact() {
-//   const [tableContacts, setTableContacts] = useState([]);
-//   const [search, setSearch] = useState("");
-//   const [editingId, setEditingId] = useState(null);
-//   const [editValues, setEditValues] = useState({
-//     contact: "",
-//     relation: "",
-//     phone: "",
-//   });
-
-//   // Fetch filtered data from backend
-//   const fetchContacts = async () => {
-//     try {
-//       const params = {};
-//       if (search) {
-//         params.studentName = search;
-//         params.studentId = search;
-//       }
-
-//       const res = await axios.get("http://localhost:5000/api/wardenauth/emergency-contact", {
-//         params,
-//       });
-
-//       if (res.data.success) {
-//         const formatted = res.data.contacts.map((item) => ({
-//           id: item.studentId,
-//           student: item.studentName,
-//           contact: item.emergencyContactName,
-//           relation: item.relation,
-//           phone: item.emergencyContactNumber,
-//         }));
-//         setTableContacts(formatted);
-//       }
-//     } catch (err) {
-//       console.error("Error fetching emergency contacts:", err);
-//     }
-//   };
-
-//   // Fetch on mount and when search updates (with debounce)
-//   useEffect(() => {
-//     const delayDebounce = setTimeout(() => {
-//       fetchContacts();
-//     }, 400);
-
-//     return () => clearTimeout(delayDebounce);
-//   }, [search]);
-
-//   const handleEdit = (contact) => {
-//     setEditingId(contact.id);
-//     setEditValues({
-//       contact: contact.contact,
-//       relation: contact.relation,
-//       phone: contact.phone,
-//     });
-//   };
-
-//   const handleSave = (id) => {
-//     const updated = tableContacts.map((c) =>
-//       c.id === id ? { ...c, ...editValues } : c
-//     );
-//     setTableContacts(updated);
-//     setEditingId(null);
-
-//     // Optionally, you can send PUT request to backend here
-//     // axios.put(`/api/update-contact/${id}`, editValues);
-//   };
-
-//   const handleClearFilter = () => {
-//     setSearch("");
-//   };
-
-//   return (
-//     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-10">
-//       {/* Section 2: Table */}
-//       <section>
-//         <div className="flex items-center mb-4">
-//           <div className="w-1 h-7 bg-red-500 mr-3"></div>
-//           <h2 className="text-xl font-bold">Emergency Contact</h2>
-//         </div>
-
-//         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
-//           <div className="relative w-full md:w-1/2">
-//             <FiSearch className="absolute top-3.5 left-3 text-gray-400" />
-//             <input
-//               type="text"
-//               placeholder="Search by Student ID or Name..."
-//               className="w-full pl-10 pr-4 py-2 rounded-lg shadow focus:outline-none text-black bg-white"
-//               value={search}
-//               onChange={(e) => setSearch(e.target.value)}
-//             />
-//           </div>
-//           <div className="flex gap-3 flex-wrap">
-//             <button
-//               className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-medium px-4 py-2 rounded-lg shadow"
-//               onClick={handleClearFilter}
-//             >
-//               <FiFilter />
-//               Clear Filter
-//             </button>
-//           </div>
-//         </div>
-
-//         <div className="overflow-x-auto rounded-xl border border-black">
-//           <table className="min-w-full bg-white">
-//             <thead className="bg-[#A4B494] text-gray-800">
-//               <tr>
-//                 <th className="text-left px-4 py-3">Student ID</th>
-//                 <th className="text-left px-4 py-3">Student Name</th>
-//                 <th className="text-left px-4 py-3">Contact Name</th>
-//                 <th className="text-left px-4 py-3">Relation</th>
-//                 <th className="text-left px-4 py-3">Phone No.</th>
-//                 <th className="text-left px-4 py-3">Actions</th>
-//               </tr>
-//             </thead>
-//             <tbody>
-//               {tableContacts.length === 0 ? (
-//                 <tr>
-//                   <td colSpan={6} className="text-center text-gray-500 py-8">
-//                     No contacts found.
-//                   </td>
-//                 </tr>
-//               ) : (
-//                 tableContacts.map((c, idx) => (
-//                   <tr
-//                     key={idx}
-//                     className="border-t border-gray-200 hover:bg-gray-50 transition"
-//                   >
-//                     <td className="px-4 py-3">{c.id}</td>
-//                     <td className="px-4 py-3">{c.student}</td>
-//                     <td className="px-4 py-3">
-//                       {editingId === c.id ? (
-//                         <input
-//                           type="text"
-//                           className="w-full border px-2 py-1 rounded"
-//                           value={editValues.contact}
-//                           onChange={(e) =>
-//                             setEditValues({ ...editValues, contact: e.target.value })
-//                           }
-//                         />
-//                       ) : (
-//                         c.contact
-//                       )}
-//                     </td>
-//                     <td className="px-4 py-3">
-//                       {editingId === c.id ? (
-//                         <input
-//                           type="text"
-//                           className="w-full border px-2 py-1 rounded"
-//                           value={editValues.relation}
-//                           onChange={(e) =>
-//                             setEditValues({ ...editValues, relation: e.target.value })
-//                           }
-//                         />
-//                       ) : (
-//                         c.relation
-//                       )}
-//                     </td>
-//                     <td className="px-4 py-3">
-//                       {editingId === c.id ? (
-//                         <input
-//                           type="text"
-//                           className="w-full border px-2 py-1 rounded"
-//                           value={editValues.phone}
-//                           onChange={(e) =>
-//                             setEditValues({ ...editValues, phone: e.target.value })
-//                           }
-//                         />
-//                       ) : (
-//                         c.phone
-//                       )}
-//                     </td>
-//                     <td className="px-4 py-3 flex items-center gap-4">
-//                       <FiPhone className="cursor-pointer text-gray-700 hover:text-black" />
-//                       {editingId === c.id ? (
-//                         <FaSave
-//                           className="cursor-pointer text-green-600 hover:text-green-800"
-//                           onClick={() => handleSave(c.id)}
-//                         />
-//                       ) : (
-//                         <FaEdit
-//                           className="cursor-pointer text-gray-700 hover:text-black"
-//                           onClick={() => handleEdit(c)}
-//                         />
-//                       )}
-//                     </td>
-//                   </tr>
-//                 ))
-//               )}
-//             </tbody>
-//           </table>
-//         </div>
-//       </section>
-//     </div>
-//   );
-// }
-
-
-
-// "use client";
-// import { useState, useEffect } from "react";
-// import axios from "axios";
-// import { FiPhone, FiSearch, FiFilter } from "react-icons/fi";
-// import { FaEdit, FaSave } from "react-icons/fa";
-
-// export default function EmergencyContact() {
-//   const [tableContacts, setTableContacts] = useState([]);
-//   const [search, setSearch] = useState("");
-//   const [editingId, setEditingId] = useState(null);
-//   const [editValues, setEditValues] = useState({
-//     contact: "",
-//     relation: "",
-//     phone: "",
-//   });
-
-//   // Fetch filtered data from backend
-//   const fetchContacts = async () => {
-//     try {
-//       const params = {};
-//       if (search) {
-//         params.studentName = search;
-//         params.studentId = search;
-//       }
-
-//       const res = await axios.get("http://localhost:5000/api/wardenauth/emergency-contact", {
-//         params,
-//       });
-
-//       if (res.data.success) {
-//         const formatted = res.data.contacts.map((item) => ({
-//           id: item.studentId,
-//           student: item.studentName,
-//           contact: item.emergencyContactName,
-//           relation: item.relation,
-//           phone: item.emergencyContactNumber,
-//         }));
-//         setTableContacts(formatted);
-//       }
-//     } catch (err) {
-//       console.error("Error fetching emergency contacts:", err);
-//     }
-//   };
-
-//   useEffect(() => {
-//     const delayDebounce = setTimeout(() => {
-//       fetchContacts();
-//     }, 400);
-
-//     return () => clearTimeout(delayDebounce);
-//   }, [search]);
-
-//   const handleEdit = (contact) => {
-//     setEditingId(contact.id);
-//     setEditValues({
-//       contact: contact.contact || "",
-//       relation: contact.relation || "",
-//       phone: contact.phone || "",
-//     });
-//   };
-
-//   const handleSave = async (id) => {
-//     try {
-//       const res = await axios.put(
-//         `http://localhost:5000/api/wardenauth/emergency-contact/${id}`,
-//         {
-//           emergencyContactName: editValues.contact,
-//           relation: editValues.relation,
-//           emergencyContactNumber: editValues.phone,
-//         }
-//       );
-
-//       if (res.data.success) {
-//         alert("Emergency contact updated successfully!");
-//         setEditingId(null);
-//         fetchContacts(); // Refresh table after update
-//       } else {
-//         alert("Failed to update contact.");
-//       }
-//     } catch (err) {
-//       console.error("Update failed:", err);
-//       alert("Something went wrong while updating.");
-//     }
-//   };
-
-//   const handleClearFilter = () => {
-//     setSearch("");
-//   };
-
-//   return (
-//     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-10">
-//       <section>
-//         <div className="flex items-center mb-4">
-//           <div className="w-1 h-7 bg-red-500 mr-3"></div>
-//           <h2 className="text-xl font-bold">Emergency Contact</h2>
-//         </div>
-
-//         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
-//           <div className="relative w-full md:w-1/2">
-//             <FiSearch className="absolute top-3.5 left-3 text-gray-400" />
-//             <input
-//               type="text"
-//               placeholder="Search by Student ID or Name..."
-//               className="w-full pl-10 pr-4 py-2 rounded-lg shadow focus:outline-none text-black bg-white"
-//               value={search}
-//               onChange={(e) => setSearch(e.target.value)}
-//             />
-//           </div>
-//           <div className="flex gap-3 flex-wrap">
-//             <button
-//               className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-medium px-4 py-2 rounded-lg shadow"
-//               onClick={handleClearFilter}
-//             >
-//               <FiFilter />
-//               Clear Filter
-//             </button>
-//           </div>
-//         </div>
-
-//         <div className="overflow-x-auto rounded-xl border border-black">
-//           <table className="min-w-full bg-white">
-//             <thead className="bg-[#A4B494] text-gray-800">
-//               <tr>
-//                 <th className="text-left px-4 py-3">Student ID</th>
-//                 <th className="text-left px-4 py-3">Student Name</th>
-//                 <th className="text-left px-4 py-3">Contact Name</th>
-//                 <th className="text-left px-4 py-3">Relation</th>
-//                 <th className="text-left px-4 py-3">Phone No.</th>
-//                 <th className="text-left px-4 py-3">Actions</th>
-//               </tr>
-//             </thead>
-//             <tbody>
-//               {tableContacts.length === 0 ? (
-//                 <tr>
-//                   <td colSpan={6} className="text-center text-gray-500 py-8">
-//                     No contacts found.
-//                   </td>
-//                 </tr>
-//               ) : (
-//                 tableContacts.map((c, idx) => (
-//                   <tr
-//                     key={idx}
-//                     className="border-t border-gray-200 hover:bg-gray-50 transition"
-//                   >
-//                     <td className="px-4 py-3">{c.id}</td>
-//                     <td className="px-4 py-3">{c.student}</td>
-//                     <td className="px-4 py-3">
-//                       {editingId === c.id ? (
-//                         <input
-//                           type="text"
-//                           className="w-full border px-2 py-1 rounded"
-//                           value={editValues.contact}
-//                           onChange={(e) =>
-//                             setEditValues({ ...editValues, contact: e.target.value })
-//                           }
-//                         />
-//                       ) : (
-//                         c.contact
-//                       )}
-//                     </td>
-//                     <td className="px-4 py-3">
-//                       {editingId === c.id ? (
-//                         <input
-//                           type="text"
-//                           className="w-full border px-2 py-1 rounded"
-//                           value={editValues.relation}
-//                           onChange={(e) =>
-//                             setEditValues({ ...editValues, relation: e.target.value })
-//                           }
-//                         />
-//                       ) : (
-//                         c.relation
-//                       )}
-//                     </td>
-//                     <td className="px-4 py-3">
-//                       {editingId === c.id ? (
-//                         <input
-//                           type="text"
-//                           className="w-full border px-2 py-1 rounded"
-//                           value={editValues.phone}
-//                           onChange={(e) =>
-//                             setEditValues({ ...editValues, phone: e.target.value })
-//                           }
-//                         />
-//                       ) : (
-//                         c.phone
-//                       )}
-//                     </td>
-//                     <td className="px-4 py-3 flex items-center gap-4">
-//                       <FiPhone className="cursor-pointer text-gray-700 hover:text-black" />
-//                       {editingId === c.id ? (
-//                         <FaSave
-//                           className="cursor-pointer text-green-600 hover:text-green-800"
-//                           onClick={() => handleSave(c.id)}
-//                         />
-//                       ) : (
-//                         <FaEdit
-//                           className="cursor-pointer text-gray-700 hover:text-black"
-//                           onClick={() => handleEdit(c)}
-//                         />
-//                       )}
-//                     </td>
-//                   </tr>
-//                 ))
-//               )}
-//             </tbody>
-//           </table>
-//         </div>
-//       </section>
-//     </div>
-//   );
-// }
-
-
-
-
-
 "use client";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -833,7 +258,6 @@ export default function EmergencyContact() {
     phone: "",
   });
 
-  // Fetch filtered data from backend
   const fetchContacts = async () => {
     try {
       const params = {};
@@ -842,9 +266,10 @@ export default function EmergencyContact() {
         params.studentId = search;
       }
 
-      const res = await axios.get("http://localhost:5000/api/wardenauth/emergency-contact", {
-        params,
-      });
+      const res = await axios.get(
+        "http://localhost:5000/api/wardenauth/emergency-contact",
+        { params }
+      );
 
       if (res.data.success) {
         const formatted = res.data.contacts.map((item) => ({
@@ -905,6 +330,14 @@ export default function EmergencyContact() {
 
   const handleClearFilter = () => {
     setSearch("");
+  };
+
+  const handleCall = (phoneNumber) => {
+    if (phoneNumber) {
+      window.open(`tel:${phoneNumber}`);
+    } else {
+      toast.error("Phone number not available");
+    }
   };
 
   return (
@@ -976,7 +409,10 @@ export default function EmergencyContact() {
                           className="w-full border px-2 py-1 rounded"
                           value={editValues.contact}
                           onChange={(e) =>
-                            setEditValues({ ...editValues, contact: e.target.value })
+                            setEditValues({
+                              ...editValues,
+                              contact: e.target.value,
+                            })
                           }
                         />
                       ) : (
@@ -990,7 +426,10 @@ export default function EmergencyContact() {
                           className="w-full border px-2 py-1 rounded"
                           value={editValues.relation}
                           onChange={(e) =>
-                            setEditValues({ ...editValues, relation: e.target.value })
+                            setEditValues({
+                              ...editValues,
+                              relation: e.target.value,
+                            })
                           }
                         />
                       ) : (
@@ -1004,7 +443,10 @@ export default function EmergencyContact() {
                           className="w-full border px-2 py-1 rounded"
                           value={editValues.phone}
                           onChange={(e) =>
-                            setEditValues({ ...editValues, phone: e.target.value })
+                            setEditValues({
+                              ...editValues,
+                              phone: e.target.value,
+                            })
                           }
                         />
                       ) : (
@@ -1012,7 +454,13 @@ export default function EmergencyContact() {
                       )}
                     </td>
                     <td className="px-4 py-3 flex items-center gap-4">
-                      <FiPhone className="cursor-pointer text-gray-700 hover:text-black" />
+                      {/* Call icon */}
+                      <FiPhone
+                        className="cursor-pointer text-blue-600 hover:text-blue-800"
+                        onClick={() => handleCall(c.phone)}
+                      />
+
+                      {/* Edit / Save */}
                       {editingId === c.id ? (
                         <FaSave
                           className="cursor-pointer text-green-600 hover:text-green-800"

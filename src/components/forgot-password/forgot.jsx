@@ -267,7 +267,7 @@ export default function ForgotPasswordFlow() {
           <div className="text-center space-y-4">
             <p className="text-green-600 text-xl font-semibold">✅ Password has been reset!</p>
             <button
-              onClick={() => (window.location.href = "/warden/login")}
+              onClick={() => (window.location.href = "/")}
               className="bg-[#b8bfa5] text-black font-semibold px-10 py-2 rounded-lg shadow hover:opacity-90 transition"
             >
               Go to Login
