@@ -245,7 +245,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { FiPhone, FiSearch, FiFilter } from "react-icons/fi";
-import { FaEdit, FaSave } from "react-icons/fa";
+import { FaEdit, FaSave, FaTimes } from "react-icons/fa";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function EmergencyContact() {
@@ -291,7 +291,6 @@ export default function EmergencyContact() {
     const delayDebounce = setTimeout(() => {
       fetchContacts();
     }, 400);
-
     return () => clearTimeout(delayDebounce);
   }, [search]);
 
@@ -326,6 +325,10 @@ export default function EmergencyContact() {
       console.error("Update failed:", err);
       toast.error("Something went wrong while updating.");
     }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
   };
 
   const handleClearFilter = () => {
@@ -374,8 +377,100 @@ export default function EmergencyContact() {
           </div>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto rounded-xl border border-black">
+        {/* Card View - Mobile */}
+        <div className="md:hidden space-y-4">
+          {tableContacts.length === 0 ? (
+            <p className="text-center text-gray-500">No contacts found.</p>
+          ) : (
+            tableContacts.map((c, idx) => (
+              <div
+                key={idx}
+                className="bg-white border rounded-xl shadow p-4 space-y-2"
+              >
+                <div>
+                  <strong>Student ID:</strong> {c.id}
+                </div>
+                <div>
+                  <strong>Name:</strong> {c.student}
+                </div>
+                <div>
+                  <strong>Contact:</strong>{" "}
+                  {editingId === c.id ? (
+                    <input
+                      type="text"
+                      className="w-full border px-2 py-1 rounded"
+                      value={editValues.contact}
+                      onChange={(e) =>
+                        setEditValues({ ...editValues, contact: e.target.value })
+                      }
+                    />
+                  ) : (
+                    c.contact
+                  )}
+                </div>
+                <div>
+                  <strong>Relation:</strong>{" "}
+                  {editingId === c.id ? (
+                    <input
+                      type="text"
+                      className="w-full border px-2 py-1 rounded"
+                      value={editValues.relation}
+                      onChange={(e) =>
+                        setEditValues({
+                          ...editValues,
+                          relation: e.target.value,
+                        })
+                      }
+                    />
+                  ) : (
+                    c.relation
+                  )}
+                </div>
+                <div>
+                  <strong>Phone:</strong>{" "}
+                  {editingId === c.id ? (
+                    <input
+                      type="text"
+                      className="w-full border px-2 py-1 rounded"
+                      value={editValues.phone}
+                      onChange={(e) =>
+                        setEditValues({ ...editValues, phone: e.target.value })
+                      }
+                    />
+                  ) : (
+                    c.phone
+                  )}
+                </div>
+                <div className="flex items-center gap-4 mt-2">
+                  <FiPhone
+                    className="cursor-pointer text-blue-600 hover:text-blue-800"
+                    onClick={() => handleCall(c.phone)}
+                  />
+                  {editingId === c.id ? (
+                    <>
+                      <FaSave
+                        className="cursor-pointer text-green-600 hover:text-green-800"
+                        onClick={() => handleSave(c.id)}
+                      />
+                      <FaTimes
+                        className="cursor-pointer text-red-600 hover:text-red-800"
+                        onClick={handleCancelEdit}
+                      />
+                    </>
+                  ) : (
+                    <FaEdit
+                      className="cursor-pointer text-gray-700 hover:text-black"
+                      onClick={() => handleEdit(c)}
+                    />
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Table View - Desktop */}
+        <div className="hidden md:block overflow-x-auto rounded-xl border border-black">
           <table className="min-w-full bg-white">
             <thead className="bg-[#A4B494] text-gray-800">
               <tr>
@@ -388,94 +483,83 @@ export default function EmergencyContact() {
               </tr>
             </thead>
             <tbody>
-              {tableContacts.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="text-center text-gray-500 py-8">
-                    No contacts found.
-                  </td>
-                </tr>
-              ) : (
-                tableContacts.map((c, idx) => (
-                  <tr
-                    key={idx}
-                    className="border-t border-gray-200 hover:bg-gray-50 transition"
-                  >
-                    <td className="px-4 py-3">{c.id}</td>
-                    <td className="px-4 py-3">{c.student}</td>
-                    <td className="px-4 py-3">
-                      {editingId === c.id ? (
-                        <input
-                          type="text"
-                          className="w-full border px-2 py-1 rounded"
-                          value={editValues.contact}
-                          onChange={(e) =>
-                            setEditValues({
-                              ...editValues,
-                              contact: e.target.value,
-                            })
-                          }
-                        />
-                      ) : (
-                        c.contact
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {editingId === c.id ? (
-                        <input
-                          type="text"
-                          className="w-full border px-2 py-1 rounded"
-                          value={editValues.relation}
-                          onChange={(e) =>
-                            setEditValues({
-                              ...editValues,
-                              relation: e.target.value,
-                            })
-                          }
-                        />
-                      ) : (
-                        c.relation
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {editingId === c.id ? (
-                        <input
-                          type="text"
-                          className="w-full border px-2 py-1 rounded"
-                          value={editValues.phone}
-                          onChange={(e) =>
-                            setEditValues({
-                              ...editValues,
-                              phone: e.target.value,
-                            })
-                          }
-                        />
-                      ) : (
-                        c.phone
-                      )}
-                    </td>
-                    <td className="px-4 py-3 flex items-center gap-4">
-                      {/* Call icon */}
-                      <FiPhone
-                        className="cursor-pointer text-blue-600 hover:text-blue-800"
-                        onClick={() => handleCall(c.phone)}
+              {tableContacts.map((c, idx) => (
+                <tr
+                  key={idx}
+                  className="border-t border-gray-200 hover:bg-gray-50 transition"
+                >
+                  <td className="px-4 py-3">{c.id}</td>
+                  <td className="px-4 py-3">{c.student}</td>
+                  <td className="px-4 py-3">
+                    {editingId === c.id ? (
+                      <input
+                        type="text"
+                        className="w-full border px-2 py-1 rounded"
+                        value={editValues.contact}
+                        onChange={(e) =>
+                          setEditValues({ ...editValues, contact: e.target.value })
+                        }
                       />
-
-                      {/* Edit / Save */}
-                      {editingId === c.id ? (
+                    ) : (
+                      c.contact
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {editingId === c.id ? (
+                      <input
+                        type="text"
+                        className="w-full border px-2 py-1 rounded"
+                        value={editValues.relation}
+                        onChange={(e) =>
+                          setEditValues({
+                            ...editValues,
+                            relation: e.target.value,
+                          })
+                        }
+                      />
+                    ) : (
+                      c.relation
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {editingId === c.id ? (
+                      <input
+                        type="text"
+                        className="w-full border px-2 py-1 rounded"
+                        value={editValues.phone}
+                        onChange={(e) =>
+                          setEditValues({ ...editValues, phone: e.target.value })
+                        }
+                      />
+                    ) : (
+                      c.phone
+                    )}
+                  </td>
+                  <td className="px-4 py-3 flex items-center gap-4">
+                    <FiPhone
+                      className="cursor-pointer text-blue-600 hover:text-blue-800"
+                      onClick={() => handleCall(c.phone)}
+                    />
+                    {editingId === c.id ? (
+                      <>
                         <FaSave
                           className="cursor-pointer text-green-600 hover:text-green-800"
                           onClick={() => handleSave(c.id)}
                         />
-                      ) : (
-                        <FaEdit
-                          className="cursor-pointer text-gray-700 hover:text-black"
-                          onClick={() => handleEdit(c)}
+                        <FaTimes
+                          className="cursor-pointer text-red-600 hover:text-red-800"
+                          onClick={handleCancelEdit}
                         />
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
+                      </>
+                    ) : (
+                      <FaEdit
+                        className="cursor-pointer text-gray-700 hover:text-black"
+                        onClick={() => handleEdit(c)}
+                      />
+                    )}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
