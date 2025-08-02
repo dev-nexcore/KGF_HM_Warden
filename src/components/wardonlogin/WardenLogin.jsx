@@ -208,7 +208,7 @@ function WardenLogin() {
             alt="Logo"
             width={300}
             height={300}
-            className="w-48 h-48 object-contain rounded-md"
+            className="w-48 h-48 object-contain rounded-full"
           />
           <p className="mt-6 text-lg font-semibold text-black">
             "Manage Your Hostel Smarter – Everything You Need in <br /> One Platform."

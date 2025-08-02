@@ -187,22 +187,18 @@
 
 
 
-
-
-
-
 // "use client";
 
 // import React, { useEffect, useState } from "react";
 // import axios from "axios";
-// import Link from "next/link";
 
 // export default function StudentManagement() {
 //   const [students, setStudents] = useState([]);
-//   const [counts, setCounts] = useState({ total: 0, active: 0, onLeave: 0 });
+//   const [counts, setCounts] = useState({ total: 0, active: 0, onLeave: 0, checkedOut: 0 });
 //   const [filters, setFilters] = useState({ studentId: "", roomNo: "", status: "" });
 //   const [editingStudent, setEditingStudent] = useState(null);
 //   const [newBarcodeId, setNewBarcodeId] = useState("");
+//   const [availableBeds, setAvailableBeds] = useState([]);
 
 //   useEffect(() => {
 //     fetchCounts();
@@ -215,7 +211,12 @@
 //   const fetchCounts = async () => {
 //     try {
 //       const res = await axios.get("http://localhost:5000/api/wardenauth/students/count");
-//       setCounts({ total: res.data.totalStudents, active: res.data.totalStudents, onLeave: 0 });
+//       setCounts({
+//         total: res.data.totalStudents,
+//         active: res.data.activeStudents,
+//         onLeave: res.data.onLeaveStudents,
+//         checkedOut: res.data.checkedOutStudents || 0,
+//       });
 //     } catch (err) {
 //       console.error("Error fetching counts:", err);
 //     }
@@ -238,19 +239,29 @@
 //     setFilters({ studentId: "", roomNo: "", status: "" });
 //   };
 
-//   const handleEditClick = (student) => {
+//   const handleEditClick = async (student) => {
 //     setEditingStudent(student);
 //     setNewBarcodeId(student.barcodeId || "");
+
+//     try {
+//       const res = await axios.get("http://localhost:5000/api/wardenauth/students/available-bed");
+//       setAvailableBeds(res.data.beds);
+//     } catch (err) {
+//       console.error("Error fetching available beds:", err);
+//       alert("Failed to fetch available beds");
+//     }
 //   };
 
 //   const handleUpdate = async (e) => {
 //     e.preventDefault();
 //     try {
-//       const res = await axios.put(`http://localhost:5000/api/wardenauth/students/${editingStudent.studentId}`, {
-//         barcodeId: newBarcodeId,
-//       });
+//       const res = await axios.put(
+//         `http://localhost:5000/api/wardenauth/students/${editingStudent.studentId}`,
+//         { barcodeId: newBarcodeId }
+//       );
 //       alert(res.data.message);
 //       setEditingStudent(null);
+//       fetchCounts();
 //       fetchStudents();
 //     } catch (err) {
 //       console.error("Update failed:", err);
@@ -258,44 +269,52 @@
 //     }
 //   };
 
-//   const getStatusStyle = (status) =>
-//     status === "Active" ? "text-green-600" : "text-red-500";
+//   const getStatusStyle = (status) => {
+//     if (status === "Active") return "text-green-600";
+//     if (status === "On Leave") return "text-orange-500";
+//     if (status === "Checked Out") return "text-gray-600";
+//     return "";
+//   };
 
 //   return (
 //     <div className="space-y-6 p-6">
+//       {/* Header */}
 //       <div className="flex items-center mb-4">
 //         <div className="w-1 h-7 bg-red-500 mr-3"></div>
 //         <h2 className="text-2xl font-bold">Student Management</h2>
 //       </div>
 
-//       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+//       {/* Stats */}
+//       <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 mb-6">
 //         <StatCard title="Total Students" count={counts.total} icon="/std-management/students.png" />
 //         <StatCard title="Active Students" count={counts.active} icon="/std-management/active.png" />
 //         <StatCard title="On Leave" count={counts.onLeave} icon="/std-management/leave-std.png" red />
+//         <StatCard title="Checked Out" count={counts.checkedOut} icon="/std-management/leave-std.png" />
 //       </div>
 
+//       {/* Filters */}
 //       <div className="bg-white p-4 rounded-xl shadow space-y-4">
 //         <h3 className="text-md font-semibold">Filter Students</h3>
 //         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
 //           <FilterSelect
-//             label="Student ID"
+//             label="Student IDs"
 //             value={filters.studentId}
 //             onChange={(e) => setFilters({ ...filters, studentId: e.target.value })}
-//             options={["", ...students.map(s => s.studentId)]}
+//             options={["", ...students.map((s) => s.studentId)]}
 //           />
 //           <FilterSelect
-//             label="Room No"
+//             label="Room Nos"
 //             value={filters.roomNo}
 //             onChange={(e) => setFilters({ ...filters, roomNo: e.target.value })}
-//             options={["", ...students.map(s => s.roomNo).filter(Boolean)]}
+//             options={["", ...students.map((s) => s.roomNo).filter(Boolean)]}
 //           />
 //           <FilterSelect
 //             label="Status"
 //             value={filters.status}
 //             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-//             options={["", "Active", "On Leave"]}
+//             options={["", "Active", "On Leave", "Checked Out"]}
 //           />
-//           <div className="flex flex-col justify-end">
+//           <div className="flex items-end">
 //             <button
 //               onClick={handleClearFilters}
 //               className="bg-red-500 hover:bg-red-600 text-white rounded px-4 py-2"
@@ -306,15 +325,15 @@
 //         </div>
 //       </div>
 
+//       {/* Student Table */}
 //       <div className="bg-white p-4 rounded-xl shadow">
 //         <h3 className="text-md font-semibold mb-4">Student List</h3>
-
 //         <div className="hidden lg:block overflow-x-auto">
 //           <table className="w-full table-fixed text-sm">
 //             <thead className="bg-gray-100">
 //               <tr>
 //                 <th className="p-2">Student ID</th>
-//                 <th className="p-2">Student Name</th>
+//                 <th className="p-2">Name</th>
 //                 <th className="p-2">Room No</th>
 //                 <th className="p-2">Bed No</th>
 //                 <th className="p-2">Status</th>
@@ -333,7 +352,7 @@
 //                     {s.status || "Active"}
 //                   </td>
 //                   <td className="p-2">{s.contactNumber || "-"}</td>
-//                   <td className="p-2 text-center space-x-3">
+//                   <td className="p-2 text-center">
 //                     <button onClick={() => handleEditClick(s)}>
 //                       <img src="/images/edit-icon.png" alt="Edit" className="w-5 h-5 inline-block" />
 //                     </button>
@@ -344,6 +363,7 @@
 //           </table>
 //         </div>
 
+//         {/* Mobile view */}
 //         <div className="block lg:hidden space-y-4">
 //           {students.map((s, i) => (
 //             <div key={i} className="rounded-lg p-3 shadow bg-gray-50">
@@ -360,24 +380,33 @@
 //               </button>
 //             </div>
 //           ))}
-//           {students.length === 0 && <p>No students found.</p>}
+//           {students.length === 0 && <p className="p-4">No students found.</p>}
 //         </div>
 //       </div>
 
 //       {/* Edit Modal */}
 //       {editingStudent && (
 //         <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-sm">
-//           <div className="bg-white bg-opacity-80 backdrop-filter backdrop-blur-lg rounded-xl p-6 shadow-lg w-[90%] max-w-md text-center">
-//             <h2 className="text-xl font-bold mb-4">Update Bed for {editingStudent.studentName}</h2>
+//           <div className="bg-white bg-opacity-80 backdrop-filter backdrop-blur-lg rounded-xl p-6 shadow-lg w-[90%] max-w-md">
+//             <h2 className="text-xl font-bold mb-4">
+//               Update Bed for {editingStudent.studentName}
+//             </h2>
 //             <form onSubmit={handleUpdate} className="space-y-4">
 //               <label className="block text-left">
-//                 New BED:
-//                 <input
-//                   type="text"
+//                 Select New Bed:
+//                 <select
 //                   value={newBarcodeId}
 //                   onChange={(e) => setNewBarcodeId(e.target.value)}
 //                   className="mt-1 w-full px-3 py-2 border rounded"
-//                 />
+//                   required
+//                 >
+//                   <option value="">-- Choose available bed --</option>
+//                   {availableBeds.map((bed) => (
+//                     <option key={bed._id} value={bed.barcodeId}>
+//                       Room {bed.roomNo} — {bed.barcodeId}
+//                     </option>
+//                   ))}
+//                 </select>
 //               </label>
 //               <div className="flex justify-between">
 //                 <button
@@ -387,7 +416,11 @@
 //                 >
 //                   Cancel
 //                 </button>
-//                 <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded">
+//                 <button
+//                   type="submit"
+//                   className="px-4 py-2 bg-green-600 text-white rounded"
+//                   disabled={!newBarcodeId}
+//                 >
 //                   Update
 //                 </button>
 //               </div>
@@ -399,7 +432,8 @@
 //   );
 // }
 
-// // StatCard
+// // --- Helper Components ---
+
 // function StatCard({ title, count, icon, red }) {
 //   return (
 //     <div className="bg-[#dce0d4] rounded-3xl px-6 py-5 flex justify-between items-center shadow relative">
@@ -407,27 +441,27 @@
 //         <div className="text-sm font-semibold">{title}</div>
 //         <div className={`text-3xl font-bold ${red ? "text-red-600" : "text-black"}`}>{count}</div>
 //       </div>
-//       <div className="absolute top-0 right-0 w-12 h-12 bg-white rounded-full border flex items-center justify-center">
-//         <img src={icon} alt={title} className="object-contain w-full h-full" />
-//       </div>
+//       {icon && (
+//         <div className="absolute top-0 right-0 w-12 h-12 bg-white rounded-full border flex items-center justify-center">
+//           <img src={icon} alt={title} className="object-contain w-full h-full" />
+//         </div>
+//       )}
 //     </div>
 //   );
 // }
 
-// // FilterSelect
 // function FilterSelect({ label, value, onChange, options }) {
 //   return (
 //     <div>
 //       <label className="text-sm font-semibold text-gray-800 mb-1 block">{label}</label>
 //       <select value={value} onChange={onChange} className="bg-gray-100 rounded p-2 w-full text-sm">
 //         {options.map((opt, index) => (
-//           <option key={index} value={opt}>{opt || `All ${label}s`}</option>
+//           <option key={index} value={opt}>{opt || `All ${label}`}</option>
 //         ))}
 //       </select>
 //     </div>
 //   );
 // }
-
 
 
 
@@ -438,7 +472,7 @@ import axios from "axios";
 
 export default function StudentManagement() {
   const [students, setStudents] = useState([]);
-  const [counts, setCounts] = useState({ total: 0, active: 0, onLeave: 0 });
+  const [counts, setCounts] = useState({ total: 0, active: 0, onLeave: 0, checkedOut: 0 });
   const [filters, setFilters] = useState({ studentId: "", roomNo: "", status: "" });
   const [editingStudent, setEditingStudent] = useState(null);
   const [newBarcodeId, setNewBarcodeId] = useState("");
@@ -455,7 +489,12 @@ export default function StudentManagement() {
   const fetchCounts = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/wardenauth/students/count");
-      setCounts({ total: res.data.totalStudents, active: res.data.totalStudents, onLeave: 0 });
+      setCounts({
+        total: res.data.totalStudents,
+        active: res.data.activeStudents,
+        onLeave: res.data.onLeaveStudents,
+        checkedOut: res.data.checkedOutStudents || 0,
+      });
     } catch (err) {
       console.error("Error fetching counts:", err);
     }
@@ -500,6 +539,7 @@ export default function StudentManagement() {
       );
       alert(res.data.message);
       setEditingStudent(null);
+      fetchCounts();
       fetchStudents();
     } catch (err) {
       console.error("Update failed:", err);
@@ -507,7 +547,12 @@ export default function StudentManagement() {
     }
   };
 
-  const getStatusStyle = (status) => (status === "Active" ? "text-green-600" : "text-red-500");
+  const getStatusStyle = (status) => {
+    if (status === "Active") return "text-green-600";
+    if (status === "On Leave") return "text-orange-500";
+    if (status === "Checked Out") return "text-gray-600";
+    return "";
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -518,27 +563,40 @@ export default function StudentManagement() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 mb-6">
         <StatCard title="Total Students" count={counts.total} icon="/std-management/students.png" />
         <StatCard title="Active Students" count={counts.active} icon="/std-management/active.png" />
         <StatCard title="On Leave" count={counts.onLeave} icon="/std-management/leave-std.png" red />
+        <StatCard title="Checked Out" count={counts.checkedOut} icon="/std-management/leave-std.png" />
       </div>
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-xl shadow space-y-4">
         <h3 className="text-md font-semibold">Filter Students</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          <FilterSelect label="Student ID" value={filters.studentId}
+          <FilterSelect
+            label="Student IDs"
+            value={filters.studentId}
             onChange={(e) => setFilters({ ...filters, studentId: e.target.value })}
-            options={["", ...students.map(s => s.studentId)]} />
-          <FilterSelect label="Room No" value={filters.roomNo}
+            options={["", ...students.map((s) => s.studentId)]}
+          />
+          <FilterSelect
+            label="Room Nos"
+            value={filters.roomNo}
             onChange={(e) => setFilters({ ...filters, roomNo: e.target.value })}
-            options={["", ...students.map(s => s.roomNo).filter(Boolean)]} />
-          <FilterSelect label="Status" value={filters.status}
+            options={["", ...students.map((s) => s.roomNo).filter(Boolean)]}
+          />
+          <FilterSelect
+            label="Status"
+            value={filters.status}
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-            options={["", "Active", "On Leave"]} />
+            options={["", "Active", "On Leave", "Checked Out"]}
+          />
           <div className="flex items-end">
-            <button onClick={handleClearFilters} className="bg-red-500 hover:bg-red-600 text-white rounded px-4 py-2">
+            <button
+              onClick={handleClearFilters}
+              className="bg-red-500 hover:bg-red-600 text-white rounded px-4 py-2"
+            >
               Clear Filters
             </button>
           </div>
@@ -549,26 +607,28 @@ export default function StudentManagement() {
       <div className="bg-white p-4 rounded-xl shadow">
         <h3 className="text-md font-semibold mb-4">Student List</h3>
         <div className="hidden lg:block overflow-x-auto">
-          <table className="w-full table-fixed text-sm">
+          <table className="w-full table-auto text-sm text-left">
             <thead className="bg-gray-100">
               <tr>
-                <th className="p-2">Student ID</th>
-                <th className="p-2">Name</th>
-                <th className="p-2">Room No</th>
-                <th className="p-2">Bed No</th>
-                <th className="p-2">Status</th>
-                <th className="p-2">Contact</th>
-                <th className="p-2 text-center">Actions</th>
+                <th className="p-2 w-32">Student ID</th>
+                <th className="p-2 w-40">Name</th>
+                <th className="p-2 w-24">Room No</th>
+                <th className="p-2 w-24">Bed No</th>
+                <th className="p-2 w-32">Status</th>
+                <th className="p-2 w-36">Contact</th>
+                <th className="p-2 w-20 text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
               {students.map((s, i) => (
-                <tr key={i} className="hover:bg-gray-50">
+                <tr key={i} className="hover:bg-gray-50 border-b">
                   <td className="p-2">{s.studentId}</td>
                   <td className="p-2">{s.studentName}</td>
                   <td className="p-2">{s.roomNo || "-"}</td>
                   <td className="p-2">{s.barcodeId || "-"}</td>
-                  <td className={`p-2 font-semibold ${getStatusStyle(s.status || "Active")}`}>{s.status || "Active"}</td>
+                  <td className={`p-2 font-semibold ${getStatusStyle(s.status || "Active")}`}>
+                    {s.status || "Active"}
+                  </td>
                   <td className="p-2">{s.contactNumber || "-"}</td>
                   <td className="p-2 text-center">
                     <button onClick={() => handleEditClick(s)}>
@@ -593,7 +653,9 @@ export default function StudentManagement() {
                 <strong>Status:</strong> {s.status || "Active"}
               </p>
               <p><strong>Contact:</strong> {s.contactNumber || "-"}</p>
-              <button onClick={() => handleEditClick(s)} className="mt-2 text-blue-600">Edit Bed</button>
+              <button onClick={() => handleEditClick(s)} className="mt-2 text-blue-600">
+                Edit Bed
+              </button>
             </div>
           ))}
           {students.length === 0 && <p className="p-4">No students found.</p>}
@@ -603,8 +665,10 @@ export default function StudentManagement() {
       {/* Edit Modal */}
       {editingStudent && (
         <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-sm">
-          <div className="bg-white bg-opacity-80 backdrop-filter backdrop-blur-lg rounded-xl p-6 shadow-lg w-[90%] max-w-md">
-            <h2 className="text-xl font-bold mb-4">Update Bed for {editingStudent.studentName}</h2>
+          <div className="bg-white bg-opacity-90 backdrop-filter backdrop-blur-lg rounded-xl p-6 shadow-lg w-[90%] max-w-md">
+            <h2 className="text-xl font-bold mb-4">
+              Update Bed for {editingStudent.studentName}
+            </h2>
             <form onSubmit={handleUpdate} className="space-y-4">
               <label className="block text-left">
                 Select New Bed:
@@ -623,10 +687,18 @@ export default function StudentManagement() {
                 </select>
               </label>
               <div className="flex justify-between">
-                <button type="button" onClick={() => setEditingStudent(null)} className="px-4 py-2 bg-gray-300 rounded">
+                <button
+                  type="button"
+                  onClick={() => setEditingStudent(null)}
+                  className="px-4 py-2 bg-gray-300 rounded"
+                >
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded" disabled={!newBarcodeId}>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-green-600 text-white rounded"
+                  disabled={!newBarcodeId}
+                >
                   Update
                 </button>
               </div>
@@ -638,7 +710,7 @@ export default function StudentManagement() {
   );
 }
 
-// Helper Components —
+// --- Helper Components ---
 
 function StatCard({ title, count, icon, red }) {
   return (
@@ -662,7 +734,7 @@ function FilterSelect({ label, value, onChange, options }) {
       <label className="text-sm font-semibold text-gray-800 mb-1 block">{label}</label>
       <select value={value} onChange={onChange} className="bg-gray-100 rounded p-2 w-full text-sm">
         {options.map((opt, index) => (
-          <option key={index} value={opt}>{opt || `All ${label}s`}</option>
+          <option key={index} value={opt}>{opt || `All ${label}`}</option>
         ))}
       </select>
     </div>
