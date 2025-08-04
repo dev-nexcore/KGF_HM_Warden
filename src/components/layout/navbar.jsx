@@ -1,27 +1,3 @@
-// "use client";
-
-// import React from "react";
-
-// export default function Navbar(){
-//   return (
-//     <>
-//   <nav className="flex w-full items-center justify-between px-8 py-4 pl-16 md:pl-8 bg-[#BEC5AD]">
-//     <div className="flex-1 pl-3">
-//       <h1 className="text-2xl font-semibold text-black">Welcome Back, Warden</h1>
-//       <p className="italic text-black text-sm -mt-1">-have a great day</p>
-//     </div>
-//     <div className="ml-auto">
-//       {/* <div className="w-15 h-15 bg-white rounded-full border border-gray-300 flex-shrink-0" /> */}
-//       <img src="/logo.png" alt="Profile" className="w-15 h-15 rounded-full border border-gray-300 flex-shrink-0" />
-//     </div>
-//   </nav>
-// </>
-
-//   );
-// }
-
-
-
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -41,7 +17,7 @@ export default function Navbar() {
         const wardenId = decoded.id;
 
         const res = await axios.get(
-          `http://localhost:5000/api/wardenauth/profile/${wardenId}`,
+          `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/profile/${wardenId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -70,7 +46,7 @@ export default function Navbar() {
       <div className="ml-auto">
         {warden?.profilePhoto ? (
           <img
-            src={`http://localhost:5000/uploads/wardens/${warden.profilePhoto}`} //  Show uploaded image
+            src={`${process.env.NEXT_PUBLIC_PROD_API_URL}/uploads/wardens/${warden.profilePhoto}`} //  Show uploaded image
             alt="Warden"
             className="w-12 h-12 rounded-full border border-gray-300 object-cover"
           />

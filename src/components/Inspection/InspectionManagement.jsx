@@ -1,253 +1,11 @@
-// // components/InspectionManagement.jsx
-// "use client";
-
-// export default function InspectionManagement() {
-//   const inspections = [
-//     { date: '05-07-2025', block: 'A', room: '101/B1', inspector: 'Warden Chinu', status: 'Completed' },
-//     { date: '05-07-2025', block: 'B', room: '203/B2', inspector: 'Warden Chinu', status: 'Pending' },
-//     { date: '05-07-2025', block: 'C', room: '305/B1', inspector: 'Warden Chinu', status: 'Completed' },
-//   ];
-
-//   const getStatusStyle = (status) => (status === 'Completed' ? 'text-green-600' : 'text-orange-500');
-
-//   return (
-//     <div className="space-y-6 p-6">
-//       <div className="flex items-center mb-4">
-//         <div className="w-1 h-7 bg-red-500 mr-3"></div>
-//         <h2 className="text-lg sm:text-xl md:text-2xl lg:text-2xl font-bold">Inspection Management</h2>
-//       </div>
-
-//       {/* Cards */}
-//       {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-black ">
-//         <Card label="Total Inspection" value="75" />
-//         <Card label="Pending Inspection" value="5" color="text-orange-500" />
-//         <Card label="Completed Inspection" value="70" color="text-green-600" />
-//       </div> */}
-
-//       {/* Total Inspections */}
-//       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-black">
-//         <div className="bg-[#dce0d4] rounded-3xl px-6 py-5 flex items-center justify-between shadow relative">
-//           <div>
-//             <div className="text-sm font-semibold">Total Inspections</div>
-//             <div className="text-3xl font-bold text-black">75</div>
-//           </div>
-//         </div>
-
-//         {/* Pending Inspection */}
-//         <div className="bg-[#dce0d4] rounded-3xl px-6 py-5 flex items-center justify-between shadow relative">
-//           <div>
-//             <div className="text-sm font-semibold">Pending Inspection</div>
-//             <div className="text-3xl font-bold text-orange-500">5</div>
-//           </div>
-//         </div>
-
-//         {/* Complete inspection */}
-//         <div className="bg-[#dce0d4] rounded-3xl px-6 py-5 flex items-center justify-between shadow relative">
-//           <div>
-//             <div className="text-sm font-semibold">Completed Inspection</div>
-//             <div className="text-3xl font-bold text-green-600">70</div>
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* Filters */}
-// <div className="bg-white p-4 rounded-xl drop-shadow-lg space-y-4">
-//   <h3 className="text-md font-semibold mb-2 text-black">Filter Inspections</h3>
-//   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-black">
-    
-//     {/* Block */}
-//     <div>
-//       <label className="block text-sm font-semibold text-gray-800 mb-1">Block</label>
-//       <select className="bg-gray-100 rounded px-3 py-2 w-full text-sm text-black">
-//         <option>All Blocks</option>
-//         <option>Block A</option>
-//         <option>Block B</option>
-//         <option>Block C</option>
-//       </select>
-//     </div>
-
-//     {/* Status */}
-//     <div>
-//       <label className="block text-sm font-semibold text-gray-800 mb-1">Status</label>
-//       <select className="bg-gray-100 rounded px-3 py-2 w-full text-sm text-black">
-//         <option>All Status</option>
-//         <option>Completed</option>
-//         <option>Pending</option>
-//       </select>
-//     </div>
-
-//    {/* Date with icon */}
-// <div className="relative">
-//   <label className="block text-sm font-semibold text-gray-800 mb-1">Date</label>
-//   <div className="flex items-center bg-gray-100 rounded px-2 relative">
-//     {/* Visible selected date display */}
-//     <span
-//       id="selected-date"
-//       className="px-2 py-2 text-sm text-black w-full"
-//     >
-//       Select Date
-//     </span>
-//     {/* Hidden but functional date input */}
-//     <input
-//       type="date"
-//       id="custom-date"
-//       className="absolute left-0 top-0 w-full h-full opacity-0 cursor-pointer"
-//       onChange={(e) => {
-//         document.getElementById("selected-date").innerText =
-//           e.target.value || "Select Date";
-//       }}
-//     />
-//     {/* Custom calendar icon */}
-//     <img
-//       src="/images/calendar-icon.png"
-//       alt="Calendar"
-//       className="w-6 h-6 ml-2 opacity-70 cursor-pointer"
-//       onClick={() =>
-//         document.getElementById("custom-date").showPicker?.() ||
-//         document.getElementById("custom-date").click()
-//       }
-//     />
-//   </div>
-// </div>
-
-
-
-// {/* Time with icon */}
-// <div className="relative">
-//   <label className="block text-sm font-semibold text-gray-800 mb-1">Time</label>
-//   <div className="flex items-center bg-gray-100 rounded px-2 relative">
-//     {/* Display selected time */}
-//     <span
-//       id="selected-time"
-//       className="px-2 py-2 text-sm text-black w-full"
-//     >
-//       Select Time
-//     </span>
-//     {/* Hidden functional time input */}
-//     <input
-//       type="time"
-//       id="custom-time"
-//       className="absolute left-0 top-0 w-full h-full opacity-0 cursor-pointer"
-//       onChange={(e) => {
-//         const time = e.target.value;
-//         document.getElementById("selected-time").innerText = time || "Select Time";
-//       }}
-//     />
-//     {/* Custom icon */}
-//     <img
-//       src="/images/clock-icon.png"
-//       alt="Clock"
-//       className="w-6 h-6 ml-2 opacity-70 cursor-pointer"
-//       onClick={() =>
-//         document.getElementById("custom-time").showPicker?.() ||
-//         document.getElementById("custom-time").click()
-//       }
-//     />
-//   </div>
-// </div>
-
-
-//     {/* Filter button with icon */}
-//     <div>
-//       <label className="block text-sm font-semibold text-gray-800 mb-1 invisible">.</label>
-//       <button className="flex items-center justify-center gap-2 bg-blue-500 text-white rounded px-4 py-2 text-sm hover:bg-blue-600 w-full lg:w-auto">
-//         <span>Apply Filters</span>
-//         <img src="/images/filter-icon.png" alt="Filter" className="w-3 h-3" />
-//       </button>
-//     </div>
-//   </div>
-// </div>
-
-//       {/* Table for Desktop */}
-//       <div className="bg-white p-4 rounded-xl drop-shadow-lg text-black hidden lg:block">
-//         <h3 className="text-md font-semibold mb-4 text-black">Recent Inspections</h3>
-//         <div className="overflow-x-auto">
-//           <table className="w-full text-sm min-w-[600px] text-center">
-//             <thead className="bg-gray-100 text-center">
-//               <tr>
-//                 <th className="p-2">Date</th>
-//                 <th className="p-2">Block</th>
-//                 <th className="p-2">Room/Bed</th>
-//                 <th className="p-2">Inspector</th>
-//                 <th className="p-2">Status</th>
-//                 <th className="p-2">Actions</th>
-//               </tr>
-//             </thead>
-//             <tbody>
-//               {inspections.map((item, index) => (
-//                 <tr key={index} className="hover:bg-gray-50 text-black">
-//                   <td className="p-2">{item.date}</td>
-//                   <td className="p-2">{item.block}</td>
-//                   <td className="p-2">{item.room}</td>
-//                   <td className="p-2">{item.inspector}</td>
-//                   <td className={`p-2 font-medium ${getStatusStyle(item.status)}`}>{item.status}</td>
-//                   <td className="p-2 space-x-3 text-black">
-//                     <a href="/edit-student" className="inline-block p-2  rounded ">
-//                       <img src="/images/edit-icon.png" alt="Edit" className="w-5 h-5" />
-//                     </a>
-//                     <a href="/delete-student" className="inline-block p-2">
-//                       <img src="/images/delete-icon.png" alt="Delete" className="w-5 h-5" />
-//                     </a>
-//                   </td>
-//                 </tr>
-//               ))}
-//             </tbody>
-//           </table>
-//         </div>
-//       </div>
-
-//       {/* Card View for Mobile */}
-//       <div className="block lg:hidden space-y-4 text-black">
-//         {inspections.map((item, index) => (
-//           <div key={index} className="rounded-lg p-3 shadow-sm bg-gray-50">
-//             <p><strong>Date:</strong> {item.date}</p>
-//             <p><strong>Block:</strong> {item.block}</p>
-//             <p><strong>Room:</strong> {item.room}</p>
-//             <p><strong>Inspector:</strong> {item.inspector}</p>
-//             <p className={`font-semibold ${getStatusStyle(item.status)}`}><strong>Status:</strong> {item.status}</p>
-//             <div className="flex space-x-3 mt-3">
-//               <a href={`/edit-inspection/${index}`}>
-//                 <img 
-//                   src="/images/edit-icon.png" 
-//                   alt="Edit" 
-//                   className="w-5 h-5 p-1"
-//                 />
-//               </a>
-//               <a href={`/delete-icon/${index}`}>
-//                 <img 
-//                   src="/images/delete-icon.png" 
-//                   alt="Delete" 
-//                   className="w-5 h-5 p-1"
-//                 />
-//               </a>
-//             </div>
-//           </div>
-//         ))}
-//       </div>
-//     </div>
-//   );
-// }
-
-// function Card({ label, value, color = 'text-gray-800' }) {
-//   return (
-//     <div className="bg-[#dce0d4] w-64 h-32 mx-auto p-4 rounded-3xl shadow transition duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer flex flex-col justify-center text-center">
-//       <p className="text-base font-medium">{label}</p>
-//       <p className={`text-3xl font-bold ${color}`}>{value}</p>
-//     </div>
-//   );
-// }
-
-
-
-
-
-
 "use client";
 
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-const API_BASE = "http://localhost:5000/api/wardenauth";
+const API_BASE = `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth`;
 
 export default function InspectionManagement() {
   const [inspections, setInspections] = useState([]);
@@ -319,10 +77,12 @@ export default function InspectionManagement() {
         }
       );
       if (res.data.success) {
+        toast.success("Inspection marked as completed", { autoClose: 3000 });
         fetchRecent();
         fetchStats();
       }
     } catch (err) {
+      toast.error("Failed to mark as completed", { autoClose: 3000 });
       console.error("Error marking inspection complete", err);
     }
   };
@@ -334,10 +94,12 @@ export default function InspectionManagement() {
         headers: { Authorization: `Bearer ${localStorage.getItem("wardenToken")}` },
       });
       if (res.data.success) {
+        toast.success("Inspection deleted", { autoClose: 3000 });
         fetchRecent();
         fetchStats();
       }
     } catch (err) {
+      toast.error("Failed to delete inspection", { autoClose: 3000 });
       console.error("Error deleting inspection", err);
     }
   };
@@ -348,6 +110,7 @@ export default function InspectionManagement() {
 
   const clearFilters = () => {
     setFilters({ date: "", time: "", status: "", target: "" });
+    toast.info("Filters cleared", { autoClose: 2000 });
     fetchRecent();
   };
 
@@ -366,6 +129,8 @@ export default function InspectionManagement() {
 
   return (
     <div className="space-y-6 p-6">
+      <ToastContainer position="top-right" autoClose={3000} />
+
       {/* Header */}
       <div className="flex items-center mb-4">
         <div className="w-1 h-7 bg-red-500 mr-3"></div>
@@ -395,7 +160,7 @@ export default function InspectionManagement() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Desktop Table View */}
       <div className="bg-white p-4 rounded-xl drop-shadow-lg text-black hidden lg:block">
         <h3 className="text-md font-semibold mb-4">Recent Inspections</h3>
         <div className="overflow-x-auto">
@@ -426,17 +191,11 @@ export default function InspectionManagement() {
                       {item.status}
                     </td>
                     <td className="p-2 space-x-2">
-                      <button onClick={() => handleView(item)} className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">
-                        View
-                      </button>
+                      <button onClick={() => handleView(item)} className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">View</button>
                       {item.status === "Pending" && (
-                        <button onClick={() => markComplete(item._id)} className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">
-                          Complete
-                        </button>
+                        <button onClick={() => markComplete(item._id)} className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">Complete</button>
                       )}
-                      <button onClick={() => deleteInspection(item._id)} className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs">
-                        Delete
-                      </button>
+                      <button onClick={() => deleteInspection(item._id)} className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs">Delete</button>
                     </td>
                   </tr>
                 ))
@@ -446,7 +205,33 @@ export default function InspectionManagement() {
         </div>
       </div>
 
-      {/* Modal for Full Details */}
+      {/* Mobile Card View */}
+      <div className="lg:hidden grid gap-4">
+        {inspections.length === 0 ? (
+          <p className="text-gray-500 italic">No inspections found.</p>
+        ) : (
+          inspections.map((item, index) => (
+            <div key={index} className="bg-white rounded-lg shadow p-4">
+              <h4 className="text-md font-semibold mb-1">{item.title}</h4>
+              <p><strong>Date:</strong> {item.date}</p>
+              <p><strong>Time:</strong> {item.time}</p>
+              <p><strong>Room:</strong> {item.target}</p>
+              <p className={`font-medium ${item.status === "Completed" ? "text-green-600" : "text-orange-500"}`}>
+                <strong>Status:</strong> {item.status}
+              </p>
+              <div className="flex gap-2 mt-3">
+                <button onClick={() => handleView(item)} className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">View</button>
+                {item.status === "Pending" && (
+                  <button onClick={() => markComplete(item._id)} className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">Complete</button>
+                )}
+                <button onClick={() => deleteInspection(item._id)} className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs">Delete</button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Modal */}
       {isModalOpen && selectedInspection && (
         <div className="fixed inset-0 backdrop-blur-sm bg-black/20 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl w-[90%] max-w-md shadow-lg">
@@ -460,9 +245,7 @@ export default function InspectionManagement() {
             <p><strong>Instructions:</strong> {selectedInspection.instructions}</p>
             <p><strong>Created At:</strong> {new Date(selectedInspection.createdAt).toLocaleString()}</p>
             <div className="mt-4 text-right">
-              <button onClick={() => setIsModalOpen(false)} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-                Close
-              </button>
+              <button onClick={() => setIsModalOpen(false)} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Close</button>
             </div>
           </div>
         </div>
