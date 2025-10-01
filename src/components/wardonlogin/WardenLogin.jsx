@@ -2,17 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { FiEye, FiEyeOff } from "react-icons/fi";
 import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 export default function WardenLogin() {
+  const [step, setStep] = useState(1); // 1 = Enter Warden ID, 2 = Enter OTP
   const [wardenId, setWardenId] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [maskedNumber, setMaskedNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
   const [showPunchModal, setShowPunchModal] = useState(false);
   const [token, setToken] = useState("");
   const router = useRouter();
@@ -21,52 +22,106 @@ export default function WardenLogin() {
     setMounted(true);
   }, []);
 
-  
-
-
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  try {
-    const response = await axios.post(`${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/login`, {
-      wardenId,
-      password,
-    });
-
-    const { token, warden } = response.data;
-
-    localStorage.setItem("wardenToken", token);
-    localStorage.setItem("wardenInfo", JSON.stringify(warden));
-    setToken(token);
-
-    // ✅ Get punch status
-    const punchStatus = await axios.get(`${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/punch-status`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const { punchedIn, punchedOut } = punchStatus.data;
-
-    if (!punchedIn) {
-      toast.success("Login successful! Punch in required.");
-      setShowPunchModal(true); // ✅ Show modal only if not punched in
-    } else if (punchedIn && !punchedOut) {
-      toast.success("Login successful! Already punched in.");
-      setShowPunchModal(false);
-      router.push("/warden-dashboard");
-    } else if (punchedIn && punchedOut) {
-      toast.success("Already punched in and out. Redirecting...");
-      setShowPunchModal(false); // ✅ Important
-      router.push("/warden-dashboard");
+  // Resend timer countdown
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+      return () => clearTimeout(timer);
     }
-  } catch (error) {
-    toast.error(error.response?.data?.message || "Login failed.");
-  } finally {
-    setLoading(false);
-  }
-};
+  }, [resendTimer]);
 
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") handleSubmit(e);
+  // Step 1: Send OTP to WhatsApp
+  const handleSendOTP = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/send-login-otp`,
+        { wardenId }
+      );
+
+      setMaskedNumber(response.data.contactNumber || "your registered number");
+      setStep(2);
+      setResendTimer(60);
+      toast.success("OTP sent to your WhatsApp!");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to send OTP. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 2: Verify OTP and Login
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/login`,
+        { wardenId, otp }
+      );
+
+      const { token, warden } = response.data;
+
+      localStorage.setItem("wardenToken", token);
+      localStorage.setItem("wardenInfo", JSON.stringify(warden));
+      setToken(token);
+
+      // Check punch status
+      const punchStatus = await axios.get(
+        `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/punch-status`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const { punchedIn, punchedOut } = punchStatus.data;
+
+      if (!punchedIn) {
+        toast.success("Login successful! Punch in required.");
+        setShowPunchModal(true);
+      } else if (punchedIn && !punchedOut) {
+        toast.success("Login successful! Already punched in.");
+        setShowPunchModal(false);
+        router.push("/warden-dashboard");
+      } else if (punchedIn && punchedOut) {
+        toast.success("Already punched in and out. Redirecting...");
+        setShowPunchModal(false);
+        router.push("/warden-dashboard");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Invalid OTP. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Resend OTP
+  const handleResendOTP = async () => {
+    if (resendTimer > 0) return;
+
+    setLoading(true);
+    setOtp("");
+
+    try {
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/send-login-otp`,
+        { wardenId }
+      );
+
+      setResendTimer(60);
+      toast.success("OTP resent successfully!");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to resend OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Go back to step 1
+  const handleBack = () => {
+    setStep(1);
+    setOtp("");
   };
 
   const handlePunchIn = async () => {
@@ -92,13 +147,12 @@ const handleSubmit = async (e) => {
       }
     }
   };
-  
 
   return (
     <>
       <ToastContainer position="top-right" autoClose={3000} />
 
-      {/* ✅ Punch In Modal */}
+      {/* Punch In Modal */}
       {showPunchModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-lg bg-white/10">
           <div className="bg-white/30 border border-white/50 backdrop-blur-md rounded-2xl p-8 shadow-2xl max-w-md w-full text-center text-black">
@@ -160,65 +214,96 @@ const handleSubmit = async (e) => {
               Warden Login
             </h2>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-black block">User ID</label>
-                <input
-                  type="text"
-                  value={wardenId}
-                  onChange={(e) => setWardenId(e.target.value)}
-                  placeholder="Enter Your User ID"
-                  className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#A4B494] focus:border-transparent placeholder:text-gray-400 text-black"
-                  onKeyDown={handleKeyPress}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-black block">Password</label>
-                <div className="relative">
+            {step === 1 ? (
+              // Step 1: Enter Warden ID
+              <form onSubmit={handleSendOTP} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-black block">Warden ID</label>
                   <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter Your Password"
-                    className="w-full px-3 py-2.5 pr-10 text-sm rounded-lg border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#A4B494] focus:border-transparent placeholder:text-gray-400 text-black"
-                    onKeyDown={handleKeyPress}
+                    type="text"
+                    value={wardenId}
+                    onChange={(e) => setWardenId(e.target.value)}
+                    placeholder="Enter Your Warden ID"
+                    required
+                    className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#A4B494] focus:border-transparent placeholder:text-gray-400 text-black"
                   />
-                  <div
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 cursor-pointer hover:text-[#A4B494]"
-                    onClick={() => setShowPassword(!showPassword)}
+                </div>
+
+                <div className="pt-4 pb-2">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-[#BEC5AD] hover:bg-[#a9b29d] disabled:bg-gray-400 disabled:cursor-not-allowed text-black font-bold py-3 text-sm rounded-lg shadow-md"
                   >
-                    {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                    {loading ? (
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                        <span>Sending...</span>
+                      </div>
+                    ) : (
+                      "Send OTP"
+                    )}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              // Step 2: Enter OTP
+              <form onSubmit={handleVerifyOTP} className="space-y-4">
+                <div className="text-center mb-3">
+                  <p className="text-xs text-gray-600">
+                    OTP sent to: <span className="font-semibold">{maskedNumber}</span>
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-black block">Enter OTP</label>
+                  <input
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="6-digit OTP"
+                    required
+                    maxLength={6}
+                    className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#A4B494] focus:border-transparent placeholder:text-gray-400 text-black text-center tracking-widest"
+                  />
+                </div>
+
+                <div className="flex flex-col space-y-3 pt-2">
+                  <button
+                    type="submit"
+                    disabled={loading || otp.length !== 6}
+                    className="w-full bg-[#BEC5AD] hover:bg-[#a9b29d] disabled:bg-gray-400 disabled:cursor-not-allowed text-black font-bold py-3 text-sm rounded-lg shadow-md"
+                  >
+                    {loading ? (
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                        <span>Verifying...</span>
+                      </div>
+                    ) : (
+                      "Verify & Login"
+                    )}
+                  </button>
+
+                  <div className="flex items-center justify-center space-x-4 text-xs">
+                    <button
+                      type="button"
+                      onClick={handleBack}
+                      className="text-gray-600 hover:underline"
+                    >
+                      ← Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleResendOTP}
+                      disabled={resendTimer > 0 || loading}
+                      className="text-blue-500 hover:underline disabled:text-gray-400"
+                    >
+                      {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend OTP"}
+                    </button>
                   </div>
                 </div>
-              </div>
-
-              <div className="flex justify-end pt-1">
-                <p
-                  onClick={() => router.push("/forgotpassword")}
-                  className="text-xs text-blue-500 hover:text-blue-700 hover:underline cursor-pointer"
-                >
-                  Forget Password?
-                </p>
-              </div>
-
-              <div className="pt-4 pb-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-[#BEC5AD] hover:bg-[#a9b29d] disabled:bg-gray-400 disabled:cursor-not-allowed text-black font-bold py-3 text-sm rounded-lg shadow-md"
-                >
-                  {loading ? (
-                    <div className="flex items-center justify-center space-x-2">
-                      <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                      <span>Signing in...</span>
-                    </div>
-                  ) : (
-                    "Login"
-                  )}
-                </button>
-              </div>
-            </form>
+              </form>
+            )}
           </div>
         </div>
 
@@ -269,65 +354,96 @@ const handleSubmit = async (e) => {
               Warden Login
             </h2>
 
-            <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
-              <div className="space-y-2">
-                <label className="text-lg font-semibold text-black block">User ID</label>
-                <input
-                  type="text"
-                  value={wardenId}
-                  onChange={(e) => setWardenId(e.target.value)}
-                  placeholder="Enter Your User ID"
-                  className="w-full px-4 py-3 rounded-[1rem] border border-gray-300 shadow-md focus:outline-none focus:ring-2 focus:ring-[#A4B494] focus:border-transparent placeholder:text-gray-400 text-black"
-                  onKeyDown={handleKeyPress}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-lg font-semibold text-black block">Password</label>
-                <div className="relative">
+            {step === 1 ? (
+              // Step 1: Enter Warden ID (Desktop)
+              <form onSubmit={handleSendOTP} className="w-full max-w-md space-y-6">
+                <div className="space-y-2">
+                  <label className="text-lg font-semibold text-black block">Warden ID</label>
                   <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter Your Password"
-                    className="w-full px-4 py-3 pr-12 rounded-[1rem] border border-gray-300 shadow-md focus:outline-none focus:ring-2 focus:ring-[#A4B494] focus:border-transparent placeholder:text-gray-400 text-black"
-                    onKeyDown={handleKeyPress}
+                    type="text"
+                    value={wardenId}
+                    onChange={(e) => setWardenId(e.target.value)}
+                    placeholder="Enter Your Warden ID"
+                    required
+                    className="w-full px-4 py-3 rounded-[1rem] border border-gray-300 shadow-md focus:outline-none focus:ring-2 focus:ring-[#A4B494] focus:border-transparent placeholder:text-gray-400 text-black"
                   />
-                  <div
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-600 cursor-pointer hover:text-[#A4B494]"
-                    onClick={() => setShowPassword(!showPassword)}
+                </div>
+
+                <div className="w-full flex justify-center pt-2">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-2/3 bg-[#BEC5AD] hover:bg-[#a9b29d] disabled:bg-gray-400 text-black font-bold py-3 rounded-xl shadow-md transition-all duration-300"
                   >
-                    {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+                    {loading ? (
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                        <span>Sending...</span>
+                      </div>
+                    ) : (
+                      "Send OTP"
+                    )}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              // Step 2: Enter OTP (Desktop)
+              <form onSubmit={handleVerifyOTP} className="w-full max-w-md space-y-6">
+                <div className="text-center mb-3">
+                  <p className="text-sm text-gray-600">
+                    OTP sent to: <span className="font-semibold">{maskedNumber}</span>
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-lg font-semibold text-black block">Enter OTP</label>
+                  <input
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="6-digit OTP"
+                    required
+                    maxLength={6}
+                    className="w-full px-4 py-3 rounded-[1rem] border border-gray-300 shadow-md focus:outline-none focus:ring-2 focus:ring-[#A4B494] focus:border-transparent placeholder:text-gray-400 text-black text-center tracking-widest text-xl"
+                  />
+                </div>
+
+                <div className="flex flex-col items-center space-y-3">
+                  <button
+                    type="submit"
+                    disabled={loading || otp.length !== 6}
+                    className="w-2/3 bg-[#BEC5AD] hover:bg-[#a9b29d] disabled:bg-gray-400 text-black font-bold py-3 rounded-xl shadow-md transition-all duration-300"
+                  >
+                    {loading ? (
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                        <span>Verifying...</span>
+                      </div>
+                    ) : (
+                      "Verify & Login"
+                    )}
+                  </button>
+
+                  <div className="flex items-center space-x-4 text-sm">
+                    <button
+                      type="button"
+                      onClick={handleBack}
+                      className="text-gray-600 hover:underline"
+                    >
+                      ← Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleResendOTP}
+                      disabled={resendTimer > 0 || loading}
+                      className="text-blue-500 hover:underline disabled:text-gray-400"
+                    >
+                      {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend OTP"}
+                    </button>
                   </div>
                 </div>
-              </div>
-
-              <div className="flex justify-end">
-                <p
-                  onClick={() => router.push("/forgotpassword")}
-                  className="text-sm text-blue-500 hover:text-blue-700 hover:underline cursor-pointer"
-                >
-                  Forget Password?
-                </p>
-              </div>
-
-              <div className="w-full flex justify-center pt-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-2/3 bg-[#BEC5AD] hover:bg-[#a9b29d] disabled:bg-gray-400 text-black font-bold py-3 rounded-xl shadow-md transition-all duration-300"
-                >
-                  {loading ? (
-                    <div className="flex items-center justify-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                      <span>Signing in...</span>
-                    </div>
-                  ) : (
-                    "Login"
-                  )}
-                </button>
-              </div>
-            </form>
+              </form>
+            )}
           </div>
         </div>
       </div>
