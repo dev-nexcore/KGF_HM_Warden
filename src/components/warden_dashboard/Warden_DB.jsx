@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { Clipboard } from "lucide-react";
 
 export default function MainContent() {
   const [stats, setStats] = useState({
@@ -74,11 +75,12 @@ export default function MainContent() {
             <span className="text-xl md:text-2xl mt-2 font-semibold">{stats.totalBeds}</span>
           </div>
 
-          {/* Upcoming Inspections */}
-          <div className="bg-[#dce0d4] rounded-3xl p-4 relative shadow w-full h-24 flex flex-col">
-            <span className="text-sm md:text-md font-semibold">Upcoming Inspections</span>
-            <span className="text-xl md:text-2xl mt-2 font-semibold">{stats.upcomingInspections.length}</span>
-          </div>
+         {/* Upcoming Inspections */}
+<div className="bg-[#dce0d4] rounded-3xl p-4 relative shadow w-full h-24 flex flex-col">
+  <ClipboardCheck className="absolute top-2 right-2 w-9 h-9 text-gray-700" />
+  <span className="text-sm md:text-md font-semibold pr-10">Upcoming Inspections</span>
+  <span className="text-xl md:text-2xl mt-2 font-semibold">{stats.upcomingInspections.length}</span>
+</div>
         </div>
       </section>
 
