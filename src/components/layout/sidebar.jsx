@@ -135,36 +135,36 @@ export default function Sidebar() {
         {/* Logo + Navigation */}
         <div>
           <div className="w-full flex justify-center mb-6">
-            <img src="/logo.png" className="h-20 w-20 object-contain mx-auto rounded-full" alt="Logo" />
+            <img src="/warden/logo.png" className="h-20 w-20 object-contain mx-auto rounded-full" alt="Logo" />
           </div>
 
           <div className="space-y-2">
             <Link href="/warden-dashboard" className={getLinkClass("/warden-dashboard")}>
-              <img src="/sidebar-icons/dashboard.png" alt="Dashboard" className="w-5 h-5" />
+              <img src="/warden/sidebar-icons/dashboard.png" alt="Dashboard" className="w-5 h-5" />
               Dashboard
             </Link>
             <Link href="/bedallotment" className={getLinkClass("/bedallotment")}>
-              <img src="/sidebar-icons/bed.png" alt="Bed" className="w-5 h-5" />
+              <img src="/warden/sidebar-icons/bed.png" alt="Bed" className="w-5 h-5" />
               Bed Allotment
             </Link>
             <Link href="/student" className={getLinkClass("/student")}>
-              <img src="/sidebar-icons/student.png" alt="Student" className="w-5 h-5" />
+              <img src="/warden/sidebar-icons/student.png" alt="Student" className="w-5 h-5" />
               Student Management
             </Link>
             <Link href="/inspection" className={getLinkClass("/inspection")}>
-              <img src="/sidebar-icons/inspection.png" alt="Inspection" className="w-5 h-5" />
+              <img src="/warden/sidebar-icons/inspection.png" alt="Inspection" className="w-5 h-5" />
               Inspection
             </Link>
             <Link href="/warden-leave" className={getLinkClass("/warden-leave")}>
-              <img src="/sidebar-icons/leave.png" alt="Leave" className="w-5 h-5" />
+              <img src="/warden/sidebar-icons/leave.png" alt="Leave" className="w-5 h-5" />
               Leave Request
             </Link>
             <Link href="/warden-profile" className={getLinkClass("/warden-profile")}>
-              <img src="/sidebar-icons/profile.png" alt="Profile" className="w-5 h-5" />
+              <img src="/warden/sidebar-icons/profile.png" alt="Profile" className="w-5 h-5" />
               Warden Profile
             </Link>
             <Link href="/emergency-contact" className={getLinkClass("/emergency-contact")}>
-              <img src="/sidebar-icons/contact.png" alt="Contact" className="w-5 h-5" />
+              <img src="/warden/sidebar-icons/contact.png" alt="Contact" className="w-5 h-5" />
               Emergency Contact
             </Link>
           </div>
@@ -178,7 +178,7 @@ export default function Sidebar() {
               onClick={handleLogoutClick}
               className="flex items-center gap-2 text-[#1a312a] pr-7 font-medium hover:text-black"
             >
-              <img src="/sidebar-icons/logout.png" alt="Logout" className="w-5 h-5" />
+              <img src="/warden/sidebar-icons/logout.png" alt="Logout" className="w-5 h-5" />
               Logout
             </button>
           </div>
