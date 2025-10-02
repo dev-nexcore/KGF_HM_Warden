@@ -103,10 +103,10 @@ export default function StudentManagement() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 mb-6">
-        <StatCard title="Total Students" count={counts.total} icon="/std-management/students.png" />
-        <StatCard title="Active Students" count={counts.active} icon="/std-management/active.png" />
-        <StatCard title="On Leave" count={counts.onLeave} icon="/std-management/leave-std.png" red />
-        <StatCard title="Checked Out" count={counts.checkedOut} icon="/std-management/leave-std.png" />
+        <StatCard title="Total Students" count={counts.total} icon="/warden/std-management/students.png" />
+        <StatCard title="Active Students" count={counts.active} icon="/warden/std-management/active.png" />
+        <StatCard title="On Leave" count={counts.onLeave} icon="/warden/std-management/leave-std.png" red />
+        <StatCard title="Checked Out" count={counts.checkedOut} icon="/warden/std-management/leave-std.png" />
       </div>
 
       {/* Filters */}
