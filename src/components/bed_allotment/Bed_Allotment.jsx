@@ -86,9 +86,9 @@ export default function BedAllotment() {
       </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-        <BedStatCard title="Occupied Beds" count={bedStats.inUse} icon="/bed-allotment/bed.png" />
-        <BedStatCard title="Vacant Beds" count={bedStats.available} icon="/bed-allotment/bed.png" />
-        <BedStatCard title="Damaged Beds" count={bedStats.damaged} icon="/bed-allotment/d-bed.png" red />
+        <BedStatCard title="Occupied Beds" count={bedStats.inUse} icon="/warden/bed-allotment/bed.png" />
+        <BedStatCard title="Vacant Beds" count={bedStats.available} icon="/warden/bed-allotment/bed.png" />
+        <BedStatCard title="Damaged Beds" count={bedStats.damaged} icon="/warden/bed-allotment/d-bed.png" red />
       </div>
 
       <div className="bg-white rounded-3xl drop-shadow-lg p-6 mb-6">
