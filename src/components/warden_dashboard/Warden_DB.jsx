@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Clipboard } from "lucide-react";
+import { ClipboardCheck } from "lucide-react";
 
 export default function MainContent() {
   const [stats, setStats] = useState({
