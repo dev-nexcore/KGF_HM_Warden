@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import { ToastContainer, toast } from "react-toastify";
+import { Camera } from "lucide-react";
 import "react-toastify/dist/ReactToastify.css";
 
 const WardenProfile = () => {
@@ -16,6 +17,8 @@ const WardenProfile = () => {
   });
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [editMode, setEditMode] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
+  const fileInputRef = useRef(null);
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("wardenToken") : null;
@@ -48,7 +51,38 @@ const WardenProfile = () => {
   };
 
   const handlePhotoChange = (e) => {
-    setProfilePhoto(e.target.files[0]);
+    const file = e.target.files[0];
+    if (file) {
+      setProfilePhoto(file);
+      handlePhotoUpload(file);
+    }
+  };
+
+  const handlePhotoUpload = async (file) => {
+    try {
+      const form = new FormData();
+      form.append("profilePhoto", file);
+
+      const res = await axios.put(
+        `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/profile/${wardenId}`,
+        form,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      toast.success("Profile photo updated successfully!");
+      setWarden(res.data.warden);
+    } catch (error) {
+      console.error("Photo upload error", error);
+      toast.error("Failed to update profile photo.");
+    }
+  };
+
+  const handleProfilePictureClick = () => {
+    fileInputRef.current?.click();
   };
 
   const handleSubmit = async (e) => {
@@ -58,7 +92,6 @@ const WardenProfile = () => {
       Object.entries(formData).forEach(([key, value]) => {
         form.append(key, value);
       });
-      if (profilePhoto) form.append("profilePhoto", profilePhoto);
 
       const res = await axios.put(
         `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/profile/${wardenId}`,
@@ -94,19 +127,38 @@ const WardenProfile = () => {
         {/* Profile Card */}
         <div className="bg-[#BEC5AD] rounded-2xl shadow-md flex flex-col items-center w-full max-w-sm sm:max-w-md lg:max-w-xl py-8 px-6">
           <div
-            className="rounded-full bg-white overflow-hidden mb-6"
+            className="rounded-full bg-white overflow-hidden mb-6 relative cursor-pointer group"
             style={{ width: 96, height: 96 }}
+            onMouseEnter={() => setIsHovering(true)}
+            onMouseLeave={() => setIsHovering(false)}
+            onClick={handleProfilePictureClick}
           >
             {warden.profilePhoto ? (
               <img
                 src={`${process.env.NEXT_PUBLIC_PROD_API_URL}/uploads/wardens/${warden.profilePhoto}`}
                 alt="Profile"
-                className="object-cover w-full h-full"
+                className="object-cover w-full h-full transition-opacity duration-200 group-hover:opacity-60"
               />
             ) : (
-              <div className="w-full h-full bg-gray-200" />
+              <div className="w-full h-full bg-gray-200 transition-opacity duration-200 group-hover:opacity-60" />
             )}
+            
+            {/* Hover Overlay */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <Camera className="w-8 h-8 text-white mb-1" />
+              <span className="text-white text-xs font-medium">Change Photo</span>
+            </div>
           </div>
+
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoChange}
+            className="hidden"
+          />
+
           <h2 className="text-2xl sm:text-3xl font-bold text-center text-[#232323] leading-snug">
             {warden.firstName} {warden.lastName}
           </h2>
@@ -191,15 +243,6 @@ const WardenProfile = () => {
                       value={formData.contactNumber}
                       onChange={handleChange}
                       className="w-full border px-3 py-2 rounded mt-1"
-                    />
-                  </div>
-                  <div className="col-span-1 sm:col-span-2">
-                    <label className="font-semibold">Profile Photo</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoChange}
-                      className="w-full mt-1"
                     />
                   </div>
                 </div>

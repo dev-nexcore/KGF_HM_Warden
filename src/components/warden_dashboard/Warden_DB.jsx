@@ -38,28 +38,28 @@ export default function MainContent() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           {/* Total Students */}
           <div className="bg-[#dce0d4] rounded-3xl p-4 relative shadow w-full h-24 flex flex-col">
-            <img src="/dashboard-icons/t-students.png" alt="Users Icon" className="absolute top-0 right-0 w-9 h-9 object-contain" />
+            <img src="/warden/dashboard-icons/t-students.png" alt="Users Icon" className="absolute top-0 right-0 w-9 h-9 object-contain" />
             <span className="text-sm md:text-md font-semibold pr-10">Total Students</span>
             <span className="text-xl md:text-2xl mt-2 font-semibold">{stats.totalStudents}</span>
           </div>
 
           {/* Occupied Beds */}
           <div className="bg-[#dce0d4] rounded-3xl p-4 relative shadow w-full h-24 flex flex-col">
-            <img src="/dashboard-icons/bed.png" alt="Occupied Bed Icon" className="absolute top-0 right-0 w-9 h-9 object-contain" />
+            <img src="/warden/dashboard-icons/bed.png" alt="Occupied Bed Icon" className="absolute top-0 right-0 w-9 h-9 object-contain" />
             <span className="text-sm md:text-md font-semibold pr-10">Occupied Beds</span>
             <span className="text-xl md:text-2xl mt-2 font-semibold text-[#e0b300]">{stats.inUseBeds}</span>
           </div>
 
           {/* Vacant Beds */}
           <div className="bg-[#dce0d4] rounded-3xl p-4 relative shadow w-full h-24 flex flex-col">
-            <img src="/dashboard-icons/bed.png" alt="Vacant Bed Icon" className="absolute top-0 right-0 w-9 h-9 object-contain" />
+            <img src="/warden/dashboard-icons/bed.png" alt="Vacant Bed Icon" className="absolute top-0 right-0 w-9 h-9 object-contain" />
             <span className="text-sm md:text-md font-semibold pr-10">Vacant Beds</span>
             <span className="text-xl md:text-2xl mt-2 font-semibold">{stats.availableBeds}</span>
           </div>
 
           {/* Damaged Beds */}
           <div className="bg-[#dce0d4] rounded-3xl p-4 relative shadow w-full h-24 flex flex-col">
-            <img src="/dashboard-icons/bed.png" alt="Damaged Bed Icon" className="absolute top-0 right-0 w-9 h-9 object-contain" />
+            <img src="/warden/dashboard-icons/bed.png" alt="Damaged Bed Icon" className="absolute top-0 right-0 w-9 h-9 object-contain" />
             <span className="text-sm md:text-md font-semibold pr-10">Damaged Beds</span>
             <span className="text-xl md:text-2xl mt-2 font-semibold text-[#c83939]">{stats.damagedBeds}</span>
           </div>
@@ -69,7 +69,7 @@ export default function MainContent() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* Total Beds */}
           <div className="bg-[#dce0d4] rounded-3xl p-4 relative shadow w-full h-24 flex flex-col">
-            <img src="/dashboard-icons/bed.png" alt="Total Beds Icon" className="absolute top-0 right-0 w-9 h-9 object-contain" />
+            <img src="/warden/dashboard-icons/bed.png" alt="Total Beds Icon" className="absolute top-0 right-0 w-9 h-9 object-contain" />
             <span className="text-sm md:text-md font-semibold pr-10">Total Beds</span>
             <span className="text-xl md:text-2xl mt-2 font-semibold">{stats.totalBeds}</span>
           </div>
