@@ -165,7 +165,7 @@ export default function Sidebar() {
             </Link>
             <Link href="/emergency-contact" className={getLinkClass("/emergency-contact")}>
               <img src="/warden/sidebar-icons/contact.png" alt="Contact" className="w-5 h-5" />
-              Emergency Contact
+              Contacts
             </Link>
           </div>
         </div>

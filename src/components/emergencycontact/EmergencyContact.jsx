@@ -108,7 +108,7 @@ export default function EmergencyContact() {
       <section>
         <div className="flex items-center mb-4">
           <div className="w-1 h-7 bg-red-500 mr-3"></div>
-          <h2 className="text-xl font-bold">Emergency Contact</h2>
+          <h2 className="text-xl font-bold">Contacts</h2>
         </div>
 
         {/* Search & Filter */}
@@ -117,7 +117,7 @@ export default function EmergencyContact() {
             <FiSearch className="absolute top-3.5 left-3 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by Student ID or Name..."
+              placeholder="Search by ID or Name..."
               className="w-full pl-10 pr-4 py-2 rounded-lg shadow focus:outline-none text-black bg-white"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -231,8 +231,8 @@ export default function EmergencyContact() {
           <table className="min-w-full bg-white">
             <thead className="bg-[#A4B494] text-gray-800">
               <tr>
-                <th className="text-left px-4 py-3">Student ID</th>
-                <th className="text-left px-4 py-3">Student Name</th>
+                <th className="text-left px-4 py-3">ID</th>
+                <th className="text-left px-4 py-3">Name</th>
                 <th className="text-left px-4 py-3">Contact Name</th>
                 <th className="text-left px-4 py-3">Relation</th>
                 <th className="text-left px-4 py-3">Phone No.</th>
