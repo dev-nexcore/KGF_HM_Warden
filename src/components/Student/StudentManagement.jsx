@@ -171,7 +171,7 @@ export default function StudentManagement() {
                   <td className="p-2">{s.contactNumber || "-"}</td>
                   <td className="p-2 text-center">
                     <button onClick={() => handleEditClick(s)}>
-                      <img src="/images/edit-icon.png" alt="Edit" className="w-5 h-5 inline-block" />
+                      <img src="/warden/images/edit-icon.png" alt="Edit" className="w-5 h-5 inline-block" />
                     </button>
                   </td>
                 </tr>
