@@ -69,14 +69,31 @@ export default function WardenLogin() {
       localStorage.setItem("wardenInfo", JSON.stringify(warden));
       setToken(token);
 
-      
-      
+      // Check punch status
+      const punchStatus = await axios.get(
+        `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/punch-status`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
+      const { punchedIn, punchedOut } = punchStatus.data;
 
-     
+      if (!punchedIn) {
+        toast.success("Login successful! Punch in required.");
+        setShowPunchModal(true);
+      } else if (punchedIn && !punchedOut) {
+        toast.success("Login successful! Already punched in.");
+        setShowPunchModal(false);
+        router.push("/warden-dashboard");
+      } else if (punchedIn && punchedOut) {
+        toast.success("Already punched in and out. Redirecting...");
+        setShowPunchModal(false);
+        router.push("/warden-dashboard");
+      }
     } catch (error) {
       toast.error(error.response?.data?.message || "Invalid OTP. Please try again.");
-    } 
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Resend OTP
@@ -107,13 +124,49 @@ export default function WardenLogin() {
     setOtp("");
   };
 
- 
+  const handlePunchIn = async () => {
+    try {
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/attendance/punch-in`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success("Punched in successfully!");
+      setTimeout(() => {
+        setShowPunchModal(false);
+        router.push("/warden-dashboard");
+      }, 1000);
+    } catch (error) {
+      if (error.response?.data?.message === "Already punched in for today") {
+        toast.info("Already punched in. Redirecting...");
+        setTimeout(() => {
+          router.push("/warden-dashboard");
+        }, 1500);
+      } else {
+        toast.error(error.response?.data?.message || "Punch in failed.");
+      }
+    }
+  };
 
   return (
     <>
       <ToastContainer position="top-right" autoClose={3000} />
 
-     
+      {/* Punch In Modal */}
+      {showPunchModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-lg bg-white/10">
+          <div className="bg-white/30 border border-white/50 backdrop-blur-md rounded-2xl p-8 shadow-2xl max-w-md w-full text-center text-black">
+            <h2 className="text-2xl font-bold mb-4">Mark Your Attendance</h2>
+            <p className="mb-6 text-gray-800">Please punch in to continue to your dashboard.</p>
+            <button
+              onClick={handlePunchIn}
+              className="bg-[#BEC5AD] hover:bg-[#a9b29d] text-black font-bold px-6 py-2 rounded-lg shadow"
+            >
+              Punch In
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="min-h-screen w-full bg-white overflow-x-hidden">
         {/* Mobile View */}
