@@ -75,14 +75,14 @@ export default function MainContent() {
             <span className="text-xl md:text-2xl mt-2 font-semibold">{stats.totalBeds}</span>
           </div>
 
-         {/* Upcoming Inspections */}
-<div className="bg-[#dce0d4] rounded-3xl p-4 relative shadow w-full h-24 flex flex-col">
-  <div className="absolute -top-0.5 -right-0.5 w-9 h-9 bg-white rounded-full border border-black flex items-center justify-center">
-    <ClipboardCheck className="w-6 h-6 text-gray-700" />
-  </div>
-  <span className="text-sm md:text-md font-semibold pr-10">Upcoming Inspections</span>
-  <span className="text-xl md:text-2xl mt-2 font-semibold">{stats.upcomingInspections.length}</span>
-</div>
+          {/* Upcoming Inspections */}
+          <div className="bg-[#dce0d4] rounded-3xl p-4 relative shadow w-full h-24 flex flex-col">
+            <div className="absolute -top-0.5 -right-0.5 w-9 h-9 bg-white rounded-full border border-black flex items-center justify-center">
+              <ClipboardCheck className="w-6 h-6 text-gray-700" />
+            </div>
+            <span className="text-sm md:text-md font-semibold pr-10">Upcoming Inspections</span>
+            <span className="text-xl md:text-2xl mt-2 font-semibold">{stats.upcomingInspections.length}</span>
+          </div>
         </div>
       </section>
 
