@@ -227,7 +227,7 @@ export default function EmergencyContact() {
         </div>
 
         {/* Table View - Desktop */}
-        <div className="hidden md:block overflow-x-auto rounded-xl border border-black">
+        {/* <div className="hidden md:block overflow-x-auto rounded-xl border border-black">
           <table className="min-w-full bg-white">
             <thead className="bg-[#A4B494] text-gray-800">
               <tr>
@@ -314,6 +314,119 @@ export default function EmergencyContact() {
                         onClick={() => handleEdit(c)}
                       />
                     )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div> */}
+
+        <div className="hidden md:block overflow-hidden rounded-2xl border border-gray-100 shadow-sm">
+          <table className="min-w-full bg-white text-sm">
+            <thead>
+              <tr className="bg-[#A4B494]/30 border-b border-[#A4B494]/40">
+                {["ID", "Name", "Contact Name", "Relation", "Phone No.", "Actions"].map((h) => (
+                  <th key={h} className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {tableContacts.map((c, idx) => (
+                <tr key={idx} className="hover:bg-[#A4B494]/10 transition-colors duration-150 group">
+
+                  {/* ID */}
+                  <td className="px-5 py-3.5 font-mono text-xs text-gray-400 font-medium">{c.id}</td>
+
+                  {/* Student Name */}
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-[#A4B494]/30 flex items-center justify-center text-xs font-bold text-[#1a312a] shrink-0">
+                        {c.student?.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="font-medium text-gray-800">{c.student}</span>
+                    </div>
+                  </td>
+
+                  {/* Contact Name */}
+                  <td className="px-5 py-3.5">
+                    {editingId === c.id ? (
+                      <input
+                        type="text"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#A4B494] transition"
+                        value={editValues.contact}
+                        onChange={(e) => setEditValues({ ...editValues, contact: e.target.value })}
+                      />
+                    ) : (
+                      <span className="text-gray-700">{c.contact}</span>
+                    )}
+                  </td>
+
+                  {/* Relation */}
+                  <td className="px-5 py-3.5">
+                    {editingId === c.id ? (
+                      <input
+                        type="text"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#A4B494] transition"
+                        value={editValues.relation}
+                        onChange={(e) => setEditValues({ ...editValues, relation: e.target.value })}
+                      />
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                        {c.relation}
+                      </span>
+                    )}
+                  </td>
+
+                  {/* Phone */}
+                  <td className="px-5 py-3.5">
+                    {editingId === c.id ? (
+                      <input
+                        type="text"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#A4B494] transition"
+                        value={editValues.phone}
+                        onChange={(e) => setEditValues({ ...editValues, phone: e.target.value })}
+                      />
+                    ) : (
+                      <span className="font-mono text-xs text-gray-600">{c.phone}</span>
+                    )}
+                  </td>
+
+                  {/* Actions */}
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleCall(c.phone)}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 transition-colors"
+                      >
+                        <FiPhone size={14} />
+                      </button>
+
+                      {editingId === c.id ? (
+                        <>
+                          <button
+                            onClick={() => handleSave(c.id)}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 hover:bg-green-100 text-green-600 transition-colors"
+                          >
+                            <FaSave size={13} />
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition-colors"
+                          >
+                            <FaTimes size={13} />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => handleEdit(c)}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-[#A4B494]/30 text-gray-600 transition-colors"
+                        >
+                          <FaEdit size={13} />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

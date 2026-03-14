@@ -22,10 +22,9 @@ export default function Sidebar() {
   }, [pathname]);
 
   const getLinkClass = (href) =>
-    `flex items-center gap-2 py-3 px-4 rounded-l-3xl text-sm transition ${
-      pathname.startsWith(href)
-        ? "bg-white text-black font-semibold"
-        : "text-[#1a312a] hover:text-black"
+    `flex items-center gap-2 py-3 px-4 rounded-l-3xl text-sm transition ${pathname.startsWith(href)
+      ? "bg-white text-black font-semibold"
+      : "text-[#1a312a] hover:text-black"
     }`;
 
   const logout = () => {
@@ -98,7 +97,7 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="bg-[#BEC5AD]">
+    <div className="bg-[#BEC5AD] h-screen sticky top-0">
       <ToastContainer position="top-right" autoClose={3000} />
 
       {/* Hamburger */}
@@ -116,9 +115,8 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-60 bg-[#A4B494] py-8 pl-5 flex flex-col justify-between rounded-tr-4xl shadow transform transition-transform duration-300 ease-in-out z-40 md:static md:translate-x-0 md:rounded-tr-4xl md:shadow ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed top-0 left-0 h-screen overflow-y-auto w-60 bg-[#A4B494] py-8 pl-5 flex flex-col justify-between rounded-tr-4xl shadow transform transition-transform duration-300 ease-in-out z-40 md:static md:translate-x-0 md:rounded-tr-4xl md:shadow ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
         {/* Close on mobile */}
         <button

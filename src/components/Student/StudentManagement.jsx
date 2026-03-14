@@ -110,96 +110,219 @@ export default function StudentManagement() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white p-4 rounded-xl shadow space-y-4">
-        <h3 className="text-md font-semibold">Filter Students</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          <FilterSelect
-            label="Student IDs"
-            value={filters.studentId}
-            onChange={(e) => setFilters({ ...filters, studentId: e.target.value })}
-            options={["", ...students.map((s) => s.studentId)]}
-          />
-          <FilterSelect
-            label="Room Nos"
-            value={filters.roomNo}
-            onChange={(e) => setFilters({ ...filters, roomNo: e.target.value })}
-            options={["", ...students.map((s) => s.roomNo).filter(Boolean)]}
-          />
-          <FilterSelect
-            label="Status"
-            value={filters.status}
-            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-            options={["", "Active", "On Leave", "Checked Out"]}
-          />
-          <div className="flex items-end">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100 bg-gray-50/60">
+          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
+          </svg>
+          <h3 className="text-sm font-semibold text-gray-600 tracking-wide uppercase">Filter Students</h3>
+        </div>
+
+        {/* Filters */}
+        <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Student ID */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Student ID</label>
+            <div className="relative">
+              <select
+                value={filters.studentId}
+                onChange={(e) => setFilters({ ...filters, studentId: e.target.value })}
+                className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg px-3 py-2.5 pr-8 focus:outline-none focus:ring-2 focus:ring-[#A4B494] focus:border-transparent transition"
+              >
+                {["", ...students.map((s) => s.studentId)].map((opt, i) => (
+                  <option key={i} value={opt}>{opt || "All IDs"}</option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </span>
+            </div>
+          </div>
+
+          {/* Room No */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Room No</label>
+            <div className="relative">
+              <select
+                value={filters.roomNo}
+                onChange={(e) => setFilters({ ...filters, roomNo: e.target.value })}
+                className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg px-3 py-2.5 pr-8 focus:outline-none focus:ring-2 focus:ring-[#A4B494] focus:border-transparent transition"
+              >
+                {["", ...students.map((s) => s.roomNo).filter(Boolean)].map((opt, i) => (
+                  <option key={i} value={opt}>{opt || "All Rooms"}</option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </span>
+            </div>
+          </div>
+
+          {/* Status */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</label>
+            <div className="relative">
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg px-3 py-2.5 pr-8 focus:outline-none focus:ring-2 focus:ring-[#A4B494] focus:border-transparent transition"
+              >
+                {["", "Active", "On Leave", "Checked Out"].map((opt, i) => (
+                  <option key={i} value={opt}>{opt || "All Statuses"}</option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </span>
+            </div>
+          </div>
+
+          {/* Clear Button */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-transparent uppercase tracking-wider select-none">Action</label>
             <button
               onClick={handleClearFilters}
-              className="bg-red-500 hover:bg-red-600 text-white rounded px-4 py-2"
+              className="flex items-center justify-center gap-2 w-full bg-red-50  text-red-500 border border-red-200 hover:border-red-500 text-sm font-semibold rounded-lg px-4 py-2.5 transition-all duration-200"
             >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
               Clear Filters
             </button>
           </div>
         </div>
       </div>
 
+
+
       {/* Student Table */}
-      <div className="bg-white p-4 rounded-xl shadow">
-        <h3 className="text-md font-semibold mb-4">Student List</h3>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gray-50/60">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a4 4 0 00-5-5M9 20H4v-2a4 4 0 015-5m6-5a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <h3 className="text-sm font-semibold text-gray-600 tracking-wide uppercase">Student List</h3>
+          </div>
+          <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">
+            {students.length} students
+          </span>
+        </div>
+
+        {/* Desktop Table */}
         <div className="hidden lg:block overflow-x-auto">
-          <table className="w-full table-auto text-sm text-left">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="p-2 w-32">Student ID</th>
-                <th className="p-2 w-40">Name</th>
-                <th className="p-2 w-24">Room No</th>
-                <th className="p-2 w-24">Bed No</th>
-                <th className="p-2 w-32">Status</th>
-                <th className="p-2 w-36">Contact</th>
-                <th className="p-2 w-20 text-center">Actions</th>
+          <table className="w-full text-sm text-left">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-100">
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-32">Student ID</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-40">Name</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">Room</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">Bed</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-32">Status</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-36">Contact</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-20 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody>
-              {students.map((s, i) => (
-                <tr key={i} className="hover:bg-gray-50 border-b">
-                  <td className="p-2">{s.studentId}</td>
-                  <td className="p-2">{s.studentName}</td>
-                  <td className="p-2">{s.roomNo || "-"}</td>
-                  <td className="p-2">{s.barcodeId || "-"}</td>
-                  <td className={`p-2 font-semibold ${getStatusStyle(s.status || "Active")}`}>
-                    {s.status || "Active"}
-                  </td>
-                  <td className="p-2">{s.contactNumber || "-"}</td>
-                  <td className="p-2 text-center">
-                    <button onClick={() => handleEditClick(s)}>
-                      <img src="/warden/images/edit-icon.png" alt="Edit" className="w-5 h-5 inline-block" />
-                    </button>
+            <tbody className="divide-y divide-gray-50">
+              {students.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="px-4 py-10 text-center text-gray-400 italic text-sm">
+                    No students found.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                students.map((s, i) => (
+                  <tr key={i} className="hover:bg-[#A4B494]/10 transition-colors duration-150 group">
+                    <td className="px-4 py-3.5 font-mono text-xs text-gray-600 font-medium">{s.studentId}</td>
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-[#A4B494]/30 flex items-center justify-center text-xs font-bold text-[#1a312a] shrink-0">
+                          {s.studentName?.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="font-medium text-gray-800">{s.studentName}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 text-gray-600">{s.roomNo || <span className="text-gray-300">—</span>}</td>
+                    <td className="px-4 py-3.5 text-gray-600">{s.barcodeId || <span className="text-gray-300">—</span>}</td>
+                    <td className="px-4 py-3.5">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getStatusStyle(s.status || "Active")}`}>
+                        {s.status || "Active"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 text-gray-600 font-mono text-xs">{s.contactNumber || <span className="text-gray-300">—</span>}</td>
+                    <td className="px-4 py-3.5 text-center">
+                      <button
+                        onClick={() => handleEditClick(s)}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 hover:bg-[#A4B494]/30 transition-colors duration-150 group-hover:bg-[#A4B494]/20"
+                      >
+                        <img src="/warden/images/edit-icon.png" alt="Edit" className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
 
-        {/* Mobile view */}
-        <div className="block lg:hidden space-y-4">
-          {students.map((s, i) => (
-            <div key={i} className="rounded-lg p-3 shadow bg-gray-50">
-              <p><strong>ID:</strong> {s.studentId}</p>
-              <p><strong>Name:</strong> {s.studentName}</p>
-              <p><strong>Room:</strong> {s.roomNo || "-"}</p>
-              <p><strong>Bed:</strong> {s.barcodeId || "-"}</p>
-              <p className={`font-semibold ${getStatusStyle(s.status || "Active")}`}>
-                <strong>Status:</strong> {s.status || "Active"}
-              </p>
-              <p><strong>Contact:</strong> {s.contactNumber || "-"}</p>
-              <button onClick={() => handleEditClick(s)} className="mt-2 text-blue-600">
-                Edit Bed
-              </button>
-            </div>
-          ))}
-          {students.length === 0 && <p className="p-4">No students found.</p>}
+        {/* Mobile Cards */}
+        <div className="block lg:hidden divide-y divide-gray-100">
+          {students.length === 0 ? (
+            <p className="px-5 py-10 text-center text-gray-400 italic text-sm">No students found.</p>
+          ) : (
+            students.map((s, i) => (
+              <div key={i} className="p-4 hover:bg-gray-50 transition-colors">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-[#A4B494]/30 flex items-center justify-center text-sm font-bold text-[#1a312a] shrink-0">
+                      {s.studentName?.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-800 text-sm">{s.studentName}</p>
+                      <p className="text-xs font-mono text-gray-400">{s.studentId}</p>
+                    </div>
+                  </div>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusStyle(s.status || "Active")}`}>
+                    {s.status || "Active"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  {[
+                    { label: "Room", value: s.roomNo },
+                    { label: "Bed", value: s.barcodeId },
+                    { label: "Contact", value: s.contactNumber },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="bg-gray-50 rounded-lg px-3 py-2">
+                      <p className="text-xs text-gray-400 font-medium">{label}</p>
+                      <p className="text-xs font-semibold text-gray-700 mt-0.5">{value || "—"}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => handleEditClick(s)}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-[#1a312a] bg-[#A4B494]/20 hover:bg-[#A4B494]/40 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  <img src="/warden/images/edit-icon.png" alt="Edit" className="w-3.5 h-3.5" />
+                  Edit Bed
+                </button>
+              </div>
+            ))
+          )}
         </div>
       </div>
+
+
+
 
       {/* Edit Modal */}
       {editingStudent && (
@@ -251,16 +374,44 @@ export default function StudentManagement() {
 
 // --- Helper Components ---
 
+// function StatCard({ title, count, icon, red }) {
+//   return (
+//     <div className="bg-[#dce0d4] rounded-3xl px-6 py-5 flex justify-between items-center shadow relative">
+//       <div>
+//         <div className="text-sm font-semibold">{title}</div>
+//         <div className={`text-3xl font-bold ${red ? "text-red-600" : "text-black"}`}>{count}</div>
+//       </div>
+//       {icon && (
+//         <div className="absolute top-0 right-0 w-12 h-12 bg-white rounded-full border flex items-center justify-center">
+//           <img src={icon} alt={title} className="object-contain w-full h-full" />
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
 function StatCard({ title, count, icon, red }) {
   return (
-    <div className="bg-[#dce0d4] rounded-3xl px-6 py-5 flex justify-between items-center shadow relative">
-      <div>
-        <div className="text-sm font-semibold">{title}</div>
-        <div className={`text-3xl font-bold ${red ? "text-red-600" : "text-black"}`}>{count}</div>
+    <div className="relative bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100 overflow-hidden flex justify-between items-center group hover:shadow-md transition-shadow duration-200">
+
+      {/* Accent bar */}
+      <div className={`absolute left-0 top-0 h-full w-1 rounded-l-2xl ${red ? "bg-red-400" : "bg-[#A4B494]"}`} />
+
+      {/* Background blob */}
+      <div className={`absolute -bottom-4 -left-4 w-24 h-24 rounded-full opacity-10 blur-2xl ${red ? "bg-red-400" : "bg-[#A4B494]"}`} />
+
+      {/* Content */}
+      <div className="pl-3 z-10">
+        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">{title}</p>
+        <p className={`text-4xl font-extrabold leading-none ${red ? "text-red-500" : "text-[#1a312a]"}`}>
+          {count}
+        </p>
       </div>
+
+      {/* Icon */}
       {icon && (
-        <div className="absolute top-0 right-0 w-12 h-12 bg-white rounded-full border flex items-center justify-center">
-          <img src={icon} alt={title} className="object-contain w-full h-full" />
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 z-10 ${red ? "bg-red-50" : "bg-[#A4B494]/20"}`}>
+          <img src={icon} alt={title} className="w-6 h-6 object-contain" />
         </div>
       )}
     </div>
