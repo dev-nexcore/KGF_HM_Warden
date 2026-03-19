@@ -1,3 +1,5 @@
+// KGF_HM_Warden\src\components\layout\navbar.jsx
+
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -48,7 +50,8 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="flex w-full items-center justify-between px-8 py-4 pl-16 md:pl-8 bg-[#BEC5AD]">
+    // <nav className="flex w-full items-center justify-between px-8 py-4 pl-16 md:pl-8 bg-[#BEC5AD]">
+    <nav className="flex w-full items-center justify-between px-4 md:px-8 py-4 bg-[#BEC5AD]">
       <div className="flex-1 pl-3">
         <h1 className="text-2xl font-semibold text-black">
           Welcome Back

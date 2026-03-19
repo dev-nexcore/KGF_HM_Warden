@@ -1,3 +1,5 @@
+// KGF_HM_Warden\src\components\layout\sidebar.jsx
+
 "use client";
 import React, { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -97,7 +99,7 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="bg-[#BEC5AD] h-screen sticky top-0">
+    <div className="bg-[#BEC5AD] h-screen sticky top-0 z-100">
       <ToastContainer position="top-right" autoClose={3000} />
 
       {/* Hamburger */}
