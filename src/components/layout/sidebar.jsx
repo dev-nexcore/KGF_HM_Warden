@@ -151,6 +151,10 @@ export default function Sidebar() {
               <img src="/warden/sidebar-icons/student.png" alt="Student" className="w-5 h-5" />
               Student Management
             </Link>
+             <Link href="/staffallotment" className={getLinkClass("/staffallotment")}>
+              <img src="/warden/sidebar-icons/staff.png" alt="staffallotment" className="w-5 h-5" />
+              Staff Management
+            </Link>
             <Link href="/inspection" className={getLinkClass("/inspection")}>
               <img src="/warden/sidebar-icons/inspection.png" alt="Inspection" className="w-5 h-5" />
               Inspection
