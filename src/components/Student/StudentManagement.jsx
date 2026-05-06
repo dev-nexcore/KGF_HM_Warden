@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import StudentManagements from "./Management";
 
 export default function StudentManagement() {
   const [students, setStudents] = useState([]);
@@ -100,6 +101,8 @@ export default function StudentManagement() {
         <div className="w-1 h-7 bg-red-500 mr-3"></div>
         <h2 className="text-2xl font-bold">Student Management</h2>
       </div>
+
+      <StudentManagements />
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 mb-6">

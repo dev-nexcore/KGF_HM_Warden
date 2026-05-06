@@ -99,7 +99,7 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="bg-[#BEC5AD] h-screen sticky top-0 z-100">
+    <div className="bg-[#BEC5AD] h-screen sticky top-0 z-100 ">
       <ToastContainer position="top-right" autoClose={3000} />
 
       {/* Hamburger */}
@@ -117,7 +117,7 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-screen overflow-y-auto w-60 bg-[#A4B494] py-8 pl-5 flex flex-col justify-between rounded-tr-4xl shadow transform transition-transform duration-300 ease-in-out z-40 md:static md:translate-x-0 md:rounded-tr-4xl md:shadow ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed top-0 left-0 h-screen overflow-y-auto no-scrollbar w-60 bg-[#A4B494] py-8 pl-5 flex flex-col justify-between rounded-tr-4xl shadow transform transition-transform duration-300 ease-in-out z-40 md:static md:translate-x-0 md:rounded-tr-4xl md:shadow ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
       >
         {/* Close on mobile */}
@@ -158,6 +158,10 @@ export default function Sidebar() {
             <Link href="/warden-leave" className={getLinkClass("/warden-leave")}>
               <img src="/warden/sidebar-icons/leave.png" alt="Leave" className="w-5 h-5" />
               Leave Request
+            </Link>
+              <Link href="/complaint" className={getLinkClass("/complaint")}>
+              <img src="/warden/sidebar-icons/tickets.png" alt="Complaint" className="w-5 h-5" />
+              Complaint
             </Link>
             <Link href="/warden-profile" className={getLinkClass("/warden-profile")}>
               <img src="/warden/sidebar-icons/profile.png" alt="Profile" className="w-5 h-5" />
