@@ -155,11 +155,15 @@ export default function Sidebar() {
               <img src="/warden/sidebar-icons/inspection.png" alt="Inspection" className="w-5 h-5" />
               Inspection
             </Link>
+            <Link href="/notices" className={getLinkClass("/notices")}>
+              <img src="/warden/sidebar-icons/notice.png" alt="Notices" className="w-5 h-5" />
+              Notices
+            </Link>
             <Link href="/warden-leave" className={getLinkClass("/warden-leave")}>
               <img src="/warden/sidebar-icons/leave.png" alt="Leave" className="w-5 h-5" />
               Leave Request
             </Link>
-              <Link href="/complaint" className={getLinkClass("/complaint")}>
+            <Link href="/complaint" className={getLinkClass("/complaint")}>
               <img src="/warden/sidebar-icons/tickets.png" alt="Complaint" className="w-5 h-5" />
               Complaint
             </Link>
