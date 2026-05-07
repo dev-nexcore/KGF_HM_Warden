@@ -1,0 +1,28 @@
+import Sidebar from "@/components/layout/sidebar";
+import Navbar from "@/components/layout/navbar";
+import Complaint from "@/components/complaint/Complaint";
+
+import InventoryManagement from "@/components/inventory/inventory";
+
+
+
+
+
+export default function Home() {
+  return (
+    <div className="min-h-screen flex">
+      
+      {/* Sidebar */}
+      <div className="md:block">
+        <Sidebar />
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col w-full">
+        <Navbar />
+       <InventoryManagement />
+      </div>
+
+    </div>
+  );
+}
