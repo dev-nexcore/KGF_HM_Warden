@@ -7,7 +7,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 
-const StudentManagement = () => {
+const StudentManagement = ({ initialTab = "student", onSuccess, editMode = false, studentData = null, parentData = null }) => {
   const getTodaysDate = () => {
     const today = new Date();
     const day = today.getDate().toString().padStart(2, '0');
@@ -42,7 +42,7 @@ const StudentManagement = () => {
   const [loading, setLoading] = useState(false);
 
   // Add these new state variables after the existing ones
-  const [activeTab, setActiveTab] = useState("student"); // "student" or "parent"
+  const [activeTab, setActiveTab] = useState(initialTab); // "student", "parent", or "worker"
   const [parentFormData, setParentFormData] = useState({
     firstName: "",
     lastName: "",
@@ -50,6 +50,19 @@ const StudentManagement = () => {
     relation: "",
     contactNumber: "",
     studentId: "",
+  });
+
+  const [workerFormData, setWorkerFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    contactNumber: "",
+    roomNumber: "",
+    bedNumber: "",
+    emergencyContactNumber: "",
+    admissionDate: getTodaysDate(),
+    emergencyContactName: "",
+    feeStatus: "",
   });
 
   const [studentDocuments, setStudentDocuments] = useState({
@@ -60,10 +73,16 @@ const StudentManagement = () => {
     aadharCard: null,
     panCard: null
   });
+  const [workerDocuments, setWorkerDocuments] = useState({
+    aadharCard: null,
+    panCard: null
+  });
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
   const [parentErrors, setParentErrors] = useState({});
   const [parentLoading, setParentLoading] = useState(false);
+  const [workerErrors, setWorkerErrors] = useState({});
+  const [workerLoading, setWorkerLoading] = useState(false);
 
 
   // API Functions
@@ -128,6 +147,37 @@ const StudentManagement = () => {
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: 'Failed to register parent' };
+    }
+  };
+
+  const registerWorkerAPI = async (workerData) => {
+    try {
+      // Create FormData for file upload
+      const formData = new FormData();
+
+      // Add text fields
+      Object.keys(workerData).forEach(key => {
+        if (key !== 'aadharCard' && key !== 'panCard') {
+          formData.append(key, workerData[key]);
+        }
+      });
+
+      // Add files if they exist
+      if (workerData.aadharCard) {
+        formData.append('aadharCard', workerData.aadharCard);
+      }
+      if (workerData.panCard) {
+        formData.append('panCard', workerData.panCard);
+      }
+
+      const response = await api.post(`/api/wardenauth/register-worker`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        }
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to register worker' };
     }
   };
 
@@ -507,6 +557,14 @@ const StudentManagement = () => {
           contactNumber: extractedInfo.mobileNumber || prev.contactNumber, // Add mobile
         }));
         console.log('Updated parent form');
+      } else if (formType === 'worker') {
+        setWorkerFormData(prev => ({
+          ...prev,
+          firstName: extractedInfo.firstName || prev.firstName,
+          lastName: extractedInfo.lastName || prev.lastName,
+          contactNumber: extractedInfo.mobileNumber || prev.contactNumber, // Add mobile
+        }));
+        console.log('Updated worker form');
       }
 
       // Show what was extracted
@@ -554,10 +612,17 @@ Please verify the auto-filled information.`);
         ...prev,
         [documentType]: file
       }));
+    } else if (formType === 'worker') {
+      setWorkerDocuments(prev => ({
+        ...prev,
+        [documentType]: file
+      }));
     }
 
-    // Process with OCR
-    await processDocument(file, documentType, formType);
+    // Process with OCR only if not in edit mode (to avoid overwriting existing data)
+    if (!editMode) {
+      await processDocument(file, documentType === 'aadharCard' ? 'aadhar' : 'pan', formType);
+    }
   };
 
   // Reset form
@@ -590,62 +655,102 @@ Please verify the auto-filled information.`);
 
     setLoading(true);
     try {
-      const studentData = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        contactNumber: formData.contactNumber,
-        roomBedNumber: formData.bedNumber || "Not Assigned",
-        email: formData.email,
-        admissionDate: formData.admissionDate,
-        feeStatus: formData.feeStatus,
-        emergencyContactName: formData.emergencyContactName,
-        emergencyContactNumber: formData.emergencyContactNumber,
-        // Add document files
-        aadharCard: studentDocuments.aadharCard,
-        panCard: studentDocuments.panCard
-      };
+      if (editMode && studentData) {
+        // Update existing student
+        const formDataToSend = new FormData();
+        
+        // Add text fields
+        formDataToSend.append('firstName', formData.firstName);
+        formDataToSend.append('lastName', formData.lastName);
+        formDataToSend.append('contactNumber', formData.contactNumber);
+        formDataToSend.append('email', formData.email);
+        formDataToSend.append('roomBedNumber', formData.bedNumber);
+        formDataToSend.append('emergencyContactNumber', formData.emergencyContactNumber);
+        formDataToSend.append('admissionDate', formData.admissionDate);
+        formDataToSend.append('emergencyContactName', formData.emergencyContactName);
+        formDataToSend.append('feeStatus', formData.feeStatus);
+        
+        // Add document files if new ones were uploaded
+        if (studentDocuments.aadharCard) {
+          formDataToSend.append('aadharCard', studentDocuments.aadharCard);
+        }
+        if (studentDocuments.panCard) {
+          formDataToSend.append('panCard', studentDocuments.panCard);
+        }
 
-      const response = await registerStudentAPI(studentData);
+        await api.put(`/api/adminauth/update-student/${studentData.studentId}`, formDataToSend, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          }
+        });
+        
+        toast.success("Student updated successfully!");
+        
+        if (onSuccess) {
+          setTimeout(() => onSuccess(), 1000);
+        }
+      } else {
+        // Create new student
+        const studentDataPayload = {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          contactNumber: formData.contactNumber,
+          roomBedNumber: formData.bedNumber || "Not Assigned",
+          email: formData.email,
+          admissionDate: formData.admissionDate,
+          feeStatus: formData.feeStatus,
+          emergencyContactName: formData.emergencyContactName,
+          emergencyContactNumber: formData.emergencyContactNumber,
+          // Add document files
+          aadharCard: studentDocuments.aadharCard,
+          panCard: studentDocuments.panCard
+        };
 
-      // Find the selected room details for display
-      const selectedRoom = availableRooms.find(room => room._id === formData.bedNumber);
-      const roomDisplay = selectedRoom
-        ? `${selectedRoom.barcodeId} - Floor ${selectedRoom.floor}, Room ${selectedRoom.roomNo}`
-        : formData.bedNumber || "Not Assigned";
+        const response = await registerStudentAPI(studentDataPayload);
 
-      // Add new student to local state
-      const newStudent = {
-        id: response.student.studentId,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        name: `${formData.firstName} ${formData.lastName}`,
-        room: roomDisplay,
-        contact: formData.contactNumber,
-        email: formData.email,
-        emergencyContactNumber: formData.emergencyContactNumber,
-        admissionDate: formData.admissionDate,
-        emergencyContactName: formData.emergencyContactName,
-        feeStatus: formData.feeStatus,
-        dues: "₹ 0/-",
-        roomDetails: selectedRoom,
-        roomObjectId: formData.bedNumber
-      };
+        // Find the selected room details for display
+        const selectedRoom = availableRooms.find(room => room._id === formData.bedNumber);
+        const roomDisplay = selectedRoom
+          ? `${selectedRoom.barcodeId} - Floor ${selectedRoom.floor}, Room ${selectedRoom.roomNo}`
+          : formData.bedNumber || "Not Assigned";
 
-      setStudents((prev) => [...prev, newStudent]);
-      // Refresh students without parents list
-      const studentsWithoutParentsData = await fetchStudentsWithoutParentsAPI();
-      setStudentsWithoutParents(studentsWithoutParentsData.students || []);
-      resetForm();
+        // Add new student to local state
+        const newStudent = {
+          id: response.student.studentId,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          name: `${formData.firstName} ${formData.lastName}`,
+          room: roomDisplay,
+          contact: formData.contactNumber,
+          email: formData.email,
+          emergencyContactNumber: formData.emergencyContactNumber,
+          admissionDate: formData.admissionDate,
+          emergencyContactName: formData.emergencyContactName,
+          feeStatus: formData.feeStatus,
+          dues: "₹ 0/-",
+          roomDetails: selectedRoom,
+          roomObjectId: formData.bedNumber
+        };
 
+        setStudents((prev) => [...prev, newStudent]);
+        // Refresh students without parents list
+        const studentsWithoutParentsData = await fetchStudentsWithoutParentsAPI();
+        setStudentsWithoutParents(studentsWithoutParentsData.students || []);
+        resetForm();
 
-      // alert(`Student registered successfully! Password: ${response.student?.password || 'Check email for credentials'}`);
-      toast.success(
-        `Student registered successfully! Password: ${response.student?.password}`,
-        { autoClose: 6000 }
-      );
+        toast.success(
+          `Student registered successfully! Password: ${response.student?.password}`,
+          { autoClose: 6000 }
+        );
+        
+        // Call onSuccess callback if provided
+        if (onSuccess) {
+          setTimeout(() => onSuccess(), 1000);
+        }
+      }
     } catch (error) {
-      console.error('Error registering student:', error);
-      toast.error(error.message || 'Error registering student. Please try again.');
+      console.error('Error saving student:', error);
+      toast.error(error.message || 'Error saving student. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -807,19 +912,152 @@ Please verify the auto-filled information.`);
 
     setParentLoading(true);
     try {
-      const response = await registerParentAPI(parentFormData);
+      if (editMode && parentData) {
+        // Update existing parent
+        const formDataToSend = new FormData();
+        
+        // Add text fields
+        formDataToSend.append('firstName', parentFormData.firstName);
+        formDataToSend.append('lastName', parentFormData.lastName);
+        formDataToSend.append('email', parentFormData.email);
+        formDataToSend.append('relation', parentFormData.relation);
+        formDataToSend.append('contactNumber', parentFormData.contactNumber);
+        formDataToSend.append('studentId', parentFormData.studentId);
+        
+        // Add document files if new ones were uploaded
+        if (parentDocuments.aadharCard) {
+          formDataToSend.append('aadharCard', parentDocuments.aadharCard);
+        }
+        if (parentDocuments.panCard) {
+          formDataToSend.append('panCard', parentDocuments.panCard);
+        }
 
-      // ADD THIS: Refresh the students without parents list
-      const studentsWithoutParentsData = await fetchStudentsWithoutParentsAPI();
-      setStudentsWithoutParents(studentsWithoutParentsData.students || []);
+        await api.put(`/api/adminauth/update-parent/${parentData.parentId}`, formDataToSend, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          }
+        });
+        
+        toast.success("Parent updated successfully!");
+        
+        if (onSuccess) {
+          setTimeout(() => onSuccess(), 1000);
+        }
+      } else {
+        // Create new parent
+        const response = await registerParentAPI(parentFormData);
 
-      resetParentForm();
-      toast.success(`Parent registered successfully! Login instructions sent to ${parentFormData.email}`);
+        // ADD THIS: Refresh the students without parents list
+        const studentsWithoutParentsData = await fetchStudentsWithoutParentsAPI();
+        setStudentsWithoutParents(studentsWithoutParentsData.students || []);
+
+        resetParentForm();
+        toast.success(`Parent registered successfully! Login instructions sent to ${parentFormData.email}`);
+        
+        // Call onSuccess callback if provided
+        if (onSuccess) {
+          setTimeout(() => onSuccess(), 1000);
+        }
+      }
     } catch (error) {
-      console.error('Error registering parent:', error);
-      toast.error(error.message || 'Error registering parent. Please try again.');
+      console.error('Error saving parent:', error);
+      toast.error(error.message || 'Error saving parent. Please try again.');
     } finally {
       setParentLoading(false);
+    }
+  };
+
+  // Worker form handlers
+  const handleWorkerInputChange = (e) => {
+    const { name, value } = e.target;
+    setWorkerFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    // Clear error for the field being typed into
+    if (workerErrors[name]) {
+      setWorkerErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateWorkerForm = (data) => {
+    const newErrors = {};
+    if (!data.firstName.trim()) {
+      newErrors.firstName = "First Name is required.";
+    }
+    if (!data.lastName.trim()) {
+      newErrors.lastName = "Last Name is required.";
+    }
+    if (!data.email.trim()) {
+      newErrors.email = "Email is required.";
+    } else if (!/\S+@\S+\.\S+/.test(data.email)) {
+      newErrors.email = "Email is invalid.";
+    }
+    if (!data.contactNumber.trim()) {
+      newErrors.contactNumber = "Contact Number is required.";
+    }
+    return newErrors;
+  };
+
+  const resetWorkerForm = () => {
+    setWorkerFormData({
+      firstName: "",
+      lastName: "",
+      email: "",
+      contactNumber: "",
+      roomNumber: "",
+      bedNumber: "",
+      emergencyContactNumber: "",
+      admissionDate: getTodaysDate(),
+      emergencyContactName: "",
+      feeStatus: "",
+    });
+    setWorkerDocuments({ aadharCard: null, panCard: null });
+    setWorkerErrors({});
+  };
+
+  const handleWorkerSubmit = async () => {
+    const newErrors = validateWorkerForm(workerFormData);
+    if (Object.keys(newErrors).length > 0) {
+      setWorkerErrors(newErrors);
+      return;
+    }
+
+    setWorkerLoading(true);
+    try {
+      const workerDataPayload = {
+        firstName: workerFormData.firstName,
+        lastName: workerFormData.lastName,
+        email: workerFormData.email,
+        contactNumber: workerFormData.contactNumber,
+        roomNumber: workerFormData.roomNumber,
+        bedNumber: workerFormData.bedNumber,
+        emergencyContactNumber: workerFormData.emergencyContactNumber,
+        admissionDate: workerFormData.admissionDate,
+        emergencyContactName: workerFormData.emergencyContactName,
+        feeStatus: workerFormData.feeStatus,
+        aadharCard: workerDocuments.aadharCard,
+        panCard: workerDocuments.panCard
+      };
+
+      const response = await registerWorkerAPI(workerDataPayload);
+
+      resetWorkerForm();
+      toast.success(`Worker registered successfully! Staff ID: ${response.worker?.staffId}, Password: ${response.worker?.password}`, { autoClose: 6000 });
+      
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        setTimeout(() => onSuccess(), 1000);
+      }
+    } catch (error) {
+      console.error('Error saving worker:', error);
+      toast.error(error.message || 'Error saving worker. Please try again.');
+    } finally {
+      setWorkerLoading(false);
     }
   };
 
@@ -913,6 +1151,38 @@ Please verify the auto-filled information.`);
     loadData();
   }, []);
 
+  // Add useEffect to populate form in edit mode
+  useEffect(() => {
+    if (editMode && studentData) {
+      setFormData({
+        firstName: studentData.firstName || studentData.studentName?.split(' ')[0] || "",
+        lastName: studentData.lastName || studentData.studentName?.split(' ').slice(1).join(' ') || "",
+        contactNumber: studentData.contactNumber || "",
+        email: studentData.email || "",
+        roomNumber: studentData.roomNo || "",
+        bedNumber: studentData.roomBedNumber || studentData.barcodeId || "", // Use roomBedNumber ObjectId if available
+        emergencyContactNumber: studentData.emergencyContactNumber || "",
+        admissionDate: studentData.admissionDate ? new Date(studentData.admissionDate).toISOString().split('T')[0] : getTodaysDate(),
+        emergencyContactName: studentData.emergencyContactName || "",
+        feeStatus: studentData.feeStatus || "",
+      });
+    }
+  }, [editMode, studentData]);
+
+  // Add useEffect to populate parent form in edit mode
+  useEffect(() => {
+    if (editMode && parentData) {
+      setParentFormData({
+        firstName: parentData.firstName || "",
+        lastName: parentData.lastName || "",
+        email: parentData.email || "",
+        relation: parentData.relation || "",
+        contactNumber: parentData.contactNumber || "",
+        studentId: parentData.studentId || "",
+      });
+    }
+  }, [editMode, parentData]);
+
 
   // New handler for viewing student details
   const handleViewDetails = (studentId) => {
@@ -987,9 +1257,9 @@ Please verify the auto-filled information.`);
         className="text-lg sm:text-xl lg:text-2xl font-bold text-black mb-4 sm:mb-6"
         style={{ fontFamily: "Inter", fontWeight: "700" }}
       >
-        {isEditMode
+        {editMode ? "Edit Student & Allot Bed" : (isEditMode
           ? "Edit Student & Allot Bed"
-          : "Register New Student & Allot Bed"}
+          : "Register New Student & Allot Bed")}
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* First Name */}
@@ -1041,22 +1311,50 @@ Please verify the auto-filled information.`);
         {/* Document Upload Section - Add after Last Name field */}
         <div className="w-full px-2 md:col-span-2">
           <div className="bg-white/50 rounded-lg p-4 space-y-4">
-            <h3 className="font-semibold text-black mb-2">Upload Documents (Optional - Auto-fill with OCR)</h3>
+            <h3 className="font-semibold text-black mb-2">
+              {editMode ? "View/Update Documents" : "Upload Documents (Optional - Auto-fill with OCR)"}
+            </h3>
 
             {/* Aadhar Card Upload */}
             <div>
               <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>
                 Aadhar Card
               </label>
+              
+              {/* Show existing document in edit mode */}
+              {editMode && studentData?.documents?.aadharCard?.filename && (
+                <div className="mb-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span className="text-sm text-blue-800 font-medium">Current Aadhar Card</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => window.open(
+                        `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/adminauth/student-document/${studentData.studentId}/aadharCard`,
+                        '_blank'
+                      )}
+                      className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                    >
+                      View
+                    </button>
+                  </div>
+                  <p className="text-xs text-blue-600 mt-1">Upload a new file to replace</p>
+                </div>
+              )}
+              
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleDocumentUpload(e, 'aadhar', 'student')}
+                onChange={(e) => handleDocumentUpload(e, 'aadharCard', 'student')}
                 className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300"
                 disabled={ocrLoading}
               />
               {studentDocuments.aadharCard && (
-                <p className="text-xs text-green-600 mt-1">✓ {studentDocuments.aadharCard.name}</p>
+                <p className="text-xs text-green-600 mt-1">✓ New file selected: {studentDocuments.aadharCard.name}</p>
               )}
             </div>
 
@@ -1065,15 +1363,41 @@ Please verify the auto-filled information.`);
               <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>
                 PAN Card
               </label>
+              
+              {/* Show existing document in edit mode */}
+              {editMode && studentData?.documents?.panCard?.filename && (
+                <div className="mb-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span className="text-sm text-blue-800 font-medium">Current PAN Card</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => window.open(
+                        `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/adminauth/student-document/${studentData.studentId}/panCard`,
+                        '_blank'
+                      )}
+                      className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                    >
+                      View
+                    </button>
+                  </div>
+                  <p className="text-xs text-blue-600 mt-1">Upload a new file to replace</p>
+                </div>
+              )}
+              
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleDocumentUpload(e, 'pan', 'student')}
+                onChange={(e) => handleDocumentUpload(e, 'panCard', 'student')}
                 className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300"
                 disabled={ocrLoading}
               />
               {studentDocuments.panCard && (
-                <p className="text-xs text-green-600 mt-1">✓ {studentDocuments.panCard.name}</p>
+                <p className="text-xs text-green-600 mt-1">✓ New file selected: {studentDocuments.panCard.name}</p>
               )}
             </div>
 
@@ -1357,7 +1681,7 @@ Please verify the auto-filled information.`);
             fontSize: "15px",
           }}
         >
-          {loading ? (isEditMode ? "Updating..." : "Registering...") : (isEditMode ? "Update Student" : "Register Student")}
+          {loading ? (isEditMode ? "Updating..." : "Registering...") : (editMode ? "Update Student" : (isEditMode ? "Update Student" : "Register Student"))}
         </button>
         {isEditMode && (
           <button
@@ -1380,7 +1704,7 @@ Please verify the auto-filled information.`);
         className="text-lg sm:text-xl lg:text-2xl font-bold text-black mb-4 sm:mb-6"
         style={{ fontFamily: "Inter", fontWeight: "700" }}
       >
-        Register Parent Account
+        {editMode ? "Edit Parent Account" : "Register Parent Account"}
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* First Name */}
@@ -1498,22 +1822,50 @@ Please verify the auto-filled information.`);
         {/* Document Upload Section for Parent - Add after Contact Number */}
         <div className="w-full px-2 md:col-span-2">
           <div className="bg-white/50 rounded-lg p-4 space-y-4">
-            <h3 className="font-semibold text-black mb-2">Upload Documents (Optional - Auto-fill with OCR)</h3>
+            <h3 className="font-semibold text-black mb-2">
+              {editMode ? "View/Update Documents" : "Upload Documents (Optional - Auto-fill with OCR)"}
+            </h3>
 
             {/* Aadhar Card Upload */}
             <div>
               <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>
                 Aadhar Card
               </label>
+              
+              {/* Show existing document in edit mode */}
+              {editMode && parentData?.documents?.aadharCard?.filename && (
+                <div className="mb-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span className="text-sm text-blue-800 font-medium">Current Aadhar Card</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => window.open(
+                        `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/adminauth/parent-document/${parentData.parentId}/aadharCard`,
+                        '_blank'
+                      )}
+                      className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                    >
+                      View
+                    </button>
+                  </div>
+                  <p className="text-xs text-blue-600 mt-1">Upload a new file to replace</p>
+                </div>
+              )}
+              
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleDocumentUpload(e, 'aadhar', 'parent')}
+                onChange={(e) => handleDocumentUpload(e, 'aadharCard', 'parent')}
                 className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300"
                 disabled={ocrLoading}
               />
               {parentDocuments.aadharCard && (
-                <p className="text-xs text-green-600 mt-1">✓ {parentDocuments.aadharCard.name}</p>
+                <p className="text-xs text-green-600 mt-1">✓ New file selected: {parentDocuments.aadharCard.name}</p>
               )}
             </div>
 
@@ -1522,15 +1874,41 @@ Please verify the auto-filled information.`);
               <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>
                 PAN Card
               </label>
+              
+              {/* Show existing document in edit mode */}
+              {editMode && parentData?.documents?.panCard?.filename && (
+                <div className="mb-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span className="text-sm text-blue-800 font-medium">Current PAN Card</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => window.open(
+                        `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/adminauth/parent-document/${parentData.parentId}/panCard`,
+                        '_blank'
+                      )}
+                      className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                    >
+                      View
+                    </button>
+                  </div>
+                  <p className="text-xs text-blue-600 mt-1">Upload a new file to replace</p>
+                </div>
+              )}
+              
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleDocumentUpload(e, 'pan', 'parent')}
+                onChange={(e) => handleDocumentUpload(e, 'panCard', 'parent')}
                 className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300"
                 disabled={ocrLoading}
               />
               {parentDocuments.panCard && (
-                <p className="text-xs text-green-600 mt-1">✓ {parentDocuments.panCard.name}</p>
+                <p className="text-xs text-green-600 mt-1">✓ New file selected: {parentDocuments.panCard.name}</p>
               )}
             </div>
 
@@ -1609,7 +1987,266 @@ Please verify the auto-filled information.`);
             fontSize: "15px",
           }}
         >
-          {parentLoading ? "Registering..." : "Register Parent"}
+          {parentLoading ? (editMode ? "Updating..." : "Registering...") : (editMode ? "Update Parent" : "Register Parent")}
+        </button>
+      </div>
+    </>
+  );
+
+  // Worker Form Content
+  const workerFormContent = () => (
+    <>
+      <h2
+        className="text-lg sm:text-xl lg:text-2xl font-bold text-black mb-4 sm:mb-6"
+        style={{ fontFamily: "Inter", fontWeight: "700" }}
+      >
+        Register New Worker
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        {/* First Name */}
+        <div className="w-full px-2">
+          <label className="block mb-1 text-black ml-2" style={labelStyle}>
+            First Name
+          </label>
+          <input
+            type="text"
+            name="firstName"
+            value={workerFormData.firstName}
+            onChange={handleWorkerInputChange}
+            placeholder="Enter First Name"
+            className={`w-full px-4 bg-white rounded-[10px] border-0 outline-none placeholder-gray-500 text-black font-semibold text-[12px] leading-[100%] tracking-normal text-left font-[Poppins] ${workerErrors.firstName ? "border-red-500" : ""
+              }`}
+            style={inputStyle}
+            required
+          />
+          {workerErrors.firstName && (
+            <p className="text-red-500 text-xs mt-1 ml-2">
+              {workerErrors.firstName}
+            </p>
+          )}
+        </div>
+
+        {/* Last Name */}
+        <div className="w-full px-2">
+          <label className="block mb-1 text-black ml-2" style={labelStyle}>
+            Last Name
+          </label>
+          <input
+            type="text"
+            name="lastName"
+            value={workerFormData.lastName}
+            onChange={handleWorkerInputChange}
+            placeholder="Enter Last Name"
+            className={`w-full px-4 bg-white rounded-[10px] border-0 outline-none placeholder-gray-500 text-black font-semibold text-[12px] leading-[100%] tracking-normal text-left font-[Poppins] ${workerErrors.lastName ? "border-red-500" : ""
+              }`}
+            style={inputStyle}
+            required
+          />
+          {workerErrors.lastName && (
+            <p className="text-red-500 text-xs mt-1 ml-2">
+              {workerErrors.lastName}
+            </p>
+          )}
+        </div>
+
+        {/* Document Upload Section */}
+        <div className="w-full px-2 md:col-span-2">
+          <div className="bg-white/50 rounded-lg p-4 space-y-4">
+            <h3 className="font-semibold text-black mb-2">
+              Upload Documents (Optional - Auto-fill with OCR)
+            </h3>
+
+            {/* Aadhar Card Upload */}
+            <div>
+              <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>
+                Aadhar Card
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleDocumentUpload(e, 'aadharCard', 'worker')}
+                className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300"
+                disabled={ocrLoading}
+              />
+              {workerDocuments.aadharCard && (
+                <p className="text-xs text-green-600 mt-1">✓ File selected: {workerDocuments.aadharCard.name}</p>
+              )}
+            </div>
+
+            {/* PAN Card Upload */}
+            <div>
+              <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>
+                PAN Card
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleDocumentUpload(e, 'panCard', 'worker')}
+                className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300"
+                disabled={ocrLoading}
+              />
+              {workerDocuments.panCard && (
+                <p className="text-xs text-green-600 mt-1">✓ File selected: {workerDocuments.panCard.name}</p>
+              )}
+            </div>
+
+            {/* OCR Loading Indicator */}
+            {ocrLoading && (
+              <div className="flex items-center gap-2 text-blue-600">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <span className="text-sm">Processing document... {ocrProgress}%</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Contact Number */}
+        <div className="w-full px-2">
+          <label className="block mb-1 text-black ml-2" style={labelStyle}>
+            Contact Number
+          </label>
+          <input
+            type="tel"
+            name="contactNumber"
+            value={workerFormData.contactNumber}
+            onChange={handleWorkerInputChange}
+            placeholder="Enter Phone Number"
+            className={`w-full px-4 bg-white rounded-[10px] border-0 outline-none placeholder-gray-500 text-black font-semibold text-[12px] leading-[100%] tracking-normal text-left font-[Poppins] ${workerErrors.contactNumber ? "border-red-500" : ""
+              }`}
+            style={inputStyle}
+            required
+          />
+          {workerErrors.contactNumber && (
+            <p className="text-red-500 text-xs mt-1 ml-2">
+              {workerErrors.contactNumber}
+            </p>
+          )}
+        </div>
+
+        {/* Email */}
+        <div className="w-full px-2">
+          <label className="block mb-1 text-black ml-2" style={labelStyle}>
+            E-Mail
+          </label>
+          <input
+            type="email"
+            name="email"
+            value={workerFormData.email}
+            onChange={handleWorkerInputChange}
+            placeholder="Enter E-Mail"
+            className={`w-full px-4 bg-white rounded-[10px] border-0 outline-none placeholder-gray-500 text-black font-semibold text-[12px] leading-[100%] tracking-normal text-left font-[Poppins] ${workerErrors.email ? "border-red-500" : ""
+              }`}
+            style={inputStyle}
+            required
+          />
+          {workerErrors.email && (
+            <p className="text-red-500 text-xs mt-1 ml-2">{workerErrors.email}</p>
+          )}
+        </div>
+
+        {/* Designation */}
+        <div className="w-full px-2">
+          <label className="block mb-1 text-black ml-2" style={labelStyle}>
+            Designation
+          </label>
+          <input
+            type="text"
+            name="designation"
+            value={workerFormData.designation}
+            onChange={handleWorkerInputChange}
+            placeholder="Enter Designation"
+            className={`w-full px-4 bg-white rounded-[10px] border-0 outline-none placeholder-gray-500 text-black font-semibold text-[12px] leading-[100%] tracking-normal text-left font-[Poppins] ${workerErrors.designation ? "border-red-500" : ""
+              }`}
+            style={inputStyle}
+            required
+          />
+          {workerErrors.designation && (
+            <p className="text-red-500 text-xs mt-1 ml-2">
+              {workerErrors.designation}
+            </p>
+          )}
+        </div>
+
+        {/* Shift Start */}
+        <div className="w-full px-2">
+          <label className="block mb-1 text-black ml-2" style={labelStyle}>
+            Shift Start
+          </label>
+          <input
+            type="time"
+            name="shiftStart"
+            value={workerFormData.shiftStart}
+            onChange={handleWorkerInputChange}
+            className={`w-full px-4 bg-white rounded-[10px] border-0 outline-none placeholder-gray-500 text-black font-semibold text-[12px] leading-[100%] tracking-normal text-left font-[Poppins] ${workerErrors.shiftStart ? "border-red-500" : ""
+              }`}
+            style={inputStyle}
+            required
+          />
+          {workerErrors.shiftStart && (
+            <p className="text-red-500 text-xs mt-1 ml-2">
+              {workerErrors.shiftStart}
+            </p>
+          )}
+        </div>
+
+        {/* Shift End */}
+        <div className="w-full px-2">
+          <label className="block mb-1 text-black ml-2" style={labelStyle}>
+            Shift End
+          </label>
+          <input
+            type="time"
+            name="shiftEnd"
+            value={workerFormData.shiftEnd}
+            onChange={handleWorkerInputChange}
+            className={`w-full px-4 bg-white rounded-[10px] border-0 outline-none placeholder-gray-500 text-black font-semibold text-[12px] leading-[100%] tracking-normal text-left font-[Poppins] ${workerErrors.shiftEnd ? "border-red-500" : ""
+              }`}
+            style={inputStyle}
+            required
+          />
+          {workerErrors.shiftEnd && (
+            <p className="text-red-500 text-xs mt-1 ml-2">
+              {workerErrors.shiftEnd}
+            </p>
+          )}
+        </div>
+
+        {/* Salary */}
+        <div className="w-full px-2">
+          <label className="block mb-1 text-black ml-2" style={labelStyle}>
+            Salary
+          </label>
+          <input
+            type="number"
+            name="salary"
+            value={workerFormData.salary}
+            onChange={handleWorkerInputChange}
+            placeholder="Enter Salary"
+            className={`w-full px-4 bg-white rounded-[10px] border-0 outline-none placeholder-gray-500 text-black font-semibold text-[12px] leading-[100%] tracking-normal text-left font-[Poppins] ${workerErrors.salary ? "border-red-500" : ""
+              }`}
+            style={inputStyle}
+          />
+          {workerErrors.salary && (
+            <p className="text-red-500 text-xs mt-1 ml-2">
+              {workerErrors.salary}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Submit Button */}
+      <div className="flex justify-center mt-6">
+        <button
+          onClick={handleWorkerSubmit}
+          disabled={workerLoading}
+          className={`mt-6 px-6 py-2 bg-white text-black rounded-[10px] shadow hover:bg-gray-200 transition-colors font-[Poppins] cursor-pointer ${workerLoading ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+          style={{
+            fontWeight: "600",
+            fontSize: "15px",
+          }}
+        >
+          {workerLoading ? "Registering..." : "Register Worker"}
         </button>
       </div>
     </>
@@ -1639,36 +2276,50 @@ Please verify the auto-filled information.`);
         {/* Tabbed Registration Forms (conditionally rendered when not editing) */}
         {!editingStudent && (
           <div className="w-full max-w-7xl mx-auto">
-            {/* Tab Navigation */}
-            <div className="flex mb-4">
-              <button
-                onClick={() => setActiveTab("student")}
-                className={`px-6 py-3 rounded-t-[20px] font-semibold transition-colors ${activeTab === "student"
-                    ? "bg-[#BEC5AD] text-black border-b-2 border-[#4F8CCF]"
-                    : "bg-gray-200 text-gray-600 hover:bg-gray-300"
-                  }`}
-                style={{ fontFamily: "Poppins", fontWeight: "600" }}
-              >
-                Register Student
-              </button>
-              <button
-                onClick={() => setActiveTab("parent")}
-                className={`px-6 py-3 rounded-t-[20px] font-semibold transition-colors ${activeTab === "parent"
-                    ? "bg-[#BEC5AD] text-black border-b-2 border-[#4F8CCF]"
-                    : "bg-gray-200 text-gray-600 hover:bg-gray-300"
-                  }`}
-                style={{ fontFamily: "Poppins", fontWeight: "600" }}
-              >
-                Register Parent
-              </button>
-            </div>
+            {/* Tab Navigation - Hide in edit mode */}
+            {!editMode && (
+              <div className="flex mb-4">
+                <button
+                  onClick={() => setActiveTab("student")}
+                  className={`px-6 py-3 rounded-t-[20px] font-semibold transition-colors ${activeTab === "student"
+                      ? "bg-[#BEC5AD] text-black border-b-2 border-[#4F8CCF]"
+                      : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                    }`}
+                  style={{ fontFamily: "Poppins", fontWeight: "600" }}
+                >
+                  Register Student
+                </button>
+                <button
+                  onClick={() => setActiveTab("parent")}
+                  className={`px-6 py-3 rounded-t-[20px] font-semibold transition-colors ${activeTab === "parent"
+                      ? "bg-[#BEC5AD] text-black border-b-2 border-[#4F8CCF]"
+                      : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                    }`}
+                  style={{ fontFamily: "Poppins", fontWeight: "600" }}
+                >
+                  Register Parent
+                </button>
+                <button
+                  onClick={() => setActiveTab("worker")}
+                  className={`px-6 py-3 rounded-t-[20px] font-semibold transition-colors ${activeTab === "worker"
+                      ? "bg-[#BEC5AD] text-black border-b-2 border-[#4F8CCF]"
+                      : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                    }`}
+                  style={{ fontFamily: "Poppins", fontWeight: "600" }}
+                >
+                  Register Worker
+                </button>
+              </div>
+            )}
 
             {/* Tab Content */}
             <div
               className="bg-[#BEC5AD] rounded-[20px] p-4 sm:p-6 lg:p-8"
               style={{ boxShadow: "0px 4px 20px 0px #00000040 inset" }}
             >
-              {activeTab === "student" ? formContent(false) : parentFormContent()}
+              {activeTab === "student" && formContent(false)}
+              {activeTab === "parent" && parentFormContent()}
+              {activeTab === "worker" && workerFormContent()}
             </div>
           </div>
         )}

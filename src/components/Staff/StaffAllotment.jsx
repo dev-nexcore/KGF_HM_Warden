@@ -1355,6 +1355,7 @@ const StaffAllotment = () => {
       otherDesignation: "",
       shiftStart: "",
       shiftEnd: "",
+      salary: "",
     });
 
   const [staffs, setStaffs] =
@@ -1474,6 +1475,9 @@ const StaffAllotment = () => {
 
           shiftEnd:
             formData.shiftEnd,
+
+          salary:
+            formData.salary,
         };
 
         const response =
@@ -1497,6 +1501,7 @@ const StaffAllotment = () => {
           otherDesignation: "",
           shiftStart: "",
           shiftEnd: "",
+          salary: "",
         });
 
         setTimeout(() => {
@@ -1542,6 +1547,9 @@ const StaffAllotment = () => {
 
         shiftEnd:
           staff.shiftEnd,
+
+        salary:
+          staff.salary || "",
       });
 
       setShowEditModal(true);
@@ -1578,6 +1586,9 @@ const StaffAllotment = () => {
 
           shiftEnd:
             formData.shiftEnd,
+
+          salary:
+            formData.salary,
         };
 
         await axios.put(
@@ -1846,6 +1857,26 @@ const StaffAllotment = () => {
 
             </div>
           </div>
+
+          {/* Salary */}
+          <div>
+
+            <label className="block text-base sm:text-lg text-black font-bold mb-1">
+              Salary
+            </label>
+
+            <input
+              type="number"
+              name="salary"
+              value={formData.salary}
+              onChange={
+                handleInputChange
+              }
+              placeholder="Enter Salary Amount"
+              className="w-full p-3 border rounded-md bg-white"
+            />
+
+          </div>
         </div>
 
         {/* Button */}
@@ -2105,6 +2136,19 @@ const StaffAllotment = () => {
                 />
 
               </div>
+
+              <input
+                type="number"
+                name="salary"
+                value={
+                  formData.salary
+                }
+                onChange={
+                  handleInputChange
+                }
+                placeholder="Salary"
+                className="p-3 border rounded-md"
+              />
             </div>
 
             <div className="flex justify-end mt-6">
