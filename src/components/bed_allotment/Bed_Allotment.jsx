@@ -2,21 +2,78 @@
 
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { toast, Toaster } from "react-hot-toast";
-import { 
-  BedDouble, 
-  CheckCircle2, 
-  AlertCircle, 
-  Search, 
-  Filter, 
-  Calendar, 
-  ShieldCheck, 
-  MoreVertical,
-  Eye,
-  Building,
-  UserCheck,
-  DoorOpen
-} from "lucide-react";
+import { Search, Bed, ArrowUpRight, Filter, RefreshCw, X } from "lucide-react";
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+const PremiumStatCard = ({ label, value, icon, accent = "text-[#1A1F16]" }) => (
+  <div className="bg-[#BEC5AD] p-6 rounded-[32px] border border-white/20 shadow-lg shadow-black/5 flex flex-col items-center gap-4 group hover:-translate-y-1 transition-all">
+    <div className={`w-14 h-14 rounded-[20px] bg-white text-[#A4B494] flex items-center justify-center shadow-md transition-transform group-hover:rotate-6 group-hover:bg-[#A4B494] group-hover:text-white`}>
+      {React.cloneElement(icon, { size: 28 })}
+    </div>
+    <div className="text-center">
+      <p className="text-[10px] font-black text-[#1A1F16]/40 uppercase tracking-[0.2em] mb-1">{label}</p>
+      <h3 className={`text-3xl font-black tracking-tight ${accent}`}>{value}</h3>
+    </div>
+  </div>
+);
+
+const InputFilter = ({ label, value, onChange, options = [] }) => (
+  <div className="flex flex-col gap-1.5">
+    <label className="text-[10px] font-black text-[#1A1F16]/40 uppercase tracking-[0.2em]">{label}</label>
+    <div className="relative group">
+      <select
+        value={value}
+        onChange={onChange}
+        className="w-full appearance-none bg-white/40 backdrop-blur-md border border-white/20 rounded-2xl px-5 py-3.5 text-xs font-bold text-[#1A1F16] focus:border-white focus:bg-white outline-none transition-all shadow-sm"
+      >
+        <option value="">All {label}</option>
+        {options.map((opt, idx) => (
+          <option key={idx} value={opt}>{opt}</option>
+        ))}
+      </select>
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#1A1F16]/30">
+        <Filter size={14} />
+      </div>
+    </div>
+  </div>
+);
+
+const BedCard = ({ bed }) => {
+  const statusStyles = {
+    "Available": "bg-emerald-500",
+    "In Use": "bg-[#1A1F16]",
+    "Damaged": "bg-red-500",
+    "In maintenance": "bg-amber-500",
+  };
+
+  const badgeColor = statusStyles[bed.status] || "bg-gray-400";
+
+  return (
+    <div className="group bg-white rounded-[32px] p-6 border border-[#A4B494]/10 shadow-xl shadow-black/5 flex flex-col gap-4 relative overflow-hidden transition-all hover:-translate-y-1 hover:shadow-2xl">
+      <div className={`absolute top-0 right-0 w-16 h-16 ${badgeColor} rounded-bl-full opacity-10 transition-opacity group-hover:opacity-20`}></div>
+      
+      <div className="flex justify-between items-start">
+        <div className={`w-12 h-12 rounded-[18px] ${badgeColor} flex items-center justify-center text-white shadow-lg`}>
+          <Bed size={22} />
+        </div>
+        <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-white ${badgeColor}`}>
+          {bed.status}
+        </div>
+      </div>
+
+      <div>
+        <h4 className="text-lg font-black text-[#1A1F16] tracking-tight">ID: {bed.barcodeId}</h4>
+        <p className="text-[10px] text-[#A4B494] font-black uppercase tracking-widest mt-1">Floor {bed.floor} • Room {bed.roomNo}</p>
+      </div>
+
+      <div className="pt-4 border-t border-[#A4B494]/5 mt-auto flex justify-between items-center">
+        <span className="text-[9px] font-black text-[#A4B494] uppercase tracking-widest">Action Required: None</span>
+        <ArrowUpRight className="w-4 h-4 text-[#A4B494]/30 group-hover:text-[#A4B494] transition-all group-hover:translate-x-1 group-hover:-translate-y-1" />
+      </div>
+    </div>
+  );
+};
 
 export default function BedAllotment() {
   const [bedStats, setBedStats] = useState({
@@ -30,6 +87,7 @@ export default function BedAllotment() {
   const [bedList, setBedList] = useState([]);
   const [floorOptions, setFloorOptions] = useState([]);
   const [roomOptions, setRoomOptions] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [filters, setFilters] = useState({
     floor: "",
@@ -38,8 +96,12 @@ export default function BedAllotment() {
   });
 
   useEffect(() => {
-    fetchStats();
-    fetchAllBeds();
+    const initialize = async () => {
+      setLoading(true);
+      await Promise.all([fetchStats(), fetchAllBeds(), fetchBeds()]);
+      setLoading(false);
+    };
+    initialize();
   }, []);
 
   useEffect(() => {
@@ -59,8 +121,8 @@ export default function BedAllotment() {
     try {
       const res = await axios.get(`${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/bed-status`);
       const beds = res.data;
-      const floors = [...new Set(beds.map(b => b.floor))];
-      const rooms = [...new Set(beds.map(b => b.roomNo))];
+      const floors = [...new Set(beds.map(b => b.floor))].sort();
+      const rooms = [...new Set(beds.map(b => b.roomNo))].sort();
       setFloorOptions(floors);
       setRoomOptions(rooms);
     } catch (err) {
@@ -74,7 +136,6 @@ export default function BedAllotment() {
       if (filters.floor) params.floor = filters.floor;
       if (filters.roomNo) params.roomNo = filters.roomNo;
       if (filters.status) params.status = filters.status;
-
       const res = await axios.get(`${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/bed-status`, { params });
       setBedList(res.data);
     } catch (err) {
@@ -84,139 +145,78 @@ export default function BedAllotment() {
 
   const clearFilters = () => {
     setFilters({ floor: "", roomNo: "", status: "" });
-    toast.success("Filters reset.");
   };
 
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-[#F8FAF5]">
+        <div className="w-10 h-10 border-4 border-[#A4B494]/20 border-t-[#A4B494] rounded-full animate-spin shadow-lg"></div>
+        <p className="mt-6 text-[#A4B494] font-black text-[10px] uppercase tracking-[0.3em] animate-pulse">Scanning Inventory...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#F8FAF5] p-6 md:p-10 space-y-10 animate-in fade-in duration-700">
-      <Toaster position="top-right" />
-
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+    <main className="flex-1 bg-[#F8FAF5] min-h-screen p-6 md:p-10 space-y-8 max-w-7xl mx-auto">
+      
+      {/* ── Page Title ── */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div className="flex items-center gap-4">
-          <div className="w-2 h-10 bg-[#7A8B5E] rounded-full shadow-lg"></div>
+          <div className="w-1.5 h-10 bg-red-500 rounded-full shadow-lg"></div>
           <div>
-            <h1 className="text-3xl font-black text-[#1A1F16] tracking-tight uppercase italic leading-none">Bed Registry</h1>
-            <p className="text-[10px] text-[#7A8B5E] font-black uppercase tracking-[0.3em] mt-1">Hostel Allotment & Capacity Dashboard</p>
+            <h1 className="text-2xl font-black text-[#1A1F16] tracking-tight uppercase italic leading-none">Inventory Grid</h1>
+            <p className="text-[10px] text-[#A4B494] font-black uppercase tracking-[0.25em] mt-1">Bed Allotment System</p>
           </div>
         </div>
-        
-        <div className="flex items-center gap-4 w-full md:w-auto">
-          <button onClick={clearFilters} className="px-8 py-4 bg-white border border-[#7A8B5E]/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-[#1A1F16] hover:bg-[#F8FAF5] transition-all shadow-sm flex items-center gap-2">
-            <Filter size={16} /> Reset View
-          </button>
-        </div>
+        <button 
+          onClick={clearFilters}
+          className="p-4 bg-white border border-[#A4B494]/10 rounded-2xl text-[#1A1F16] hover:bg-[#A4B494]/5 transition-all shadow-sm flex items-center gap-3 font-black text-[10px] uppercase tracking-widest"
+        >
+          <RefreshCw size={16} /> Reset Filters
+        </button>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <PremiumStatCard label="Occupied Units" value={bedStats.inUse} icon={<UserCheck />} color="bg-blue-50 text-blue-600" />
-        <PremiumStatCard label="Vacant Capacity" value={bedStats.available} icon={<DoorOpen />} color="bg-emerald-50 text-emerald-600" />
-        <PremiumStatCard label="Compromised Units" value={bedStats.damaged} icon={<AlertCircle />} color="bg-red-50 text-red-600" />
+      {/* ── Stat Cards ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <PremiumStatCard label="Occupied" value={bedStats.inUse} icon={<Bed />} />
+        <PremiumStatCard label="Available" value={bedStats.available} icon={<Bed />} />
+        <PremiumStatCard label="Inoperable" value={bedStats.damaged} icon={<Bed />} accent="text-red-600" />
       </div>
 
-      {/* Filters Bar */}
-      <div className="bg-white rounded-[40px] border border-[#7A8B5E]/10 shadow-xl shadow-[#7A8B5E]/5 overflow-hidden">
-        <div className="p-8 md:p-10 border-b border-[#7A8B5E]/5 grid grid-cols-1 md:grid-cols-3 gap-8 bg-[#F8FAF5]/30">
-          <div className="space-y-2">
-            <label className="text-[9px] font-black uppercase text-[#7A8B5E] tracking-widest ml-2">Floor Level</label>
-            <select 
-              value={filters.floor}
-              onChange={(e) => setFilters({...filters, floor: e.target.value})}
-              className="w-full bg-white border border-[#7A8B5E]/10 rounded-2xl px-6 py-4 text-xs font-black text-[#1A1F16] outline-none appearance-none"
-            >
-              <option value="">All Floors</option>
-              {floorOptions.map(f => <option key={f} value={f}>Floor {f}</option>)}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-[9px] font-black uppercase text-[#7A8B5E] tracking-widest ml-2">Room Number</label>
-            <select 
-              value={filters.roomNo}
-              onChange={(e) => setFilters({...filters, roomNo: e.target.value})}
-              className="w-full bg-white border border-[#7A8B5E]/10 rounded-2xl px-6 py-4 text-xs font-black text-[#1A1F16] outline-none appearance-none"
-            >
-              <option value="">All Rooms</option>
-              {roomOptions.map(r => <option key={r} value={r}>Room {r}</option>)}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-[9px] font-black uppercase text-[#7A8B5E] tracking-widest ml-2">Allotment Status</label>
-            <select 
-              value={filters.status}
-              onChange={(e) => setFilters({...filters, status: e.target.value})}
-              className="w-full bg-white border border-[#7A8B5E]/10 rounded-2xl px-6 py-4 text-xs font-black text-[#1A1F16] outline-none appearance-none"
-            >
-              <option value="">All Status</option>
-              <option value="Available">Available</option>
-              <option value="In Use">In Use</option>
-              <option value="Damaged">Damaged</option>
-              <option value="In maintenance">Maintenance</option>
-            </select>
-          </div>
+      {/* ── Filters Section ── */}
+      <div className="bg-[#A4B494] p-8 rounded-[32px] shadow-2xl relative overflow-hidden border border-white/20">
+        <div className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <InputFilter label="Floors" value={filters.floor} onChange={(e) => setFilters({ ...filters, floor: e.target.value })} options={floorOptions} />
+          <InputFilter label="Room No" value={filters.roomNo} onChange={(e) => setFilters({ ...filters, roomNo: e.target.value })} options={roomOptions} />
+          <InputFilter label="Status" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} options={["Available", "In Use", "Damaged", "In maintenance"]} />
+        </div>
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full pointer-events-none"></div>
+      </div>
+
+      {/* ── Bed Status Overview ── */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-black text-[#1A1F16] uppercase tracking-[0.25em] italic">Status Overview</h3>
+          <span className="text-[10px] font-black text-[#A4B494] uppercase tracking-widest bg-[#A4B494]/10 px-3 py-1 rounded-full">
+            {bedList.length} Units Found
+          </span>
         </div>
 
-        {/* Visual Bed Grid */}
-        <div className="p-8 md:p-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {bedList.length === 0 ? (
-            <div className="col-span-full py-20 text-center flex flex-col items-center gap-4">
-              <div className="w-20 h-20 bg-[#F8FAF5] rounded-full flex items-center justify-center text-[#7A8B5E]/10">
-                <BedDouble size={40} />
+            <div className="col-span-full py-20 bg-white rounded-[32px] border-2 border-dashed border-[#A4B494]/20 flex flex-col items-center justify-center text-center">
+              <div className="w-16 h-16 bg-[#F8FAF5] rounded-full flex items-center justify-center text-[#A4B494]/40 mb-4 shadow-inner">
+                <Search size={32} />
               </div>
-              <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.3em]">No Units Match Criteria</p>
+              <p className="text-[10px] font-black text-[#A4B494] uppercase tracking-[0.3em]">No Units Match Current Filters</p>
             </div>
           ) : (
             bedList.map((bed, i) => <BedCard key={i} bed={bed} />)
           )}
         </div>
       </div>
-    </div>
+
+    </main>
   );
 }
-
-function PremiumStatCard({ label, value, icon, color }) {
-  return (
-    <div className="bg-white p-8 rounded-[40px] border border-[#7A8B5E]/10 shadow-xl shadow-[#7A8B5E]/5 flex flex-col items-center gap-6 group hover:-translate-y-2 transition-all">
-      <div className={`w-16 h-16 rounded-[24px] ${color} flex items-center justify-center shadow-lg transition-transform group-hover:rotate-6`}>
-        {React.cloneElement(icon, { size: 32 })}
-      </div>
-      <div className="text-center">
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">{label}</p>
-        <p className="text-4xl font-black text-[#1A1F16] tracking-tight">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-const BedCard = ({ bed }) => {
-  const statusStyles = {
-    "Available": "bg-emerald-50 text-emerald-600 border-emerald-100",
-    "In Use": "bg-blue-50 text-blue-600 border-blue-100",
-    "Damaged": "bg-red-50 text-red-600 border-red-100",
-    "In maintenance": "bg-amber-50 text-amber-600 border-amber-100",
-  };
-
-  return (
-    <div className="bg-white border border-[#7A8B5E]/10 rounded-[32px] p-6 space-y-4 hover:border-[#7A8B5E] hover:shadow-xl transition-all group relative overflow-hidden">
-      <div className="flex justify-between items-start">
-        <div className="w-10 h-10 bg-[#F8FAF5] rounded-xl flex items-center justify-center text-[#7A8B5E] border border-[#7A8B5E]/5 group-hover:bg-[#7A8B5E] group-hover:text-white transition-all">
-          <BedDouble size={20} />
-        </div>
-        <div className={`w-3 h-3 rounded-full ${bed.status === "Available" ? 'bg-emerald-400' : bed.status === "In Use" ? 'bg-blue-400' : 'bg-red-400'} animate-pulse`}></div>
-      </div>
-      
-      <div>
-        <p className="text-xs font-black text-[#1A1F16] uppercase tracking-wider">Unit {bed.barcodeId}</p>
-        <p className="text-[10px] font-black text-[#7A8B5E] uppercase tracking-widest opacity-60">F{bed.floor} • R{bed.roomNo}</p>
-      </div>
-
-      <div className={`inline-block px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${statusStyles[bed.status] || 'bg-gray-50 text-gray-400'}`}>
-        {bed.status}
-      </div>
-      
-      <div className="absolute -right-4 -bottom-4 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
-        <BedDouble size={80} />
-      </div>
-    </div>
-  );
-};

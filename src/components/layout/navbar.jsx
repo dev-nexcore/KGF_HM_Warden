@@ -1,10 +1,12 @@
+// KGF_HM_Warden\src\components\layout\navbar.jsx
+
 "use client";
 
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import { useRouter } from "next/navigation";
-import { User, Bell, Search, ShieldCheck } from "lucide-react";
+import { User } from "lucide-react";
 
 export default function Navbar() {
   const [warden, setWarden] = useState(null);
@@ -48,6 +50,7 @@ export default function Navbar() {
   };
 
   return (
+<<<<<<< HEAD
     <nav className="flex w-full items-center justify-between px-6 md:px-10 py-5 bg-white border-b border-[#7A8B5E]/10 sticky top-0 z-50 shadow-sm">
       <div className="flex items-center gap-4">
         <div className="w-1 h-8 bg-[#7A8B5E] rounded-full"></div>
@@ -98,6 +101,34 @@ export default function Navbar() {
           </div>
         </button>
       </div>
+=======
+    // <nav className="flex w-full items-center justify-between px-8 py-4 pl-16 md:pl-8 bg-[#BEC5AD]">
+    <nav className="flex w-full items-center justify-between px-4 md:px-8 py-4 bg-[#BEC5AD]">
+      <div className="flex-1 pl-3">
+        <h1 className="text-2xl font-semibold text-black">
+          Welcome Back
+          {warden ? `, ${warden.firstName} ${warden.lastName}` : ""}
+        </h1>
+        <p className="italic text-black text-sm -mt-1">-have a great day</p>
+      </div>
+      
+      {/* Profile Image/Icon - Clickable */}
+      <button
+        onClick={handleProfileClick}
+        className="ml-auto w-12 h-12 bg-white rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors duration-200 overflow-hidden group cursor-pointer"
+        aria-label="View Profile"
+      >
+        {!loading && warden?.profilePhoto ? (
+          <img
+            src={`${process.env.NEXT_PUBLIC_PROD_API_URL}/uploads/wardens/${warden.profilePhoto}`}
+            alt="Warden Profile"
+            className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-200"
+          />
+        ) : (
+          <User className="w-7 h-7 text-gray-600 group-hover:text-[#A4B494] transition-colors duration-200" />
+        )}
+      </button>
+>>>>>>> parent of b475873 (feat: initialize warden dashboard and management modules with student OCR registration support)
     </nav>
   );
 }

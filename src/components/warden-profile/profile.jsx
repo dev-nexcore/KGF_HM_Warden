@@ -3,345 +3,426 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
-import { toast, Toaster } from "react-hot-toast";
-import { 
-  FiEdit, 
-  FiUpload, 
-  FiTrash2, 
-  FiUser, 
-  FiMail, 
-  FiPhone, 
-  FiShield, 
-  FiCalendar, 
-  FiUsers, 
-  FiClock, 
-  FiAlertCircle,
-  FiActivity,
-  FiMapPin
-} from "react-icons/fi";
-import Image from 'next/image';
+import { ToastContainer, toast } from "react-toastify";
+import { Camera } from "lucide-react";
+import "react-toastify/dist/ReactToastify.css";
 
 const WardenProfile = () => {
-  const [warden, setWarden] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalStudents: 0,
-    pendingLeaves: 0,
-    activeComplaints: 0
-  });
+  const [warden, setWarden] = useState({});
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     contactNumber: "",
   });
-  const [showModal, setShowModal] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [editMode, setEditMode] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
   const fileInputRef = useRef(null);
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("wardenToken") : null;
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("wardenToken") : null;
   const decoded = token ? jwtDecode(token) : null;
   const wardenId = decoded?.id;
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!wardenId) return;
-      try {
-        setLoading(true);
-        // 1. Fetch Profile
-        const profileRes = await axios.get(`${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/profile/${wardenId}`);
-        const data = profileRes.data;
-        setWarden(data);
-        setFormData({
-          firstName: data.firstName || "",
-          lastName: data.lastName || "",
-          email: data.email || "",
-          contactNumber: data.contactNumber || "",
+    if (wardenId) {
+      axios
+        .get(`${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/profile/${wardenId}`)
+        .then((res) => {
+          setWarden(res.data);
+          setFormData({
+            firstName: res.data.firstName || "",
+            lastName: res.data.lastName || "",
+            email: res.data.email || "",
+            contactNumber: res.data.contactNumber || "",
+          });
+        })
+        .catch((err) => {
+          console.error("Failed to fetch profile", err);
+          toast.error("Failed to fetch profile details.");
         });
+    }
+  }, [wardenId]);
 
-        // 2. Fetch Dashboard Stats for the profile view
-        const statsRes = await axios.get(`${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/warden-dashboard`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        
-        setStats({
-          totalStudents: statsRes.data.totalStudents || 0,
-          pendingLeaves: statsRes.data.pendingLeavesCount || 0,
-          activeComplaints: statsRes.data.inProgressComplaintsCount || 0
-        });
-
-      } catch (err) {
-        console.error("Failed to fetch warden data", err);
-        toast.error("Failed to load profile data");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [wardenId, token]);
-
-  const handleInputChange = (e) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handlePhotoUpload = async (e) => {
+  const handlePhotoChange = (e) => {
     const file = e.target.files[0];
-    if (!file) return;
+    if (file) {
+      setProfilePhoto(file);
+      handlePhotoUpload(file);
+    }
+  };
 
+  const handlePhotoUpload = async (file) => {
     try {
-      toast.loading("Updating photo...", { id: 'photo' });
       const form = new FormData();
       form.append("profilePhoto", file);
 
       const res = await axios.put(
         `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/profile/${wardenId}`,
         form,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
 
+      toast.success("Profile photo updated successfully!");
       setWarden(res.data.warden);
-      toast.success("Profile photo updated", { id: 'photo' });
     } catch (error) {
       console.error("Photo upload error", error);
-      toast.error("Failed to update photo", { id: 'photo' });
+      toast.error("Failed to update profile photo.");
     }
   };
 
-  const handleSubmit = async () => {
+  const handleProfilePictureClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     try {
+      const form = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        form.append(key, value);
+      });
+
       const res = await axios.put(
         `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/profile/${wardenId}`,
-        formData
+        form,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
 
-      setWarden(res.data.warden);
-      setShowModal(false);
       toast.success("Profile updated successfully!");
+      setWarden(res.data.warden);
+      setEditMode(false);
     } catch (error) {
       console.error("Update error", error);
-      toast.error("Failed to update profile");
+      toast.error("Failed to update profile.");
     }
   };
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#F8FAF5]">
-      <div className="w-12 h-12 border-4 border-[#7A8B5E]/20 border-t-[#7A8B5E] rounded-full animate-spin"></div>
-      <p className="mt-6 text-[#7A8B5E] font-black text-[10px] tracking-[0.2em] uppercase animate-pulse">Accessing Credentials</p>
-    </div>
-  );
-
-  if (!warden) return null;
-
   return (
-    <div className="min-h-screen bg-[#F8FAF5] pb-20 animate-in fade-in duration-700">
-      <Toaster position="top-right" />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-10">
-        {/* ── Page Header ── */}
-        <div className="flex items-center gap-4 mb-12">
-          <div className="w-2 h-10 bg-[#7A8B5E] rounded-full shadow-lg shadow-[#7A8B5E]/20"></div>
-          <div>
-            <h1 className="text-3xl font-black text-[#1A1F16] tracking-tight uppercase italic leading-none">Administrative Identity</h1>
-            <p className="text-[10px] text-[#7A8B5E] font-black uppercase tracking-[0.3em] mt-1">Official Warden Profile</p>
+    // <div className="max-h-screen bg-white px-4 sm:px-6 md:px-10 flex flex-col">
+    //   <ToastContainer position="top-right" autoClose={3000} />
+    //   {/* Section Title */}
+    //   <div className="flex items-center ml-1 md:ml-2 mt-8 mb-5">
+    //     <div className="h-7 w-1 bg-[#FF0000] rounded mr-3" />
+    //     <span className="text-lg sm:text-xl md:text-2xl lg:text-2xl font-semibold text-[#232323] select-none">
+    //       Warden Profile
+    //     </span>
+    //   </div>
+
+    //   <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-8 mx-auto w-full max-w-7xl">
+    //     {/* Profile Card */}
+    //     <div className="bg-[#BEC5AD] rounded-2xl shadow-md flex flex-col items-center w-full max-w-sm sm:max-w-md lg:max-w-xl py-8 px-6">
+    //       <div
+    //         className="rounded-full bg-white overflow-hidden mb-6 relative cursor-pointer group"
+    //         style={{ width: 96, height: 96 }}
+    //         onMouseEnter={() => setIsHovering(true)}
+    //         onMouseLeave={() => setIsHovering(false)}
+    //         onClick={handleProfilePictureClick}
+    //       >
+    //         {warden.profilePhoto ? (
+    //           <img
+    //             src={`${process.env.NEXT_PUBLIC_PROD_API_URL}/uploads/wardens/${warden.profilePhoto}`}
+    //             alt="Profile"
+    //             className="object-cover w-full h-full transition-opacity duration-200 group-hover:opacity-60"
+    //           />
+    //         ) : (
+    //           <div className="w-full h-full bg-gray-200 transition-opacity duration-200 group-hover:opacity-60" />
+    //         )}
+
+    //         {/* Hover Overlay */}
+    //         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+    //           <Camera className="w-8 h-8 text-white mb-1" />
+    //           <span className="text-white text-xs font-medium">Change Photo</span>
+    //         </div>
+    //       </div>
+
+    //       {/* Hidden file input */}
+    //       <input
+    //         ref={fileInputRef}
+    //         type="file"
+    //         accept="image/*"
+    //         onChange={handlePhotoChange}
+    //         className="hidden"
+    //       />
+
+    //       <h2 className="text-2xl sm:text-3xl font-bold text-center text-[#232323] leading-snug">
+    //         {warden.firstName} {warden.lastName}
+    //       </h2>
+    //       <p className="text-base sm:text-lg text-gray-700 mt-3 text-center break-words max-w-full px-4">
+    //         Warden ID: {warden.wardenId}
+    //       </p>
+    //       <button
+    //         onClick={() => setEditMode(!editMode)}
+    //         className="mt-8 px-8 py-3 rounded-md bg-[#A4B494] text-[#232323] font-bold shadow hover:bg-white transition-colors duration-300"
+    //       >
+    //         {editMode ? "Cancel" : "Edit Profile"}
+    //       </button>
+    //     </div>
+
+    //     {/* Basic Info Section */}
+    //     <div className="bg-white rounded-2xl shadow-lg w-full max-w-3xl flex flex-col">
+    //       <div className="bg-[#BEC5AD] rounded-t-2xl h-20 flex items-center justify-center px-6">
+    //         <h3 className="text-2xl sm:text-3xl font-bold text-[#232323] select-none whitespace-nowrap">
+    //           Basic Information
+    //         </h3>
+    //       </div>
+
+    //       <div className="flex flex-col gap-8 p-6 sm:p-10">
+    //         {!editMode ? (
+    //           [
+    //             { label: "First Name:", value: warden.firstName },
+    //             { label: "Last Name:", value: warden.lastName },
+    //             { label: "Email Address:", value: warden.email },
+    //             { label: "Warden ID:", value: warden.wardenId },
+    //             { label: "Phone No:", value: warden.contactNumber },
+    //           ].map(({ label, value }) => (
+    //             <div
+    //               key={label}
+    //               className="flex flex-col sm:flex-row sm:justify-between sm:items-center"
+    //             >
+    //               <span className="font-semibold text-gray-800 sm:w-1/3 text-base sm:text-lg">
+    //                 {label}
+    //               </span>
+    //               <span className="text-gray-900 sm:w-2/3 mt-1 sm:mt-0 text-base sm:text-lg">
+    //                 {value}
+    //               </span>
+    //             </div>
+    //           ))
+    //         ) : (
+    //           <form onSubmit={handleSubmit} className="space-y-6 text-base">
+    //             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+    //               <div>
+    //                 <label className="font-semibold">First Name</label>
+    //                 <input
+    //                   type="text"
+    //                   name="firstName"
+    //                   value={formData.firstName}
+    //                   onChange={handleChange}
+    //                   className="w-full border px-3 py-2 rounded mt-1"
+    //                 />
+    //               </div>
+    //               <div>
+    //                 <label className="font-semibold">Last Name</label>
+    //                 <input
+    //                   type="text"
+    //                   name="lastName"
+    //                   value={formData.lastName}
+    //                   onChange={handleChange}
+    //                   className="w-full border px-3 py-2 rounded mt-1"
+    //                 />
+    //               </div>
+    //               <div>
+    //                 <label className="font-semibold">Email</label>
+    //                 <input
+    //                   type="email"
+    //                   name="email"
+    //                   value={formData.email}
+    //                   onChange={handleChange}
+    //                   className="w-full border px-3 py-2 rounded mt-1"
+    //                 />
+    //               </div>
+    //               <div>
+    //                 <label className="font-semibold">Contact Number</label>
+    //                 <input
+    //                   type="text"
+    //                   name="contactNumber"
+    //                   value={formData.contactNumber}
+    //                   onChange={handleChange}
+    //                   className="w-full border px-3 py-2 rounded mt-1"
+    //                 />
+    //               </div>
+    //             </div>
+    //             <button
+    //               type="submit"
+    //               className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+    //             >
+    //               Save Changes
+    //             </button>
+    //           </form>
+    //         )}
+    //       </div>
+    //     </div>
+    //   </div>
+    // </div>
+
+
+
+    <div className="min-h-screen bg-gray-50 px-4 sm:px-6 md:px-10 flex flex-col">
+      <ToastContainer position="top-right" autoClose={3000} />
+
+      {/* Section Title */}
+      <div className="flex items-center ml-1 md:ml-2 mt-8 mb-6">
+        <div className="h-7 w-1 bg-red-500 rounded mr-3" />
+        <span className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-800 select-none">
+          Warden Profile
+        </span>
+      </div>
+
+      <div className="flex flex-col lg:flex-row items-start justify-center gap-6 mx-auto w-full max-w-7xl">
+
+        {/* ── Profile Card ── */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden w-full max-w-sm lg:max-w-xs shrink-0">
+
+          {/* Green banner */}
+          <div className="h-24 bg-[#A4B494]/40 relative" />
+
+          <div className="flex flex-col items-center px-6 pb-8 -mt-12">
+            {/* Avatar */}
+            <div
+              className="w-24 h-24 rounded-full border-4 border-white shadow-md overflow-hidden relative cursor-pointer group bg-gray-200"
+              onMouseEnter={() => setIsHovering(true)}
+              onMouseLeave={() => setIsHovering(false)}
+              onClick={handleProfilePictureClick}
+            >
+              {warden.profilePhoto ? (
+                <img
+                  src={`${process.env.NEXT_PUBLIC_PROD_API_URL}/uploads/wardens/${warden.profilePhoto}`}
+                  alt="Profile"
+                  className="object-cover w-full h-full group-hover:opacity-60 transition-opacity duration-200"
+                />
+              ) : (
+                <div className="w-full h-full bg-[#A4B494]/30 group-hover:opacity-60 transition-opacity duration-200" />
+              )}
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <Camera className="w-6 h-6 text-white mb-0.5" />
+                <span className="text-white text-[10px] font-medium">Change Photo</span>
+              </div>
+            </div>
+
+            {/* Hidden file input */}
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+
+            <h2 className="mt-4 text-xl font-bold text-gray-800 text-center">
+              {warden.firstName} {warden.lastName}
+            </h2>
+
+            <span className="mt-1 text-xs font-mono text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
+              {warden.wardenId}
+            </span>
+
+            <div className="w-full mt-6 pt-5 border-t border-gray-100 flex flex-col gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#A4B494]/20 flex items-center justify-center shrink-0">
+                  <svg className="w-3.5 h-3.5 text-[#1a312a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <span className="truncate">{warden.email}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#A4B494]/20 flex items-center justify-center shrink-0">
+                  <svg className="w-3.5 h-3.5 text-[#1a312a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498A1 1 0 0121 15.72V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                </div>
+                <span>{warden.contactNumber}</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setEditMode(!editMode)}
+              className={`mt-6 w-full py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${editMode
+                  ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  : "bg-[#1a312a] text-white hover:bg-[#0f211a]"
+                }`}
+            >
+              {editMode ? "Cancel Editing" : "Edit Profile"}
+            </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          {/* ── Left Column: Premium Profile Card ── */}
-          <div className="lg:col-span-4">
-            <div className="bg-[#1A1F16] rounded-[40px] p-10 flex flex-col items-center text-center shadow-2xl shadow-black/10 sticky top-10 overflow-hidden group">
-              <div className="relative z-10">
-                <div className="relative group/photo">
-                  <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-[40px] overflow-hidden border-4 border-[#7A8B5E]/20 shadow-2xl transition-transform duration-500 group-hover/photo:scale-[1.02] bg-[#2A3324]">
-                    {warden.profilePhoto ? (
-                      <img
-                        src={`${process.env.NEXT_PUBLIC_PROD_API_URL}/uploads/wardens/${warden.profilePhoto}`}
-                        alt="Warden Profile"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-white/20 text-6xl">
-                        <FiUser />
-                      </div>
-                    )}
-                  </div>
+        {/* ── Basic Info Section ── */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden w-full ">
 
-                  {/* Photo Upload Trigger */}
-                  <div className="absolute -bottom-3 -right-3">
-                    <label className="w-14 h-14 bg-[#7A8B5E] text-white rounded-2xl flex items-center justify-center shadow-xl cursor-pointer hover:bg-[#8B9D6E] transition-all hover:scale-110 active:scale-95 border-4 border-[#1A1F16]">
-                      <FiUpload className="text-xl" />
-                      <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
-                    </label>
-                  </div>
-                </div>
-
-                <div className="mt-10">
-                  <h2 className="text-3xl font-black text-white leading-tight italic tracking-tight">
-                    {warden.firstName} <br /> {warden.lastName}
-                  </h2>
-                  <div className="mt-4 inline-flex items-center gap-2 px-6 py-2 bg-white/5 border border-white/10 rounded-full text-[10px] font-black text-[#7A8B5E] uppercase tracking-[0.2em]">
-                    <FiShield className="text-xs" /> ID: {warden.wardenId}
-                  </div>
-                </div>
-
-                <div className="mt-10 w-full bg-white/5 border border-white/10 rounded-[32px] p-6 text-left">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[9px] font-black uppercase text-white/40 tracking-widest mb-1">Authorization Status</p>
-                      <p className="text-lg font-black text-white italic">Clearance Active</p>
-                    </div>
-                    <div className="w-12 h-12 rounded-2xl bg-[#7A8B5E]/20 flex items-center justify-center text-[#7A8B5E]">
-                      <FiActivity className="text-xl animate-pulse" />
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setShowModal(true)}
-                  className="mt-8 w-full bg-white text-[#1A1F16] px-8 py-5 rounded-[24px] font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-[#F8FAF5] transition-all active:scale-95 shadow-xl shadow-black/20"
-                >
-                  <FiEdit size={16} /> Update Records
-                </button>
-              </div>
-
-              {/* Decorative Background Element */}
-              <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-[#7A8B5E]/10 rounded-full blur-[100px]"></div>
-            </div>
+          {/* Header */}
+          <div className="flex items-center gap-2 px-6 py-4 border-b border-gray-100 bg-gray-50/60">
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <h3 className="text-sm font-semibold text-gray-600 tracking-wide uppercase">Basic Information</h3>
           </div>
 
-          {/* ── Right Column: Stats & Data ── */}
-          <div className="lg:col-span-8 space-y-8">
-            
-            {/* Quick Impact Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <ProfileStat label="Active Residents" value={stats.totalStudents} icon={<FiUsers />} color="text-blue-600" bg="bg-blue-50" />
-              <ProfileStat label="Pending Requests" value={stats.pendingLeaves} icon={<FiClock />} color="text-purple-600" bg="bg-purple-50" />
-              <ProfileStat label="Open Tickets" value={stats.activeComplaints} icon={<FiAlertCircle />} color="text-amber-600" bg="bg-amber-50" />
-            </div>
-
-            {/* Official Credentials Card */}
-            <div className="bg-white rounded-[40px] p-10 border border-[#7A8B5E]/10 shadow-xl shadow-[#7A8B5E]/5 relative overflow-hidden">
-              <div className="flex items-center justify-between mb-12">
-                <div>
-                  <h3 className="text-[10px] font-black text-[#7A8B5E] uppercase tracking-[0.3em] mb-1">Personnel File</h3>
-                  <h4 className="text-2xl font-black text-[#1A1F16] italic uppercase tracking-tight">Verified Details</h4>
-                </div>
-                <div className="p-4 bg-[#F8FAF5] rounded-3xl text-[#1A1F16] border border-[#7A8B5E]/5">
-                  <FiShield size={24} />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                <InfoRow icon={<FiMail />} label="Communication" value={warden.email} />
-                <InfoRow icon={<FiPhone />} label="Verified Line" value={warden.contactNumber} />
-                <InfoRow icon={<FiShield />} label="Administrative Rank" value="Senior Hostel Warden" />
-                <InfoRow icon={<FiCalendar />} label="Enlistment Date" value={warden.createdAt ? new Date(warden.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A'} />
-              </div>
-
-              {/* Security Seal Decor */}
-              <FiShield className="absolute -bottom-12 -right-12 text-[200px] text-[#7A8B5E]/5 rotate-12 pointer-events-none" />
-            </div>
-
-            {/* Role Responsibilities */}
-            <div className="bg-gradient-to-br from-[#7A8B5E]/10 to-transparent border border-[#7A8B5E]/10 rounded-[40px] p-10 relative overflow-hidden">
-               <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
-                  <div className="w-20 h-20 rounded-3xl bg-white shadow-xl flex items-center justify-center text-[#7A8B5E] shrink-0">
-                    <FiMapPin size={32} />
+          <div className="p-6 sm:p-8">
+            {!editMode ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {[
+                  { label: "First Name", value: warden.firstName, icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0z" },
+                  { label: "Last Name", value: warden.lastName, icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0z" },
+                  { label: "Email Address", value: warden.email, icon: "M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" },
+                  { label: "Warden ID", value: warden.wardenId, icon: "M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0" },
+                  { label: "Phone No.", value: warden.contactNumber, icon: "M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498A1 1 0 0121 15.72V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" },
+                ].map(({ label, value, icon }) => (
+                  <div key={label} className="flex items-start gap-3 bg-gray-50 rounded-xl px-4 py-3.5">
+                    <div className="w-8 h-8 rounded-lg bg-[#A4B494]/25 flex items-center justify-center shrink-0 mt-0.5">
+                      <svg className="w-4 h-4 text-[#1a312a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={icon} />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-0.5">{label}</p>
+                      <p className="text-sm font-medium text-gray-800">{value || "—"}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-[#1A1F16] font-black uppercase tracking-[0.2em] text-xs mb-3">Duty Protocol</h4>
-                    <p className="text-[#1A1F16]/60 text-sm leading-relaxed max-w-xl font-medium">
-                      Maintaining institutional integrity through vigilant oversight. Responsible for student safety, residential discipline, and real-time administrative response.
-                    </p>
-                  </div>
-               </div>
-            </div>
+                ))}
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {[
+                    { label: "First Name", name: "firstName", type: "text" },
+                    { label: "Last Name", name: "lastName", type: "text" },
+                    { label: "Email Address", name: "email", type: "email" },
+                    { label: "Contact Number", name: "contactNumber", type: "text" },
+                  ].map(({ label, name, type }) => (
+                    <div key={name}>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">{label}</label>
+                      <input
+                        type={type}
+                        name={name}
+                        value={formData[name]}
+                        onChange={handleChange}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#A4B494] focus:border-transparent transition"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-[#1a312a] text-white text-sm font-semibold rounded-xl hover:bg-[#0f211a] transition-colors"
+                  >
+                    Save Changes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditMode(false)}
+                    className="px-6 py-2.5 bg-gray-100 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       </div>
-
-      {/* ── Premium Edit Modal ── */}
-      {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#1A1F16]/60 backdrop-blur-md" onClick={() => setShowModal(false)}></div>
-          <div className="bg-white rounded-[40px] w-full max-w-xl p-10 relative animate-in fade-in zoom-in-95 duration-300 border border-[#7A8B5E]/10 shadow-2xl">
-            <div className="flex justify-between items-start mb-10">
-              <div>
-                <h2 className="text-3xl font-black text-[#1A1F16] italic uppercase tracking-tight">Edit Profile</h2>
-                <p className="text-[10px] text-[#7A8B5E] font-black uppercase tracking-[0.2em] mt-1">Update administrative records</p>
-              </div>
-              <button onClick={() => setShowModal(false)} className="w-10 h-10 rounded-full bg-[#F8FAF5] flex items-center justify-center text-[#1A1F16] hover:bg-red-50 hover:text-red-500 transition-colors">
-                <FiTrash2 />
-              </button>
-            </div>
-
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <ModernInput label="First Name" name="firstName" value={formData.firstName} onChange={handleInputChange} icon={<FiUser />} />
-                <ModernInput label="Last Name" name="lastName" value={formData.lastName} onChange={handleInputChange} icon={<FiUser />} />
-              </div>
-              <ModernInput label="Official Email" name="email" value={formData.email} onChange={handleInputChange} type="email" icon={<FiMail />} />
-              <ModernInput label="Contact Number" name="contactNumber" value={formData.contactNumber} onChange={handleInputChange} icon={<FiPhone />} />
-            </div>
-
-            <div className="flex gap-4 mt-12">
-              <button onClick={() => setShowModal(false)} className="flex-1 px-8 py-5 rounded-[24px] bg-[#F8FAF5] text-[#1A1F16] font-black text-[10px] uppercase tracking-[0.2em] hover:bg-gray-100 transition-all">Dismiss</button>
-              <button onClick={handleSubmit} className="flex-1 px-8 py-5 rounded-[24px] bg-[#7A8B5E] text-white font-black text-[10px] uppercase tracking-[0.2em] hover:bg-[#8B9D6E] transition-all shadow-xl shadow-[#7A8B5E]/20">Confirm Changes</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
-function ProfileStat({ label, value, icon, color, bg }) {
-  return (
-    <div className={`bg-white p-8 rounded-[32px] border border-[#7A8B5E]/10 flex flex-col items-center justify-center text-center shadow-xl shadow-[#7A8B5E]/5 transition-transform hover:scale-[1.02] group`}>
-      <div className={`mb-4 w-12 h-12 rounded-2xl ${bg} ${color} flex items-center justify-center shadow-sm group-hover:rotate-6 transition-transform`}>
-        {React.cloneElement(icon, { size: 24 })}
-      </div>
-      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-1">{label}</p>
-      <p className={`text-3xl font-black ${color} tracking-tight`}>{value}</p>
-    </div>
-  );
-}
-
-function InfoRow({ icon, label, value }) {
-  return (
-    <div className="flex items-start gap-5">
-      <div className="mt-1 flex items-center justify-center w-12 h-12 rounded-2xl bg-[#F8FAF5] text-[#7A8B5E] border border-[#7A8B5E]/5 shadow-sm">
-        {React.cloneElement(icon, { size: 20 })}
-      </div>
-      <div>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">{label}</p>
-        <p className="text-sm font-black text-[#1A1F16] break-all">{value || 'N/A'}</p>
-      </div>
-    </div>
-  );
-}
-
-function ModernInput({ label, name, value, onChange, icon, type = "text" }) {
-  return (
-    <div className="space-y-2">
-      <label className="block text-[9px] font-black text-[#7A8B5E] uppercase tracking-[0.3em] ml-1">{label}</label>
-      <div className="relative group">
-        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-[#7A8B5E]/40 group-focus-within:text-[#7A8B5E] transition-colors">
-          {icon}
-        </div>
-        <input
-          type={type}
-          name={name}
-          value={value}
-          onChange={onChange}
-          className="w-full bg-[#F8FAF5] border border-[#7A8B5E]/10 rounded-[20px] pl-14 pr-6 py-5 text-sm font-black text-[#1A1F16] focus:border-[#7A8B5E] focus:ring-4 focus:ring-[#7A8B5E]/5 transition-all outline-none"
-        />
-      </div>
-    </div>
-  );
-}
-
 export default WardenProfile;
-

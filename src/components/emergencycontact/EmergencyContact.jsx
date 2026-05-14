@@ -1,20 +1,8 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { 
-  Phone, 
-  Search, 
-  Filter, 
-  User, 
-  Edit3, 
-  Save, 
-  X, 
-  ChevronRight,
-  ShieldAlert,
-  Users,
-  Building
-} from "lucide-react";
+import { FiPhone, FiSearch, FiFilter } from "react-icons/fi";
+import { FaEdit, FaSave, FaTimes } from "react-icons/fa";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function EmergencyContact() {
@@ -26,7 +14,6 @@ export default function EmergencyContact() {
     relation: "",
     phone: "",
   });
-  const [loading, setLoading] = useState(true);
 
   const fetchContacts = async () => {
     try {
@@ -52,9 +39,8 @@ export default function EmergencyContact() {
         setTableContacts(formatted);
       }
     } catch (err) {
-      toast.error("Contact sync failed.");
-    } finally {
-      setLoading(false);
+      console.error("Error fetching emergency contacts:", err);
+      toast.error("Failed to fetch contacts");
     }
   };
 
@@ -86,140 +72,358 @@ export default function EmergencyContact() {
       );
 
       if (res.data.success) {
-        toast.success("Dossier updated.");
+        toast.success("Emergency contact updated successfully!");
         setEditingId(null);
         fetchContacts();
+      } else {
+        toast.error("Failed to update contact.");
       }
     } catch (err) {
-      toast.error("Update failed.");
+      console.error("Update failed:", err);
+      toast.error("Something went wrong while updating.");
     }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+  };
+
+  const handleClearFilter = () => {
+    setSearch("");
   };
 
   const handleCall = (phoneNumber) => {
     if (phoneNumber) {
       window.open(`tel:${phoneNumber}`);
     } else {
-      toast.error("Line unavailable.");
+      toast.error("Phone number not available");
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAF5] p-6 md:p-10 space-y-10 animate-in fade-in duration-700">
-      <Toaster position="top-right" />
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-10">
+      <Toaster position="top-right" reverseOrder={false} />
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
-        <div className="flex items-center gap-4">
-          <div className="w-2 h-10 bg-[#7A8B5E] rounded-full shadow-lg"></div>
-          <div>
-            <h1 className="text-3xl font-black text-[#1A1F16] tracking-tight uppercase italic leading-none">Safe-Line Registry</h1>
-            <p className="text-[10px] text-[#7A8B5E] font-black uppercase tracking-[0.3em] mt-1">Emergency Intervention & Kin Verification</p>
-          </div>
-        </div>
-        
-        <div className="relative w-full md:w-96 group">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7A8B5E]/40 group-focus-within:text-[#7A8B5E]" />
-          <input 
-            type="text" 
-            placeholder="Search Residents or IDs..." 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white border border-[#7A8B5E]/10 rounded-2xl pl-12 pr-6 py-4 text-xs font-bold text-[#1A1F16] focus:border-[#7A8B5E] shadow-sm outline-none transition-all"
-          />
-        </div>
-      </div>
-
-      {/* Main Table Content */}
-      <div className="bg-white rounded-[40px] border border-[#7A8B5E]/10 shadow-xl shadow-[#7A8B5E]/5 overflow-hidden">
-        <div className="px-10 py-6 border-b border-[#7A8B5E]/5 flex justify-between items-center bg-[#F8FAF5]/50">
-          <div className="flex items-center gap-3">
-            <Users size={18} className="text-[#7A8B5E]" />
-            <h3 className="text-[10px] font-black text-[#1A1F16] uppercase tracking-[0.2em]">Contact Network</h3>
-          </div>
-          <span className="px-4 py-1.5 bg-[#1A1F16] text-white rounded-full text-[9px] font-black uppercase tracking-widest">{tableContacts.length} Profiles</span>
+      <section>
+        <div className="flex items-center mb-4">
+          <div className="w-1 h-7 bg-red-500 mr-3"></div>
+          <h2 className="text-xl font-bold">Contacts</h2>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-[#F8FAF5]/50 border-b border-[#7A8B5E]/10">
-                <th className="px-10 py-6 text-[10px] font-black text-[#7A8B5E] uppercase tracking-[0.2em]">Resident Profile</th>
-                <th className="px-10 py-6 text-[10px] font-black text-[#7A8B5E] uppercase tracking-[0.2em]">Emergency Kin</th>
-                <th className="px-10 py-6 text-[10px] font-black text-[#7A8B5E] uppercase tracking-[0.2em]">Relation</th>
-                <th className="px-10 py-6 text-[10px] font-black text-[#7A8B5E] uppercase tracking-[0.2em]">Comms Channel</th>
-                <th className="px-10 py-6 text-[10px] font-black text-[#7A8B5E] uppercase tracking-[0.2em]">Actions</th>
+        {/* Search & Filter */}
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
+          <div className="relative w-full md:w-1/2">
+            <FiSearch className="absolute top-3.5 left-3 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by ID or Name..."
+              className="w-full pl-10 pr-4 py-2 rounded-lg shadow focus:outline-none text-black bg-white"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-3 flex-wrap">
+            <button
+              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-medium px-4 py-2 rounded-lg shadow"
+              onClick={handleClearFilter}
+            >
+              <FiFilter />
+              Clear Filter
+            </button>
+          </div>
+        </div>
+
+        {/* Card View - Mobile */}
+        <div className="md:hidden space-y-4">
+          {tableContacts.length === 0 ? (
+            <p className="text-center text-gray-500">No contacts found.</p>
+          ) : (
+            tableContacts.map((c, idx) => (
+              <div
+                key={idx}
+                className="bg-white border rounded-xl shadow p-4 space-y-2"
+              >
+                <div>
+                  <strong>Student ID:</strong> {c.id}
+                </div>
+                <div>
+                  <strong>Name:</strong> {c.student}
+                </div>
+                <div>
+                  <strong>Contact:</strong>{" "}
+                  {editingId === c.id ? (
+                    <input
+                      type="text"
+                      className="w-full border px-2 py-1 rounded"
+                      value={editValues.contact}
+                      onChange={(e) =>
+                        setEditValues({ ...editValues, contact: e.target.value })
+                      }
+                    />
+                  ) : (
+                    c.contact
+                  )}
+                </div>
+                <div>
+                  <strong>Relation:</strong>{" "}
+                  {editingId === c.id ? (
+                    <input
+                      type="text"
+                      className="w-full border px-2 py-1 rounded"
+                      value={editValues.relation}
+                      onChange={(e) =>
+                        setEditValues({
+                          ...editValues,
+                          relation: e.target.value,
+                        })
+                      }
+                    />
+                  ) : (
+                    c.relation
+                  )}
+                </div>
+                <div>
+                  <strong>Phone:</strong>{" "}
+                  {editingId === c.id ? (
+                    <input
+                      type="text"
+                      className="w-full border px-2 py-1 rounded"
+                      value={editValues.phone}
+                      onChange={(e) =>
+                        setEditValues({ ...editValues, phone: e.target.value })
+                      }
+                    />
+                  ) : (
+                    c.phone
+                  )}
+                </div>
+                <div className="flex items-center gap-4 mt-2">
+                  <FiPhone
+                    className="cursor-pointer text-blue-600 hover:text-blue-800"
+                    onClick={() => handleCall(c.phone)}
+                  />
+                  {editingId === c.id ? (
+                    <>
+                      <FaSave
+                        className="cursor-pointer text-green-600 hover:text-green-800"
+                        onClick={() => handleSave(c.id)}
+                      />
+                      <FaTimes
+                        className="cursor-pointer text-red-600 hover:text-red-800"
+                        onClick={handleCancelEdit}
+                      />
+                    </>
+                  ) : (
+                    <FaEdit
+                      className="cursor-pointer text-gray-700 hover:text-black"
+                      onClick={() => handleEdit(c)}
+                    />
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Table View - Desktop */}
+        {/* <div className="hidden md:block overflow-x-auto rounded-xl border border-black">
+          <table className="min-w-full bg-white">
+            <thead className="bg-[#A4B494] text-gray-800">
+              <tr>
+                <th className="text-left px-4 py-3">ID</th>
+                <th className="text-left px-4 py-3">Name</th>
+                <th className="text-left px-4 py-3">Contact Name</th>
+                <th className="text-left px-4 py-3">Relation</th>
+                <th className="text-left px-4 py-3">Phone No.</th>
+                <th className="text-left px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {tableContacts.map((c, i) => (
-                <tr key={i} className="border-b border-[#7A8B5E]/5 hover:bg-[#F8FAF5] transition-colors group">
-                  <td className="px-10 py-8">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-[#F8FAF5] rounded-2xl flex items-center justify-center text-[#7A8B5E] font-black text-xs border border-[#7A8B5E]/10 shadow-inner group-hover:bg-[#7A8B5E] group-hover:text-white transition-all">
-                        {c.student?.charAt(0)}
+              {tableContacts.map((c, idx) => (
+                <tr
+                  key={idx}
+                  className="border-t border-gray-200 hover:bg-gray-50 transition"
+                >
+                  <td className="px-4 py-3">{c.id}</td>
+                  <td className="px-4 py-3">{c.student}</td>
+                  <td className="px-4 py-3">
+                    {editingId === c.id ? (
+                      <input
+                        type="text"
+                        className="w-full border px-2 py-1 rounded"
+                        value={editValues.contact}
+                        onChange={(e) =>
+                          setEditValues({ ...editValues, contact: e.target.value })
+                        }
+                      />
+                    ) : (
+                      c.contact
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {editingId === c.id ? (
+                      <input
+                        type="text"
+                        className="w-full border px-2 py-1 rounded"
+                        value={editValues.relation}
+                        onChange={(e) =>
+                          setEditValues({
+                            ...editValues,
+                            relation: e.target.value,
+                          })
+                        }
+                      />
+                    ) : (
+                      c.relation
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {editingId === c.id ? (
+                      <input
+                        type="text"
+                        className="w-full border px-2 py-1 rounded"
+                        value={editValues.phone}
+                        onChange={(e) =>
+                          setEditValues({ ...editValues, phone: e.target.value })
+                        }
+                      />
+                    ) : (
+                      c.phone
+                    )}
+                  </td>
+                  <td className="px-4 py-3 flex items-center gap-4">
+                    <FiPhone
+                      className="cursor-pointer text-blue-600 hover:text-blue-800"
+                      onClick={() => handleCall(c.phone)}
+                    />
+                    {editingId === c.id ? (
+                      <>
+                        <FaSave
+                          className="cursor-pointer text-green-600 hover:text-green-800"
+                          onClick={() => handleSave(c.id)}
+                        />
+                        <FaTimes
+                          className="cursor-pointer text-red-600 hover:text-red-800"
+                          onClick={handleCancelEdit}
+                        />
+                      </>
+                    ) : (
+                      <FaEdit
+                        className="cursor-pointer text-gray-700 hover:text-black"
+                        onClick={() => handleEdit(c)}
+                      />
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div> */}
+
+        <div className="hidden md:block overflow-hidden rounded-2xl border border-gray-100 shadow-sm">
+          <table className="min-w-full bg-white text-sm">
+            <thead>
+              <tr className="bg-[#A4B494]/30 border-b border-[#A4B494]/40">
+                {["ID", "Name", "Contact Name", "Relation", "Phone No.", "Actions"].map((h) => (
+                  <th key={h} className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {tableContacts.map((c, idx) => (
+                <tr key={idx} className="hover:bg-[#A4B494]/10 transition-colors duration-150 group">
+
+                  {/* ID */}
+                  <td className="px-5 py-3.5 font-mono text-xs text-gray-400 font-medium">{c.id}</td>
+
+                  {/* Student Name */}
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-[#A4B494]/30 flex items-center justify-center text-xs font-bold text-[#1a312a] shrink-0">
+                        {c.student?.charAt(0).toUpperCase()}
                       </div>
-                      <div>
-                        <p className="text-sm font-black text-[#1A1F16] tracking-tight">{c.student}</p>
-                        <p className="text-[9px] font-black text-[#7A8B5E] uppercase tracking-widest opacity-60">{c.id}</p>
-                      </div>
+                      <span className="font-medium text-gray-800">{c.student}</span>
                     </div>
                   </td>
-                  <td className="px-10 py-8">
+
+                  {/* Contact Name */}
+                  <td className="px-5 py-3.5">
                     {editingId === c.id ? (
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#A4B494] transition"
                         value={editValues.contact}
-                        onChange={(e) => setEditValues({...editValues, contact: e.target.value})}
-                        className="bg-[#F8FAF5] border border-[#7A8B5E]/20 rounded-xl px-4 py-2 text-xs font-bold text-[#1A1F16] outline-none w-full"
+                        onChange={(e) => setEditValues({ ...editValues, contact: e.target.value })}
                       />
                     ) : (
-                      <p className="text-sm font-black text-[#1A1F16] italic uppercase">{c.contact || "N/A"}</p>
+                      <span className="text-gray-700">{c.contact}</span>
                     )}
                   </td>
-                  <td className="px-10 py-8">
+
+                  {/* Relation */}
+                  <td className="px-5 py-3.5">
                     {editingId === c.id ? (
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#A4B494] transition"
                         value={editValues.relation}
-                        onChange={(e) => setEditValues({...editValues, relation: e.target.value})}
-                        className="bg-[#F8FAF5] border border-[#7A8B5E]/20 rounded-xl px-4 py-2 text-xs font-bold text-[#1A1F16] outline-none w-full"
+                        onChange={(e) => setEditValues({ ...editValues, relation: e.target.value })}
                       />
                     ) : (
-                      <span className="px-3 py-1 bg-[#F8FAF5] border border-[#7A8B5E]/10 text-[#7A8B5E] rounded-lg text-[10px] font-black uppercase tracking-widest">{c.relation || "Kin"}</span>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                        {c.relation}
+                      </span>
                     )}
                   </td>
-                  <td className="px-10 py-8">
+
+                  {/* Phone */}
+                  <td className="px-5 py-3.5">
                     {editingId === c.id ? (
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#A4B494] transition"
                         value={editValues.phone}
-                        onChange={(e) => setEditValues({...editValues, phone: e.target.value})}
-                        className="bg-[#F8FAF5] border border-[#7A8B5E]/20 rounded-xl px-4 py-2 text-xs font-bold text-[#1A1F16] outline-none w-full"
+                        onChange={(e) => setEditValues({ ...editValues, phone: e.target.value })}
                       />
                     ) : (
-                      <div className="flex items-center gap-2">
-                        <Phone size={12} className="text-[#7A8B5E]" />
-                        <span className="text-xs font-black text-[#1A1F16]">{c.phone || "---"}</span>
-                      </div>
+                      <span className="font-mono text-xs text-gray-600">{c.phone}</span>
                     )}
                   </td>
-                  <td className="px-10 py-8">
-                    <div className="flex items-center gap-3">
-                      <button onClick={() => handleCall(c.phone)} className="p-3 bg-[#F8FAF5] border border-[#7A8B5E]/10 rounded-2xl text-[#7A8B5E] hover:bg-blue-500 hover:text-white transition-all shadow-sm">
-                        <Phone size={18} />
+
+                  {/* Actions */}
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleCall(c.phone)}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 transition-colors"
+                      >
+                        <FiPhone size={14} />
                       </button>
+
                       {editingId === c.id ? (
                         <>
-                          <button onClick={() => handleSave(c.id)} className="p-3 bg-[#1A1F16] text-white rounded-2xl hover:bg-[#2A3324] transition-all shadow-lg">
-                            <Save size={18} />
+                          <button
+                            onClick={() => handleSave(c.id)}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 hover:bg-green-100 text-green-600 transition-colors"
+                          >
+                            <FaSave size={13} />
                           </button>
-                          <button onClick={() => setEditingId(null)} className="p-3 bg-white border border-red-100 text-red-500 rounded-2xl hover:bg-red-50 transition-all shadow-sm">
-                            <X size={18} />
+                          <button
+                            onClick={handleCancelEdit}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition-colors"
+                          >
+                            <FaTimes size={13} />
                           </button>
                         </>
                       ) : (
-                        <button onClick={() => handleEdit(c)} className="p-3 bg-white border border-[#7A8B5E]/10 rounded-2xl text-[#1A1F16] hover:bg-[#1A1F16] hover:text-white transition-all shadow-sm">
-                          <Edit3 size={18} />
+                        <button
+                          onClick={() => handleEdit(c)}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-[#A4B494]/30 text-gray-600 transition-colors"
+                        >
+                          <FaEdit size={13} />
                         </button>
                       )}
                     </div>
@@ -228,33 +432,8 @@ export default function EmergencyContact() {
               ))}
             </tbody>
           </table>
-          {tableContacts.length === 0 && (
-            <div className="py-32 text-center flex flex-col items-center gap-4">
-              <div className="w-20 h-20 bg-[#F8FAF5] rounded-full flex items-center justify-center text-[#7A8B5E]/10">
-                <ShieldAlert size={40} />
-              </div>
-              <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.3em]">No Intervention Required</p>
-            </div>
-          )}
         </div>
-      </div>
-
-      {/* Warning Notice */}
-      <div className="bg-[#1A1F16] rounded-[40px] p-10 flex flex-col md:flex-row items-center justify-between gap-8 border border-white/5">
-        <div className="flex items-center gap-6">
-          <div className="w-16 h-16 bg-[#7A8B5E] rounded-[24px] flex items-center justify-center text-white shadow-xl shadow-[#7A8B5E]/20">
-            <ShieldAlert size={32} />
-          </div>
-          <div>
-            <h4 className="text-xl font-black text-white italic uppercase tracking-tight leading-none">Intervention Protocol</h4>
-            <p className="text-[10px] text-[#7A8B5E] font-black uppercase tracking-[0.2em] mt-2">All emergency calls are logged for compliance monitoring.</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="h-1 w-24 bg-[#7A8B5E]/20 rounded-full hidden lg:block"></div>
-          <p className="text-[9px] font-black text-[#7A8B5E] uppercase tracking-widest">System Readiness: Active</p>
-        </div>
-      </div>
+      </section>
     </div>
   );
 }
