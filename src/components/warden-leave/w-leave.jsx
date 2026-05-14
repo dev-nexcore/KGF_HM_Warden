@@ -5,30 +5,17 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { 
-  ClipboardCheck, Search, Filter, RefreshCw, X, 
-  Activity, Calendar, User, ArrowUpRight 
-} from "lucide-react";
 
 const API_BASE = `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth`;
 
 function getStatusColor(status) {
   const colors = {
-    pending: "text-amber-600 bg-amber-50 border border-amber-100",
-    approved: "text-emerald-600 bg-emerald-50 border border-emerald-100",
-    rejected: "text-rose-600 bg-rose-50 border border-rose-100",
+    pending: "text-orange-600 bg-orange-100 border border-orange-200",
+    approved: "text-green-600 bg-green-100 border border-green-200",
+    rejected: "text-red-600 bg-red-100 border border-red-200",
   };
   return colors[status.toLowerCase()] || "text-gray-600 bg-gray-100 border border-gray-200";
 }
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-const PremiumStatCard = ({ label, value, color = "text-[#1A1F16]" }) => (
-  <div className="bg-[#BEC5AD] p-6 rounded-[32px] border border-white/20 shadow-lg shadow-black/5 flex flex-col items-center gap-2 group hover:-translate-y-1 transition-all">
-    <p className="text-[10px] font-black text-[#1A1F16]/40 uppercase tracking-[0.2em]">{label}</p>
-    <h3 className={`text-3xl font-black tracking-tight ${color}`}>{value}</h3>
-  </div>
-);
 
 export default function LeaveRequestsDashboard() {
   const [filters, setFilters] = useState({ student: "", status: "", date: "" });
@@ -39,6 +26,7 @@ export default function LeaveRequestsDashboard() {
   const [loading, setLoading] = useState(true);
 
   const fetchFilteredLeaves = async () => {
+    setLoading(true);
     try {
       const query = {};
       const studentInput = filters.student.trim();
@@ -60,6 +48,8 @@ export default function LeaveRequestsDashboard() {
       setLeaveRequests(res.data);
     } catch (err) {
       toast.error("Failed to fetch leave requests.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -70,17 +60,40 @@ export default function LeaveRequestsDashboard() {
       });
 
       setStats([
-        { label: "Total Volume", value: res.data.totalRequests, color: "text-[#1A1F16]" },
-        { label: "Pending Review", value: res.data.pendingRequests, color: "text-amber-600" },
-        { label: "Authorized", value: res.data.approvedRequests, color: "text-emerald-600" },
-        { label: "Declined", value: res.data.rejectedRequests, color: "text-rose-600" },
+        { label: "Total Requests", value: res.data.totalRequests, color: "#CBD2BB", textColor: "#000000" },
+        { label: "Pending Requests", value: res.data.pendingRequests, color: "#CBD2BB", textColor: "#FF9D00" },
+        { label: "Approved Requests", value: res.data.approvedRequests, color: "#CBD2BB", textColor: "#28C404" },
+        { label: "Rejected Requests", value: res.data.rejectedRequests, color: "#CBD2BB", textColor: "#FF0000" },
       ]);
     } catch (err) {
       toast.error("Failed to fetch stats.");
-    } finally {
-      setLoading(false);
     }
   };
+
+  // const handleAction = async () => {
+  //   const { id, type } = actionPopup;
+  //   try {
+  //     if (type === "delete") {
+  //       await axios.delete(`${API_BASE}/leave/${id}`, {
+  //         headers: { Authorization: `Bearer ${localStorage.getItem("wardenToken")}` },
+  //       });
+  //       toast.success("Leave request deleted.");
+  //     } else {
+  //       await axios.put(
+  //         `${API_BASE}/${id}/status`,
+  //         { status: type },
+  //         { headers: { Authorization: `Bearer ${localStorage.getItem("wardenToken")}` } }
+  //       );
+  //       toast.success(`Leave request ${type} successfully.`);
+  //     }
+  //     setActionPopup({ id: null, type: null });
+  //     fetchFilteredLeaves();
+  //     fetchStats();
+  //   } catch (err) {
+  //     toast.error(`Failed to ${type} leave request.`);
+  //   }
+  // };
+
 
   const handleAction = async () => {
     const { id, type } = actionPopup;
@@ -89,26 +102,34 @@ export default function LeaveRequestsDashboard() {
         await axios.delete(`${API_BASE}/leave/${id}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("wardenToken")}` },
         });
-        toast.success("Record deleted.");
-      } else {
+        toast.success("Leave request deleted successfully.", { autoClose: 3000 });
+      } else if (type === "approved") {
         await axios.put(
           `${API_BASE}/${id}/status`,
-          { status: type },
+          { status: "approved" },
           { headers: { Authorization: `Bearer ${localStorage.getItem("wardenToken")}` } }
         );
-        toast.success(`Request ${type}.`);
+        toast.success("Leave request approved successfully.", { autoClose: 3000 });
+      } else if (type === "rejected") {
+        await axios.put(
+          `${API_BASE}/${id}/status`,
+          { status: "rejected" },
+          { headers: { Authorization: `Bearer ${localStorage.getItem("wardenToken")}` } }
+        );
+        toast.success("❌ Leave request rejected successfully.", { autoClose: 3000 });
       }
 
       setActionPopup({ id: null, type: null });
       fetchFilteredLeaves();
       fetchStats();
     } catch (err) {
-      toast.error(`Operation failed.`);
+      toast.error(`⚠️ Failed to ${type} leave request.`, { autoClose: 3000 });
     }
   };
 
   const clearFilters = () => {
     setFilters({ student: "", status: "", date: "" });
+    toast.info("Filters cleared");
   };
 
   const handleChange = (field) => (e) => {
@@ -130,202 +151,334 @@ export default function LeaveRequestsDashboard() {
   }
 
   return (
-    <main className="flex-1 bg-[#F8FAF5] min-h-screen p-6 md:p-10 space-y-8 max-w-7xl mx-auto">
-      <ToastContainer position="top-right" autoClose={3000} />
+    <div className="p-4 bg-white min-h-screen space-y-6">
 
-      {/* ── Page Title ── */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-        <div className="flex items-center gap-4">
-          <div className="w-1.5 h-10 bg-red-500 rounded-full shadow-lg"></div>
-          <div>
-            <h1 className="text-2xl font-black text-[#1A1F16] tracking-tight uppercase italic leading-none">Leave Board</h1>
-            <p className="text-[10px] text-[#A4B494] font-black uppercase tracking-[0.25em] mt-1">Permission Control Center</p>
-          </div>
-        </div>
-        <button 
-          onClick={clearFilters}
-          className="p-4 bg-white border border-[#A4B494]/10 rounded-2xl text-[#1A1F16] hover:bg-[#A4B494]/5 transition-all shadow-sm flex items-center gap-3 font-black text-[10px] uppercase tracking-widest"
-        >
-          <RefreshCw size={16} /> Reset Filters
-        </button>
+      {/* Toast Container */}
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
+
+
+      {/* Header */}
+      <div className="flex items-center">
+        <div className="w-1 h-6 bg-red-500 rounded-full mr-2"></div>
+        <h1 className="text-2xl font-bold">Leave Request Management</h1>
       </div>
 
-      {/* ── Stat Cards ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {stats.map((stat) => (
-          <PremiumStatCard key={stat.label} label={stat.label} value={stat.value} color={stat.color} />
+          <div
+            key={stat.label}
+            className="relative bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200"
+          >
+            {/* Accent bar */}
+            <div className="absolute left-0 top-0 h-full w-1 rounded-l-2xl" style={{ backgroundColor: stat.textColor }} />
+
+            {/* Background blob */}
+            <div className="absolute -bottom-4 -left-4 w-24 h-24 rounded-full opacity-10 blur-2xl" style={{ backgroundColor: stat.textColor }} />
+
+            {/* Content */}
+            <div className="pl-3 z-10 relative">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">{stat.label}</p>
+              <p className="text-4xl font-extrabold leading-none" style={{ color: stat.textColor }}>{stat.value}</p>
+            </div>
+          </div>
         ))}
       </div>
 
-      {/* ── Filters Section ── */}
-      <div className="bg-[#A4B494] p-8 rounded-[32px] shadow-2xl relative overflow-hidden border border-white/20">
-        <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Filters */}
+      {/* <div className="bg-white p-4 rounded-lg shadow">
+        <h2 className="text-lg font-semibold mb-4">Filter Leave Requests</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <input type="text" value={filters.student} onChange={handleChange("student")} placeholder="Search Name or ID" className="px-3 py-2 rounded border border-gray-300 bg-[#D9D9D9] text-sm" />
+          <select value={filters.status} onChange={handleChange("status")} className="px-3 py-2 rounded border border-gray-300 bg-[#D9D9D9] text-sm">
+            <option value="">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <input type="date" value={filters.date} onChange={handleChange("date")} className="px-3 py-2 rounded border border-gray-300 bg-[#D9D9D9] text-sm" />
+          <button onClick={clearFilters} className="bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded">Clear Filters</button>
+        </div>
+      </div> */}
+
+
+
+
+
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100 bg-gray-50/60">
+          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
+          </svg>
+          <h2 className="text-sm font-semibold text-gray-600 tracking-wide uppercase">Filter Leave Requests</h2>
+        </div>
+
+        <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Search */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-black text-black/40 uppercase tracking-[0.2em]">Search Resident</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Search</label>
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40" />
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
+              </svg>
               <input
                 type="text"
                 value={filters.student}
                 onChange={handleChange("student")}
                 placeholder="Name or Student ID"
-                className="w-full bg-white/40 backdrop-blur-md border border-white/20 rounded-2xl pl-12 pr-6 py-4 text-xs font-bold text-[#1A1F16] focus:bg-white outline-none transition-all shadow-sm"
+                className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-9 pr-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#A4B494] focus:border-transparent transition"
               />
             </div>
           </div>
 
+          {/* Status */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-black text-black/40 uppercase tracking-[0.2em]">Status Filter</label>
-            <select
-              value={filters.status}
-              onChange={handleChange("status")}
-              className="w-full appearance-none bg-white/40 backdrop-blur-md border border-white/20 rounded-2xl px-6 py-4 text-xs font-bold text-[#1A1F16] focus:bg-white outline-none transition-all shadow-sm"
-            >
-              <option value="">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-            </select>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</label>
+            <div className="relative">
+              <select
+                value={filters.status}
+                onChange={handleChange("status")}
+                className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 pr-8 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#A4B494] focus:border-transparent transition"
+              >
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+              <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </div>
 
+          {/* Date */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-black text-black/40 uppercase tracking-[0.2em]">Date Range</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</label>
             <input
               type="date"
               value={filters.date}
               onChange={handleChange("date")}
-              className="w-full bg-white/40 backdrop-blur-md border border-white/20 rounded-2xl px-6 py-4 text-xs font-bold text-[#1A1F16] focus:bg-white outline-none transition-all shadow-sm"
+              className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#A4B494] focus:border-transparent transition"
             />
+          </div>
+
+          {/* Clear */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-transparent uppercase tracking-wider select-none">Action</label>
+            <button
+              onClick={clearFilters}
+              className="flex items-center justify-center gap-2 w-full bg-red-50  text-red-500 border border-red-200 hover:border-red-500 text-sm font-semibold rounded-lg px-4 py-2.5 transition-all duration-200"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Clear Filters
+            </button>
           </div>
         </div>
       </div>
 
-      {/* ── Table View ── */}
-      <div className="bg-white rounded-[32px] border border-[#A4B494]/10 shadow-xl shadow-black/5 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-[#A4B494]/10 border-b border-[#A4B494]/5">
-                {["Resident", "Type", "Duration", "Status", "Actions"].map((h) => (
-                  <th key={h} className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#A4B494]">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#A4B494]/5">
-              {leaveRequests.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-20 text-[10px] font-black text-[#A4B494] uppercase tracking-[0.3em]">
-                    No active requests found
+      {/* Mobile Card View */}
+      <div className="block md:hidden space-y-4">
+        {leaveRequests.map((req) => (
+          <div key={req._id} className="bg-[#F9F9F9] p-4 rounded-lg border shadow space-y-1">
+            <p><strong>ID:</strong> {req.studentId?.studentId || "-"}</p>
+            <p><strong>Name:</strong> {req.studentId?.firstName} {req.studentId?.lastName}</p>
+            <p><strong>Type:</strong> {req.leaveType}</p>
+            <p><strong>Start:</strong> {new Date(req.startDate).toLocaleDateString()}</p>
+            <p><strong>End:</strong> {new Date(req.endDate).toLocaleDateString()}</p>
+            <p>
+              <strong>Status:</strong>{" "}
+              <span className={`px-2 py-1 rounded text-sm ${getStatusColor(req.status)}`}>{req.status}</span>
+            </p>
+            <div className="flex justify-end gap-3 mt-2">
+              <MdRemoveRedEye size={20} onClick={() => setSelectedLeave(req)} className="text-blue-600 cursor-pointer" />
+              {req.status === "pending" ? (
+                <>
+                  <MdCheck size={20} onClick={() => setActionPopup({ id: req._id, type: "approved" })} className="text-green-600 cursor-pointer" />
+                  <MdClose size={20} onClick={() => setActionPopup({ id: req._id, type: "rejected" })} className="text-red-600 cursor-pointer" />
+                  <MdDelete size={20} className="opacity-50 cursor-not-allowed" />
+                </>
+              ) : (
+                <MdDelete size={20} onClick={() => setActionPopup({ id: req._id, type: "delete" })} className="text-red-600 cursor-pointer" />
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop Table View */}
+      {/* <div className="hidden md:block bg-white p-4 rounded-lg shadow overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-[#D9D9D9]">
+            <tr>
+              <th className="px-3 py-2 text-left">Student ID</th>
+              <th className="px-3 py-2 text-left">Name</th>
+              <th className="px-3 py-2 text-left">Type</th>
+              <th className="px-3 py-2 text-left">Start Date</th>
+              <th className="px-3 py-2 text-left">End Date</th>
+              <th className="px-3 py-2 text-left">Status</th>
+              <th className="px-3 py-2 text-left">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {leaveRequests.length === 0 ? (
+              <tr><td colSpan={7} className="text-center py-8 text-gray-500">No leave requests found.</td></tr>
+            ) : (
+              leaveRequests.map((req) => (
+                <tr key={req._id} className="border-b hover:bg-gray-50">
+                  <td className="px-3 py-2">{req.studentId?.studentId}</td>
+                  <td className="px-3 py-2">{req.studentId?.firstName} {req.studentId?.lastName}</td>
+                  <td className="px-3 py-2">{req.leaveType}</td>
+                  <td className="px-3 py-2">{new Date(req.startDate).toLocaleDateString()}</td>
+                  <td className="px-3 py-2">{new Date(req.endDate).toLocaleDateString()}</td>
+                  <td className="px-3 py-2"><span className={`inline-block px-3 py-1 rounded-full ${getStatusColor(req.status)}`}>{req.status}</span></td>
+                  <td className="px-3 py-2 flex gap-2">
+                    <MdRemoveRedEye size={20} onClick={() => setSelectedLeave(req)} className="text-blue-600 cursor-pointer" />
+                    {req.status === "pending" ? (
+                      <>
+                        <MdCheck size={20} onClick={() => setActionPopup({ id: req._id, type: "approved" })} className="text-green-600 cursor-pointer" />
+                        <MdClose size={20} onClick={() => setActionPopup({ id: req._id, type: "rejected" })} className="text-red-600 cursor-pointer" />
+                        <MdDelete size={20} className="opacity-50 cursor-not-allowed" />
+                      </>
+                    ) : (
+                      <MdDelete size={20} onClick={() => setActionPopup({ id: req._id, type: "delete" })} className="text-red-600 cursor-pointer" />
+                    )}
                   </td>
                 </tr>
-              ) : (
-                leaveRequests.map((req) => (
-                  <tr key={req._id} className="hover:bg-[#F8FAF5] transition-colors group">
-                    <td className="px-8 py-5">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-[#A4B494]/20 flex items-center justify-center text-xs font-black text-[#1A1F16]">
-                          {req.studentId?.firstName?.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="text-sm font-black text-[#1A1F16] tracking-tight">{req.studentId?.firstName} {req.studentId?.lastName}</p>
-                          <p className="text-[9px] font-black text-[#A4B494] uppercase tracking-widest">{req.studentId?.studentId}</p>
-                        </div>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div> */}
+
+
+      <div className="hidden md:block overflow-hidden rounded-2xl border border-gray-100 shadow-sm">
+        <table className="w-full bg-white text-sm">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-100">
+              {["Student ID", "Name", "Type", "Start Date", "End Date", "Status", "Actions"].map((h) => (
+                <th key={h} className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {leaveRequests.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="text-center py-12 text-gray-400 italic">
+                  No leave requests found.
+                </td>
+              </tr>
+            ) : (
+              leaveRequests.map((req) => (
+                <tr key={req._id} className="hover:bg-[#A4B494]/10 transition-colors duration-150 group">
+
+                  {/* Student ID */}
+                  <td className="px-5 py-3.5 font-mono text-xs text-gray-400 font-medium">
+                    {req.studentId?.studentId}
+                  </td>
+
+                  {/* Name */}
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-[#A4B494]/30 flex items-center justify-center text-xs font-bold text-[#1a312a] shrink-0">
+                        {req.studentId?.firstName?.charAt(0).toUpperCase()}
                       </div>
-                    </td>
-                    <td className="px-8 py-5">
-                      <span className="text-[10px] font-black text-[#1A1F16] uppercase tracking-widest bg-white border border-[#A4B494]/10 px-3 py-1 rounded-full">
-                        {req.leaveType}
+                      <span className="font-medium text-gray-800">
+                        {req.studentId?.firstName} {req.studentId?.lastName}
                       </span>
-                    </td>
-                    <td className="px-8 py-5">
-                      <p className="text-[10px] font-black text-[#1A1F16] uppercase tracking-widest">
-                        {new Date(req.startDate).toLocaleDateString()} → {new Date(req.endDate).toLocaleDateString()}
-                      </p>
-                    </td>
-                    <td className="px-8 py-5">
-                      <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${getStatusColor(req.status)}`}>
-                        {req.status}
-                      </span>
-                    </td>
-                    <td className="px-8 py-5">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setSelectedLeave(req)}
-                          className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#F8FAF5] border border-[#A4B494]/10 text-[#A4B494] hover:bg-[#A4B494] hover:text-white transition-all shadow-sm"
-                        >
-                          <MdRemoveRedEye size={18} />
-                        </button>
-                        {req.status === "pending" ? (
-                          <>
-                            <button
-                              onClick={() => setActionPopup({ id: req._id, type: "approved" })}
-                              className="w-10 h-10 flex items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
-                            >
-                              <MdCheck size={18} />
-                            </button>
-                            <button
-                              onClick={() => setActionPopup({ id: req._id, type: "rejected" })}
-                              className="w-10 h-10 flex items-center justify-center rounded-xl bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-600 hover:text-white transition-all shadow-sm"
-                            >
-                              <MdClose size={18} />
-                            </button>
-                          </>
-                        ) : (
+                    </div>
+                  </td>
+
+                  {/* Leave Type */}
+                  <td className="px-5 py-3.5">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                      {req.leaveType}
+                    </span>
+                  </td>
+
+                  {/* Start Date */}
+                  <td className="px-5 py-3.5 text-gray-600 text-xs font-mono">
+                    {new Date(req.startDate).toLocaleDateString()}
+                  </td>
+
+                  {/* End Date */}
+                  <td className="px-5 py-3.5 text-gray-600 text-xs font-mono">
+                    {new Date(req.endDate).toLocaleDateString()}
+                  </td>
+
+                  {/* Status */}
+                  <td className="px-5 py-3.5">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getStatusColor(req.status)}`}>
+                      {req.status}
+                    </span>
+                  </td>
+
+                  {/* Actions */}
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setSelectedLeave(req)}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 transition-colors"
+                      >
+                        <MdRemoveRedEye size={16} />
+                      </button>
+
+                      {req.status === "pending" ? (
+                        <>
                           <button
-                            onClick={() => setActionPopup({ id: req._id, type: "delete" })}
-                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-600 hover:text-white transition-all shadow-sm"
+                            onClick={() => setActionPopup({ id: req._id, type: "approved" })}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 hover:bg-green-100 text-green-600 transition-colors"
                           >
-                            <MdDelete size={18} />
+                            <MdCheck size={16} />
                           </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                          <button
+                            onClick={() => setActionPopup({ id: req._id, type: "rejected" })}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition-colors"
+                          >
+                            <MdClose size={16} />
+                          </button>
+                          <button
+                            disabled
+                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-50 text-gray-300 cursor-not-allowed"
+                          >
+                            <MdDelete size={16} />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => setActionPopup({ id: req._id, type: "delete" })}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition-colors"
+                        >
+                          <MdDelete size={16} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
       {/* View Modal */}
       {selectedLeave && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[999] p-4">
-          <div className="bg-white rounded-[40px] w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
-            <div className="bg-[#A4B494] p-8 text-white relative">
-              <h2 className="text-2xl font-black italic tracking-tight uppercase">Request Profile</h2>
-              <button 
-                onClick={() => setSelectedLeave(null)}
-                className="absolute top-8 right-8 p-2 bg-white/20 rounded-xl hover:bg-white/40 transition-all"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-10 space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <p className="text-[10px] font-black text-[#A4B494] uppercase tracking-widest mb-1">Resident</p>
-                  <p className="font-black text-[#1A1F16]">{selectedLeave.studentId?.firstName} {selectedLeave.studentId?.lastName}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-black text-[#A4B494] uppercase tracking-widest mb-1">ID Ref</p>
-                  <p className="font-black text-[#1A1F16]">{selectedLeave.studentId?.studentId}</p>
-                </div>
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-[#A4B494] uppercase tracking-widest mb-1">Stated Reason</p>
-                <p className="text-sm font-medium text-[#1A1F16]/60 bg-[#F8FAF5] p-4 rounded-[24px] border border-[#A4B494]/10 leading-relaxed">
-                  {selectedLeave.reason || "No formal reason provided in system log."}
-                </p>
-              </div>
-              <button 
-                onClick={() => setSelectedLeave(null)}
-                className="w-full py-5 bg-[#1A1F16] text-white rounded-[24px] text-[10px] font-black uppercase tracking-[0.3em] hover:bg-black transition-all shadow-xl shadow-black/20"
-              >
-                Close Profile
-              </button>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full shadow-lg">
+            <h2 className="text-lg font-semibold mb-4">Leave Request Details</h2>
+            <p><strong>Name:</strong> {selectedLeave.studentId?.firstName} {selectedLeave.studentId?.lastName}</p>
+            <p><strong>ID:</strong> {selectedLeave.studentId?.studentId}</p>
+            <p><strong>Type:</strong> {selectedLeave.leaveType}</p>
+            <p><strong>Start:</strong> {new Date(selectedLeave.startDate).toLocaleDateString()}</p>
+            <p><strong>End:</strong> {new Date(selectedLeave.endDate).toLocaleDateString()}</p>
+            <p><strong>Status:</strong> {selectedLeave.status}</p>
+            <p><strong>Reason:</strong> {selectedLeave.reason || "N/A"}</p>
+            <div className="mt-4 text-right">
+              <button onClick={() => setSelectedLeave(null)} className="bg-red-500 px-4 py-2 text-white rounded">Close</button>
             </div>
           </div>
         </div>
@@ -333,22 +486,17 @@ export default function LeaveRequestsDashboard() {
 
       {/* Confirm Action Popup */}
       {actionPopup.id && (
-        <div className="fixed inset-0 z-[1000] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-[40px] p-10 max-w-sm w-full shadow-2xl text-center space-y-6">
-            <div className="w-20 h-20 bg-amber-50 rounded-[32px] flex items-center justify-center text-amber-500 mx-auto border border-amber-100">
-              <Activity size={40} />
-            </div>
-            <div>
-              <h2 className="text-xl font-black uppercase italic tracking-tight text-[#1A1F16]">Confirm Action</h2>
-              <p className="text-xs font-medium text-[#1A1F16]/40 mt-2">Are you sure you want to proceed with <span className="text-[#1A1F16] font-black uppercase tracking-widest">{actionPopup.type}</span>?</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <button onClick={handleAction} className="py-4 bg-[#1A1F16] text-white rounded-[20px] text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg">Confirm</button>
-              <button onClick={() => setActionPopup({ id: null, type: null })} className="py-4 bg-[#F8FAF5] text-[#1A1F16] border border-[#A4B494]/10 rounded-[20px] text-[10px] font-black uppercase tracking-widest hover:bg-[#A4B494]/5 transition-all">Cancel</button>
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg max-w-sm w-full shadow-lg text-center">
+            <h2 className="text-lg font-semibold mb-4">Confirm {actionPopup.type}</h2>
+            <p>Are you sure you want to <strong>{actionPopup.type}</strong> this leave request?</p>
+            <div className="mt-6 flex justify-center gap-4">
+              <button onClick={() => handleAction()} className="bg-green-600 text-white px-4 py-2 rounded">Yes</button>
+              <button onClick={() => setActionPopup({ id: null, type: null })} className="bg-gray-300 px-4 py-2 rounded">No</button>
             </div>
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

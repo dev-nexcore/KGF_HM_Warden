@@ -23,19 +23,10 @@ export default function Sidebar() {
     setSidebarOpen(false);
   }, [pathname]);
 
-<<<<<<< HEAD
-  const getLinkClass = (href) => {
-    const isActive = pathname.startsWith(href);
-    return `group flex items-center gap-3 py-3 px-5 mx-4 rounded-xl text-sm font-bold transition-all duration-300 ${
-      isActive
-        ? "bg-[#7A8B5E] text-white shadow-md shadow-[#7A8B5E]/20"
-        : "text-white/50 hover:text-white hover:bg-white/5"
-=======
   const getLinkClass = (href) =>
     `flex items-center gap-2 py-3 px-4 rounded-l-3xl text-sm transition ${pathname.startsWith(href)
       ? "bg-white text-black font-semibold"
       : "text-[#1a312a] hover:text-black"
->>>>>>> parent of b475873 (feat: initialize warden dashboard and management modules with student OCR registration support)
     }`;
 
   const logout = () => {
@@ -143,22 +134,8 @@ export default function Sidebar() {
 
         {/* Logo + Navigation */}
         <div>
-<<<<<<< HEAD
-          <div className="px-10 mb-10">
-            <div className="flex items-center gap-4 mb-2">
-              <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center p-2 shadow-sm border border-white/10 group">
-                <img src="/logo.png" alt="KGF" className="w-full h-full object-contain" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-lg font-bold text-white tracking-tight font-outfit leading-none">KGF <span className="text-[#7A8B5E]">WARDEN</span></span>
-                <span className="text-[7px] font-bold text-[#7A8B5E] uppercase tracking-wider mt-1">Management Console</span>
-              </div>
-            </div>
-            <div className="h-0.5 w-10 bg-[#7A8B5E] rounded-full mt-3 opacity-50"></div>
-=======
           <div className="w-full flex justify-center mb-6">
             <img src="/warden/logo.png" className="h-20 w-20 object-contain mx-auto rounded-full" alt="Logo" />
->>>>>>> parent of b475873 (feat: initialize warden dashboard and management modules with student OCR registration support)
           </div>
 
           <div className="space-y-2">
@@ -174,7 +151,7 @@ export default function Sidebar() {
               <img src="/warden/sidebar-icons/student.png" alt="Student" className="w-5 h-5" />
               Student Management
             </Link>
-             <Link href="/staffallotment" className={getLinkClass("/staffallotment")}>
+            <Link href="/staffallotment" className={getLinkClass("/staffallotment")}>
               <img src="/warden/sidebar-icons/staff.png" alt="staffallotment" className="w-5 h-5" />
               Staff Management
             </Link>
