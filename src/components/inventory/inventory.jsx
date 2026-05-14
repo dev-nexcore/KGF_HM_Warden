@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { FaSearch } from "react-icons/fa";
-import { QrCode, Camera, Download, Check, AlertCircle, ShieldCheck, ChevronRight, Eye, Edit3 } from "lucide-react";
+import { QrCode, Camera, Download, Check, AlertCircle, ShieldCheck, ChevronRight, Eye, Edit3, Trash2 } from "lucide-react";
 import api from "@/lib/api";
 // import QRScanner from "../QRScanner/QRScanner";
 import ItemDetailsModal from "../ItemDetailsModal/ItemDetailsModal";

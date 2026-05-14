@@ -39,9 +39,9 @@ export default function Sidebar() {
 
   const getLinkClass = (href) => {
     const isActive = pathname.startsWith(href);
-    return `group flex items-center gap-4 py-4 px-6 mx-4 rounded-2xl text-sm font-black transition-all duration-300 uppercase tracking-widest ${
+    return `group flex items-center gap-3 py-3 px-5 mx-4 rounded-xl text-sm font-bold transition-all duration-300 ${
       isActive
-        ? "bg-[#7A8B5E] text-white shadow-lg shadow-[#7A8B5E]/20"
+        ? "bg-[#7A8B5E] text-white shadow-md shadow-[#7A8B5E]/20"
         : "text-white/50 hover:text-white hover:bg-white/5"
     }`;
   };
@@ -132,17 +132,17 @@ export default function Sidebar() {
 
         {/* Brand Logo */}
         <div>
-          <div className="px-10 mb-12">
+          <div className="px-10 mb-10">
             <div className="flex items-center gap-4 mb-2">
-              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center p-2 shadow-lg shadow-black/20 group hover:scale-105 transition-transform duration-500">
+              <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center p-2 shadow-sm border border-white/10 group">
                 <img src="/logo.png" alt="KGF" className="w-full h-full object-contain" />
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-black text-white tracking-tighter italic leading-none">KGF <span className="text-[#7A8B5E]">WARDEN</span></span>
-                <span className="text-[8px] font-bold text-[#7A8B5E] uppercase tracking-[0.3em] mt-1">Personnel Command</span>
+                <span className="text-lg font-bold text-white tracking-tight font-outfit leading-none">KGF <span className="text-[#7A8B5E]">WARDEN</span></span>
+                <span className="text-[7px] font-bold text-[#7A8B5E] uppercase tracking-wider mt-1">Management Console</span>
               </div>
             </div>
-            <div className="h-0.5 w-12 bg-[#7A8B5E] rounded-full mt-4"></div>
+            <div className="h-0.5 w-10 bg-[#7A8B5E] rounded-full mt-3 opacity-50"></div>
           </div>
 
           <nav className="space-y-1">
