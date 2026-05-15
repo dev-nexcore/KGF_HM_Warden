@@ -1,6 +1,6 @@
 import Sidebar from "@/components/layout/sidebar";
 import Navbar from "@/components/layout/navbar";
-import StudentManagement from "@/components/Student/StudentManagement";
+import StudentManagement from "@/components/Student/Management";
 
 
 

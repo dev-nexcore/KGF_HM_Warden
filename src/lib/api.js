@@ -7,7 +7,7 @@ const api = axios.create({
 
 // attach token per request
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken");
+  const token = localStorage.getItem("wardenToken");
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });

@@ -51,6 +51,8 @@ const HostelNotices = () => {
   }, [filters]);
 
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [isViewPopupOpen, setIsViewPopupOpen] = useState(false);
+  const [selectedNotice, setSelectedNotice] = useState(null);
   const [editingNotice, setEditingNotice] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteNoticeId, setDeleteNoticeId] = useState(null);
@@ -86,43 +88,40 @@ const HostelNotices = () => {
 
 
   const handleIssueNotice = async () => {
+    const toastId = toast.loading("Submitting notice request...");
 
-  const toastId = toast.loading("Issuing notice...");
+    try {
+      await api.post("/api/wardenauth/submit-notice-requisition", {
+        template: form.template,
+        title: form.title,
+        message: form.message,
+        issueDate: form.date,
+        recipientType:
+          form.recipient === "All (Students & Warden)" ? "All" : form.recipient,
+        individualRecipient: form.individualRecipient || "",
+      }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("wardenToken")}` }
+      });
 
-  try {
-    await api.post("/api/adminauth/issue-notice", {
-      template: form.template,
-      title: form.title,
-      message: form.message,
-      issueDate: form.date,
-      recipientType:
-        form.recipient === "All (Students & Warden)" ? "All" : form.recipient,
-      individualRecipient: form.individualRecipient || "",
-    });
+      toast.update(toastId, {
+        render: "✅ Notice request submitted for Admin approval",
+        type: "success",
+        isLoading: false,
+        autoClose: 3000
+      });
 
-    toast.update(toastId, {
-      render: "✅ Notice issued successfully",
-      type: "success",
-      isLoading: false,
-      autoClose: 3000
-    });
-
-    fetchNotices();
-
-    setForm(initialFormState);
-
-  } catch (err) {
-
-    toast.update(toastId, {
-      render: "❌ Notice issue failed",
-      type: "error",
-      isLoading: false,
-      autoClose: 3000
-    });
-
-    console.error(err);
-  }
-};
+      fetchNotices();
+      setForm(initialFormState);
+    } catch (err) {
+      console.error("Failed to submit notice request:", err);
+      toast.update(toastId, {
+        render: `❌ Request Failed: ${err.response?.data?.message || "Internal Error"}`,
+        type: "error",
+        isLoading: false,
+        autoClose: 3000
+      });
+    }
+  };
 
   const handleDeleteNotice = async (id) => {
     if (!window.confirm("Are you sure you want to delete this notice?")) return;
@@ -151,6 +150,11 @@ const HostelNotices = () => {
   const handleEdit = (notice) => {
     setEditingNotice({ ...notice });
     setIsPopupOpen(true);
+  };
+
+  const handleView = (notice) => {
+    setSelectedNotice(notice);
+    setIsViewPopupOpen(true);
   };
 
   const handleDelete = (noticeId) => {
@@ -538,6 +542,7 @@ const HostelNotices = () => {
         {/* Table */}
         <NoticesTable
           notices={notices}
+          handleView={handleView}
           handleEdit={handleEdit}
           handleDelete={handleDelete}
         />
@@ -819,6 +824,53 @@ const HostelNotices = () => {
             </div>
           </div>
         )}
+
+        {/* View Notice Modal */}
+        {isViewPopupOpen && selectedNotice && (
+          <div className="fixed inset-0 bg-black/30 bg-opacity-20 backdrop-blur-md flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-8 w-full max-w-2xl shadow-2xl">
+              <div className="flex justify-between items-center mb-6 border-bottom pb-4">
+                <h2 className="text-3xl font-bold text-gray-800">Notice Details</h2>
+                <button
+                  onClick={() => setIsViewPopupOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors text-3xl"
+                >
+                  &times;
+                </button>
+              </div>
+              <div className="space-y-6">
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Title</label>
+                  <p className="text-xl font-semibold text-gray-900 mt-1">{selectedNotice.title}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Recipient</label>
+                    <p className="text-lg text-gray-700 mt-1">{selectedNotice.recipient}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Date Issued</label>
+                    <p className="text-lg text-gray-700 mt-1">{selectedNotice.date}</p>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Message</label>
+                  <div className="mt-2 p-4 bg-gray-50 rounded-xl border border-gray-100 text-gray-700 whitespace-pre-wrap leading-relaxed">
+                    {selectedNotice.message}
+                  </div>
+                </div>
+                <div className="flex justify-end pt-4">
+                  <button
+                    onClick={() => setIsViewPopupOpen(false)}
+                    className="bg-gray-100 text-gray-700 px-8 py-3 rounded-xl font-bold hover:bg-gray-200 transition-all active:scale-95"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Delete Confirmation Modal */}
         {showDeleteConfirm && (
           <div className="fixed inset-0 bg-black/30 bg-opacity-20 backdrop-blur-md flex items-center justify-center z-50 p-4">
@@ -876,7 +928,7 @@ const HostelNotices = () => {
 };
 
 // export default HostelNotices; (removed duplicate)
-function NoticesTable({ notices, handleEdit, handleDelete }) {
+function NoticesTable({ notices, handleView, handleEdit, handleDelete }) {
   return (
     <div>
       <h3 className="text-2xl text-black font-semibold mb-4 font-[Poppins] ml-4">
@@ -915,6 +967,13 @@ function NoticesTable({ notices, handleEdit, handleDelete }) {
                 </td>
                 <td className="p-2">
                   <div className="flex items-center gap-5">
+                    <div
+                      className="cursor-pointer hover:opacity-70 transition hover:scale-110"
+                      onClick={() => handleView(n)}
+                    >
+                      👁️
+                    </div>
+                    <div className="w-[0.1rem] h-8 bg-black"></div>
                     <div
                       className="cursor-pointer hover:opacity-70 transition hover:scale-110"
                       onClick={() => handleEdit(n)}
@@ -956,6 +1015,12 @@ function NoticesTable({ notices, handleEdit, handleDelete }) {
                 </span>
               </div>
               <div className="flex gap-5 mt-3">
+                <div
+                  className="cursor-pointer hover:opacity-70 transition hover:scale-110"
+                  onClick={() => handleView(n)}
+                >
+                  👁️
+                </div>
                 <div
                   className="cursor-pointer hover:opacity-70 transition hover:scale-110"
                   onClick={() => handleEdit(n)}
