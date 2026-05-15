@@ -57,6 +57,8 @@ const ItemDetailsModal = ({ item, isOpen, onClose, onEdit }) => {
     }
   };
 
+  const BASE_URL = process.env.NEXT_PUBLIC_PROD_API_URL || 'http://localhost:5224';
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
@@ -163,24 +165,23 @@ const ItemDetailsModal = ({ item, isOpen, onClose, onEdit }) => {
               </div>
 
               {/* QR Code Section */}
-             // Replace the QR Code section with:
-<div>
-  <h3 className="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">
-    QR Code
-  </h3>
-  <div className="bg-gray-50 p-4 rounded-lg text-center">
-    {item.qrCodeUrl ? (
-      <div className="space-y-3">
-        <img 
-          src={item.qrCodeUrl.startsWith('http') ? item.qrCodeUrl : `${window.location.protocol}//${window.location.host}${item.qrCodeUrl}`}
-          alt="QR Code"
-          className="mx-auto w-32 h-32 border border-gray-300 rounded-lg"
-          onError={(e) => {
-            console.error('QR Code image failed to load:', e.target.src);
-            e.target.style.display = 'none';
-            e.target.nextSibling.style.display = 'block';
-          }}
-        />
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">
+                  QR Code
+                </h3>
+                <div className="bg-gray-50 p-4 rounded-lg text-center">
+                  {item.qrCodeUrl ? (
+                    <div className="space-y-3">
+                      <img 
+                        src={item.qrCodeUrl.startsWith('http') ? item.qrCodeUrl : `${BASE_URL}${item.qrCodeUrl.startsWith('/') ? '' : '/'}${item.qrCodeUrl}`}
+                        alt="QR Code"
+                        className="mx-auto w-32 h-32 border border-gray-300 rounded-lg"
+                        onError={(e) => {
+                          console.error('QR Code image failed to load:', e.target.src);
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'block';
+                        }}
+                      />
         <div style={{display: 'none'}} className="text-red-500 text-sm">
           QR Code image failed to load
         </div>
