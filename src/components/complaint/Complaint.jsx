@@ -82,11 +82,12 @@ export default function Complaint() {
         raisedBy: complaint.raisedBy ? complaint.raisedBy.name : 'Unknown Student',
         studentId: complaint.raisedBy ? complaint.raisedBy.studentId : '',
         studentRoom: complaint.raisedBy ? complaint.raisedBy.roomNumber : '',
-        status: "Open Ticket",
+        status: complaint.status === 'pending_approval' ? 'Pending Approval' : 'Open Ticket',
         dateRaised: formatDate(complaint.filedDate),
         hasAttachments: complaint.hasAttachments,
         attachmentCount: complaint.attachmentCount,
-        attachments: complaint.attachments || []
+        attachments: complaint.attachments || [],
+        adminNotes: complaint.adminNotes || ""
       }));
 
       setOpenTickets(formattedTickets);
@@ -116,7 +117,8 @@ export default function Complaint() {
         dateRaised: formatDate(complaint.filedDate),
         hasAttachments: complaint.hasAttachments,
         attachmentCount: complaint.attachmentCount,
-        attachments: complaint.attachments || []
+        attachments: complaint.attachments || [],
+        adminNotes: complaint.adminNotes || ""
       }));
 
       setInProcessTickets(formattedTickets);
@@ -142,7 +144,7 @@ export default function Complaint() {
         raisedBy: complaint.raisedBy ? complaint.raisedBy.name : 'Unknown Student',
         studentId: complaint.raisedBy ? complaint.raisedBy.studentId : '',
         studentRoom: complaint.raisedBy ? complaint.raisedBy.roomNumber : '',
-        status: "Resolved Section",
+        status: complaint.status === 'pending_approval' ? 'Pending Approval' : 'Resolved',
         dateRaised: new Date(complaint.filedDate).toLocaleDateString('en-GB'),
         resolvedDate: new Date(complaint.resolvedDate).toLocaleDateString('en-GB'),
         hasAttachments: complaint.hasAttachments,
@@ -265,20 +267,22 @@ export default function Complaint() {
       await api.put(
         `/api/adminauth/complaints/${complaintId}/status`,
         {
-          status: "in progress",
-          adminNotes: "Complaint has been approved and moved to in-process."
+          status: "pending_approval",
+          targetStatus: "in progress",
+          adminNotes: "Warden has requested to move this complaint to In-Progress."
         }
       );
 
-      const inProcessTicket = {
+      const requestedTicket = {
         ...ticket,
-        status: "In Progress"
+        status: "Pending Approval",
+        resolvedDate: new Date().toLocaleDateString('en-GB')
       };
 
-      setInProcessTickets(prev => [inProcessTicket, ...prev]);
+      setResolvedTickets(prev => [requestedTicket, ...prev]);
       setOpenTickets(prev => prev.filter((_, i) => i !== index));
 
-      toast.success("✅ Ticket has been approved and moved to In-Process!");
+      toast.success("✅ Start processing request sent for Admin Approval!");
 
     } catch (error) {
       console.error("Failed to approve ticket:", error);
@@ -300,6 +304,7 @@ export default function Complaint() {
         `/api/adminauth/complaints/${complaintId}/status`,
         {
           status: "pending_approval",
+          targetStatus: "resolved",
           adminNotes: "Warden has requested resolution approval from Admin."
         }
       );
@@ -349,24 +354,25 @@ export default function Complaint() {
       await api.put(
         `/api/adminauth/complaints/${ticket._id}/status`,
         {
-          status: "rejected",
-          adminNotes: reason.trim()
+          status: "pending_approval",
+          targetStatus: "rejected",
+          adminNotes: `Warden has requested to REJECT this complaint. Reason: ${reason.trim()}`
         }
       );
 
-      const rejectedTicket = {
+      const requestedTicket = {
         ...ticket,
-        status: "Rejected",
-        adminNotes: reason.trim(),
-        rejectedDate: new Date().toLocaleDateString('en-GB')
+        status: "Pending Approval",
+        adminNotes: `REJECTION REQUEST: ${reason.trim()}`,
+        resolvedDate: new Date().toLocaleDateString('en-GB')
       };
 
-      setRejectedTickets(prev => [rejectedTicket, ...prev]);
+      setResolvedTickets(prev => [requestedTicket, ...prev]);
       setOpenTickets(prev => prev.filter((_, i) => i !== ticket.index));
-      toast.error("❌ Complaint has been rejected.");
+      toast.success("✅ Rejection request sent for Admin Approval!");
     } catch (error) {
-      console.error("Failed to reject complaint:", error);
-      toast.error("❌ Failed to reject complaint. Please try again.");
+      console.error("Failed to send rejection request:", error);
+      toast.error("❌ Failed to send rejection request. Please try again.");
     } finally {
       setActionLoading(prev => ({ ...prev, [`reject_${ticket.index}`]: false }));
     }
@@ -625,17 +631,17 @@ export default function Complaint() {
                             </button>
                             <button
                               onClick={() => handleApprove(index)}
-                              disabled={actionLoading[`approve_${index}`] || actionLoading[`reject_${index}`]}
+                              disabled={actionLoading[`approve_${index}`] || actionLoading[`reject_${index}`] || ticket.status === 'Pending Approval'}
                               className="p-1 text-green-600 hover:text-green-800 transition-colors disabled:opacity-50"
-                              title="Approve"
+                              title={ticket.status === 'Pending Approval' ? "Awaiting Admin Approval" : "Approve"}
                             >
                               <CheckCircle size={18} />
                             </button>
                             <button
                               onClick={() => handleReject(index)}
-                              disabled={actionLoading[`approve_${index}`] || actionLoading[`reject_${index}`]}
+                              disabled={actionLoading[`approve_${index}`] || actionLoading[`reject_${index}`] || ticket.status === 'Pending Approval'}
                               className="p-1 text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
-                              title="Reject"
+                              title={ticket.status === 'Pending Approval' ? "Awaiting Admin Approval" : "Reject"}
                             >
                               <XCircle size={18} />
                             </button>
@@ -683,17 +689,17 @@ export default function Complaint() {
                   <div className="flex gap-2 pt-2 border-t border-gray-100">
                     <button
                       onClick={() => handleApprove(index)}
-                      disabled={actionLoading[`approve_${index}`]}
+                      disabled={actionLoading[`approve_${index}`] || ticket.status === 'Pending Approval'}
                       className="flex-1 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                      <CheckCircle size={16} /> Approve
+                      <CheckCircle size={16} /> {ticket.status === 'Pending Approval' ? "Pending..." : "Approve"}
                     </button>
                     <button
                       onClick={() => handleReject(index)}
-                      disabled={actionLoading[`reject_${index}`]}
+                      disabled={actionLoading[`reject_${index}`] || ticket.status === 'Pending Approval'}
                       className="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                      <XCircle size={16} /> Reject
+                      <XCircle size={16} /> {ticket.status === 'Pending Approval' ? "Pending..." : "Reject"}
                     </button>
                   </div>
                 </div>
