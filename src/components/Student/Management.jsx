@@ -275,9 +275,24 @@ const StudentManagement = () => {
           roomDisplay = s.roomBedNumber;
         }
         const isWorking = s.isWorking === true;
-        const monthlyFee = isWorking
-          ? (s.roomType === "5" ? "₹ 6,000" : s.roomType === "4" ? "₹ 6,500" : s.roomType === "3" ? "₹ 7,000" : "-")
-          : (s.roomType === "5" ? "₹ 4,500" : s.roomType === "4" ? "₹ 5,000" : s.roomType === "3" ? "₹ 5,500" : "-");
+        
+        // Robust fee mapping based on room type and worker status
+        let feeValue = "-";
+        const rType = String(s.roomType || "");
+        
+        if (isWorking) {
+          if (rType === "5") feeValue = "₹ 6,000";
+          else if (rType === "4") feeValue = "₹ 6,500";
+          else if (rType === "3") feeValue = "₹ 7,000";
+          else if (rType === "2") feeValue = "₹ 7,500";
+        } else {
+          if (rType === "5") feeValue = "₹ 4,500";
+          else if (rType === "4") feeValue = "₹ 5,000";
+          else if (rType === "3") feeValue = "₹ 5,500";
+          else if (rType === "2") feeValue = "₹ 6,000";
+        }
+        
+        const monthlyFee = feeValue;
         return { id: s.studentId, firstName: s.firstName, lastName: s.lastName, name: `${s.firstName} ${s.lastName}`, room: roomDisplay, contact: s.contactNumber, email: s.email, emergencyContactNumber: s.emergencyContactNumber, admissionDate: s.admissionDate, emergencyContactName: s.emergencyContactName, feeStatus: s.feeStatus, dues: `₹ ${s.dues || 0}/-`, roomType: s.roomType, monthlyFee, roomDetails, roomObjectId: (s.roomBedNumber && typeof s.roomBedNumber === 'object') ? s.roomBedNumber._id : s.roomBedNumber, documents: s.documents || {}, isWorking: s.isWorking };
       }));
       setStudents(transformed);
@@ -1434,18 +1449,28 @@ const StudentManagement = () => {
                     </div>
                   </div>
                   <div className="space-y-2 text-sm">
-                    <div className="bg-gray-50 rounded-lg px-3 py-2">
-                      <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Room / Bed</span>
-                      <p className="text-black font-semibold text-xs mt-0.5">{s.room}</p>
+                    <div className="flex justify-between items-center gap-2">
+                      <div className="flex-1 bg-gray-50 rounded-lg px-3 py-2">
+                        <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Room / Bed</span>
+                        <p className="text-black font-semibold text-xs mt-0.5">{s.room}</p>
+                      </div>
+                      <div className="flex-1 bg-gray-50 rounded-lg px-3 py-2">
+                        <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Type</span>
+                        <p className="text-black font-semibold text-xs mt-0.5">{s.roomType ? `${s.roomType} Bed` : "-"}</p>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center px-1">
                       <div>
                         <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Contact</span>
                         <p className="text-black text-xs font-medium">{s.contact}</p>
                       </div>
+                      <div className="text-center">
+                        <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Monthly Fee</span>
+                        <p className="text-blue-700 font-bold text-xs">{s.monthlyFee}</p>
+                      </div>
                       <div className="text-right">
                         <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Dues</span>
-                        <p className="text-black font-bold text-sm">{s.dues}</p>
+                        <p className="text-red-600 font-bold text-sm">{s.dues}</p>
                       </div>
                     </div>
                     <div className="flex justify-between items-center pt-1 border-t border-gray-100">
