@@ -147,7 +147,7 @@ export default function Complaint() {
         raisedBy: complaint.raisedBy ? complaint.raisedBy.name : 'Unknown Student',
         studentId: complaint.raisedBy ? complaint.raisedBy.studentId : '',
         studentRoom: complaint.raisedBy ? complaint.raisedBy.roomNumber : '',
-        status: "Resolved Section",
+        status: complaint.status === 'pending_approval' ? 'Pending Approval' : 'Resolved',
         dateRaised: new Date(complaint.filedDate).toLocaleDateString('en-GB'),
         resolvedDate: new Date(complaint.resolvedDate).toLocaleDateString('en-GB'),
         hasAttachments: complaint.hasAttachments,
@@ -266,21 +266,21 @@ export default function Complaint() {
       await api.put(
         `/api/adminauth/complaints/${complaintId}/status`,
         {
-          status: "resolved",
-          adminNotes: "Complaint has been resolved."
+          status: "pending_approval",
+          adminNotes: "Warden has requested resolution approval from Admin."
         }
       );
 
       const resolvedTicket = {
         ...ticket,
-        status: "Resolved",
+        status: "Pending Approval",
         resolvedDate: new Date().toLocaleDateString('en-GB')
       };
 
       setResolvedTickets(prev => [resolvedTicket, ...prev]);
       setInProcessTickets(prev => prev.filter((_, i) => i !== index));
 
-      toast.success("✅ Ticket has been resolved successfully!");
+      toast.success("✅ Resolution request sent for Admin Approval!");
 
     } catch (error) {
       console.error("Failed to resolve ticket:", error);
@@ -648,9 +648,9 @@ export default function Complaint() {
                               onClick={() => handleResolve(index)}
                               disabled={actionLoading[`resolve_${index}`]}
                               className="p-1 text-green-600 hover:text-green-800 transition-colors disabled:opacity-50"
-                              title="Approve to Resolve"
+                              title="Request Admin Approval"
                             >
-                              <CheckCircle size={18} />
+                              <CheckSquare size={18} />
                             </button>
                           </div>
                         </td>
@@ -697,8 +697,12 @@ export default function Complaint() {
                         <td className="p-3 text-sm">{ticket.complaintType}</td>
                         <td className="p-3 text-sm">{ticket.raisedBy}</td>
                         <td className="p-3">
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            <CheckCircle size={12} /> {ticket.status}
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                            ticket.status === 'Pending Approval' 
+                              ? 'bg-yellow-100 text-yellow-800' 
+                              : 'bg-green-100 text-green-800'
+                          }`}>
+                            {ticket.status === 'Pending Approval' ? <Clock size={12} /> : <CheckCircle size={12} />} {ticket.status}
                           </span>
                         </td>
                         <td className="p-3 text-sm">{ticket.dateRaised}</td>
