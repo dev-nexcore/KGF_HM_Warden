@@ -246,10 +246,14 @@ export default function InspectionManagement() {
                   <tr key={index} className="hover:bg-[#A4B494]/10 transition-colors duration-150 group">
 
                     {/* Date */}
-                    <td className="px-5 py-3.5 font-mono text-xs text-gray-600">{item.date}</td>
+                    <td className="px-5 py-3.5 font-mono text-xs text-gray-600">
+                      {item.datetime ? new Date(item.datetime).toLocaleDateString('en-IN') : "-"}
+                    </td>
 
                     {/* Time */}
-                    <td className="px-5 py-3.5 font-mono text-xs text-gray-500">{item.time}</td>
+                    <td className="px-5 py-3.5 font-mono text-xs text-gray-500">
+                      {item.datetime ? new Date(item.datetime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : "-"}
+                    </td>
 
                     {/* Room */}
                     <td className="px-5 py-3.5">
@@ -330,8 +334,8 @@ export default function InspectionManagement() {
           inspections.map((item, index) => (
             <div key={index} className="bg-white rounded-lg shadow p-4">
               <h4 className="text-md font-semibold mb-1">{item.title}</h4>
-              <p><strong>Date:</strong> {item.date}</p>
-              <p><strong>Time:</strong> {item.time}</p>
+              <p><strong>Date:</strong> {item.datetime ? new Date(item.datetime).toLocaleDateString('en-IN') : "-"}</p>
+              <p><strong>Time:</strong> {item.datetime ? new Date(item.datetime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : "-"}</p>
               <p><strong>Room:</strong> {item.target}</p>
 
               {/* <p className={`font-medium ${item.status === "Completed" ? "text-green-600" : "text-orange-500"}`}>

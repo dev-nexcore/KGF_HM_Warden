@@ -23,7 +23,8 @@ export default function LeaveRequestsDashboard() {
   const [stats, setStats] = useState([]);
   const [selectedLeave, setSelectedLeave] = useState(null);
   const [actionPopup, setActionPopup] = useState({ id: null, type: null });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const fetchFilteredLeaves = async () => {
     setLoading(true);
@@ -50,6 +51,7 @@ export default function LeaveRequestsDashboard() {
       toast.error("Failed to fetch leave requests.");
     } finally {
       setLoading(false);
+      setInitialLoading(false);
     }
   };
 
@@ -141,7 +143,7 @@ export default function LeaveRequestsDashboard() {
     fetchStats();
   }, [filters]);
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-[#F8FAF5]">
         <div className="w-10 h-10 border-4 border-[#A4B494]/20 border-t-[#A4B494] rounded-full animate-spin shadow-lg"></div>
