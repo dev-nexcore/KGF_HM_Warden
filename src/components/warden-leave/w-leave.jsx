@@ -13,6 +13,7 @@ function getStatusColor(status) {
     pending: "text-orange-600 bg-orange-100 border border-orange-200",
     approved: "text-green-600 bg-green-100 border border-green-200",
     rejected: "text-red-600 bg-red-100 border border-red-200",
+    parent_approved: "text-purple-600 bg-purple-100 border border-purple-200",
   };
   return colors[status.toLowerCase()] || "text-gray-600 bg-gray-100 border border-gray-200";
 }
@@ -295,15 +296,15 @@ export default function LeaveRequestsDashboard() {
               <span className={`px-2 py-1 rounded text-sm ${getStatusColor(req.status)}`}>{req.status}</span>
             </p>
             <div className="flex justify-end gap-3 mt-2">
-              <MdRemoveRedEye size={20} onClick={() => setSelectedLeave(req)} className="text-blue-600 cursor-pointer" />
-              {req.status === "pending" ? (
+              <MdRemoveRedEye size={20} onClick={() => setSelectedLeave(req)} className="text-blue-600 cursor-pointer" title="View" />
+              {(req.status === "pending" || req.status === "parent_approved") ? (
                 <>
-                  <MdCheck size={20} onClick={() => setActionPopup({ id: req._id, type: "approved" })} className="text-green-600 cursor-pointer" />
-                  <MdClose size={20} onClick={() => setActionPopup({ id: req._id, type: "rejected" })} className="text-red-600 cursor-pointer" />
+                  <MdCheck size={20} onClick={() => setActionPopup({ id: req._id, type: "approved" })} className="text-green-600 cursor-pointer" title="Approve" />
+                  <MdClose size={20} onClick={() => setActionPopup({ id: req._id, type: "rejected" })} className="text-red-600 cursor-pointer" title="Reject" />
                   <MdDelete size={20} className="opacity-50 cursor-not-allowed" />
                 </>
               ) : (
-                <MdDelete size={20} onClick={() => setActionPopup({ id: req._id, type: "delete" })} className="text-red-600 cursor-pointer" />
+                <MdDelete size={20} onClick={() => setActionPopup({ id: req._id, type: "delete" })} className="text-red-600 cursor-pointer" title="Delete" />
               )}
             </div>
           </div>
@@ -429,17 +430,19 @@ export default function LeaveRequestsDashboard() {
                         <MdRemoveRedEye size={16} />
                       </button>
 
-                      {req.status === "pending" ? (
+                      {(req.status === "pending" || req.status === "parent_approved") ? (
                         <>
                           <button
                             onClick={() => setActionPopup({ id: req._id, type: "approved" })}
                             className="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 hover:bg-green-100 text-green-600 transition-colors"
+                            title="Approve"
                           >
                             <MdCheck size={16} />
                           </button>
                           <button
                             onClick={() => setActionPopup({ id: req._id, type: "rejected" })}
                             className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition-colors"
+                            title="Reject"
                           >
                             <MdClose size={16} />
                           </button>
