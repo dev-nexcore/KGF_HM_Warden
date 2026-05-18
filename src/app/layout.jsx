@@ -14,9 +14,6 @@ const inter = Inter({
 export const metadata = {
   title: "KGF-HM | Warden Portal",
   description: "A warden portal for hostel residents to manage profile, fees, attendance, leave applications, complaints, and view notices. Built with Next.js for fast, secure access.",
-  icons:{
-      icon: "/favicon.ico"
-  },
 };
 
 export default function RootLayout({ children }) {
