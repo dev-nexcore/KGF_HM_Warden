@@ -45,7 +45,12 @@ const WardenDashboard = () => {
       setLoading(true);
       try {
         const { data } = await api.get('/api/wardenauth/warden-dashboard');
-        setStats(data);
+        setStats(prev => ({
+          ...prev,
+          ...data,
+          recentActivities: data.recentActivities || [],
+          checkInOutData: data.checkInOutData || { checkIns: 0, checkOuts: 0 },
+        }));
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
       } finally {
@@ -56,7 +61,7 @@ const WardenDashboard = () => {
     fetchDashboardData();
   }, []);
 
-  const filteredActivities = stats.recentActivities.filter((activity) => {
+  const filteredActivities = (stats.recentActivities || []).filter((activity) => {
     if (activeFilter === "All") return true;
     
     const desc = activity.description?.toLowerCase() || "";
