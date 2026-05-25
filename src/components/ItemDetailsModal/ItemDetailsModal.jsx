@@ -4,6 +4,8 @@ import { X, Calendar, MapPin, Package, Info, QrCode } from 'lucide-react';
 const ItemDetailsModal = ({ item, isOpen, onClose, onEdit }) => {
   if (!isOpen || !item) return null;
 
+  const BASE_URL = process.env.NEXT_PUBLIC_PROD_API_URL || 'http://localhost:5224';
+
   const statusColor = {
     "In Use": "bg-orange-500 text-white",
     "Available": "bg-green-500 text-white", 
@@ -18,7 +20,7 @@ const ItemDetailsModal = ({ item, isOpen, onClose, onEdit }) => {
 
   const handleDownloadQR = async () => {
     try {
-      const response = await fetch(`/api/adminauth/inventory/${item._id}/qr-code/download`);
+      const response = await fetch(`${BASE_URL}/api/adminauth/inventory/${item._id}/qr-code/download`);
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -40,7 +42,7 @@ const ItemDetailsModal = ({ item, isOpen, onClose, onEdit }) => {
 
   const handleGenerateQR = async () => {
     try {
-      const response = await fetch(`/api/adminauth/inventory/${item._id}/qr-code`, {
+      const response = await fetch(`${BASE_URL}/api/adminauth/inventory/${item._id}/qr-code`, {
         method: 'POST',
       });
       const result = await response.json();
@@ -57,7 +59,7 @@ const ItemDetailsModal = ({ item, isOpen, onClose, onEdit }) => {
     }
   };
 
-  const BASE_URL = process.env.NEXT_PUBLIC_PROD_API_URL || 'http://localhost:5224';
+
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -225,7 +227,7 @@ const ItemDetailsModal = ({ item, isOpen, onClose, onEdit }) => {
                   <div className="bg-gray-50 p-4 rounded-lg text-center">
                     <p className="text-sm text-gray-600 mb-2">Receipt available</p>
                     <button
-                      onClick={() => window.open(item.receiptUrl && item.receiptUrl.startsWith('http') ? item.receiptUrl : `http://localhost:5224${item.receiptUrl || ''}`, '_blank')}
+                      onClick={() => window.open(item.receiptUrl && item.receiptUrl.startsWith('http') ? item.receiptUrl : `${BASE_URL}${item.receiptUrl || ''}`, '_blank')}
                       className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                     >
                       View Receipt

@@ -14,6 +14,8 @@ import axios from "axios";
 
 const StaffAllotment = () => {
 
+  const BASE_URL = process.env.NEXT_PUBLIC_PROD_API_URL || 'http://localhost:5224';
+
   const [formData, setFormData] =
     useState({
       firstName: "",
@@ -55,7 +57,7 @@ const StaffAllotment = () => {
 
       const response =
         await axios.get(
-          "http://localhost:5224/api/staffauth/all"
+          `${BASE_URL}/api/staffauth/all`
         );
 
       const formattedData =
@@ -151,7 +153,7 @@ const StaffAllotment = () => {
 
         const response =
           await axios.post(
-            "http://localhost:5224/api/staffauth/register-staff",
+            `${BASE_URL}/api/staffauth/register-staff`,
             payload,
             { headers: { Authorization: `Bearer ${localStorage.getItem("wardenToken")}` } }
           );
@@ -262,7 +264,7 @@ const StaffAllotment = () => {
         };
 
         await axios.put(
-          `http://localhost:5224/api/staffauth/update/${selectedId}`,
+          `${BASE_URL}/api/staffauth/update/${selectedId}`,
           payload
         );
 
@@ -295,7 +297,7 @@ const StaffAllotment = () => {
       try {
 
         await axios.delete(
-          `http://localhost:5224/api/staffauth/delete/${selectedId}`
+          `${BASE_URL}/api/staffauth/delete/${selectedId}`
         );
 
         fetchStaffs();
