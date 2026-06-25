@@ -14,7 +14,6 @@
 //   const [loading, setLoading] = useState(false);
 //   const [mounted, setMounted] = useState(false);
 //   const [resendTimer, setResendTimer] = useState(0);
-//   const [showPunchModal, setShowPunchModal] = useState(false);
 //   const [token, setToken] = useState("");
 //   const router = useRouter();
 
@@ -69,26 +68,8 @@
 //       localStorage.setItem("wardenInfo", JSON.stringify(warden));
 //       setToken(token);
 
-//       // Check punch status
-//       const punchStatus = await axios.get(
-//         `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/punch-status`,
-//         { headers: { Authorization: `Bearer ${token}` } }
-//       );
-
-//       const { punchedIn, punchedOut } = punchStatus.data;
-
-//       if (!punchedIn) {
-//         toast.success("Login successful! Punch in required.");
-//         setShowPunchModal(true);
-//       } else if (punchedIn && !punchedOut) {
-//         toast.success("Login successful! Already punched in.");
-//         setShowPunchModal(false);
-//         router.push("/warden-dashboard");
-//       } else if (punchedIn && punchedOut) {
-//         toast.success("Already punched in and out. Redirecting...");
-//         setShowPunchModal(false);
-//         router.push("/warden-dashboard");
-//       }
+//       toast.success("Login successful!");
+//       router.push("/warden-dashboard");
 //     } catch (error) {
 //       toast.error(error.response?.data?.message || "Invalid OTP. Please try again.");
 //     } finally {
@@ -124,49 +105,13 @@
 //     setOtp("");
 //   };
 
-//   const handlePunchIn = async () => {
-//     try {
-//       await axios.post(
-//         `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/attendance/punch-in`,
-//         {},
-//         { headers: { Authorization: `Bearer ${token}` } }
-//       );
-//       toast.success("Punched in successfully!");
-//       setTimeout(() => {
-//         setShowPunchModal(false);
-//         router.push("/warden-dashboard");
-//       }, 1000);
-//     } catch (error) {
-//       if (error.response?.data?.message === "Already punched in for today") {
-//         toast.info("Already punched in. Redirecting...");
-//         setTimeout(() => {
-//           router.push("/warden-dashboard");
-//         }, 1500);
-//       } else {
-//         toast.error(error.response?.data?.message || "Punch in failed.");
-//       }
-//     }
-//   };
+
 
 //   return (
 //     <>
 //       <ToastContainer position="top-right" autoClose={3000} />
 
-//       {/* Punch In Modal */}
-//       {showPunchModal && (
-//         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-lg bg-white/10">
-//           <div className="bg-white/30 border border-white/50 backdrop-blur-md rounded-2xl p-8 shadow-2xl max-w-md w-full text-center text-black">
-//             <h2 className="text-2xl font-bold mb-4">Mark Your Attendance</h2>
-//             <p className="mb-6 text-gray-800">Please punch in to continue to your dashboard.</p>
-//             <button
-//               onClick={handlePunchIn}
-//               className="bg-[#BEC5AD] hover:bg-[#a9b29d] text-black font-bold px-6 py-2 rounded-lg shadow"
-//             >
-//               Punch In
-//             </button>
-//           </div>
-//         </div>
-//       )}
+
 
 //       <div className="min-h-screen w-full bg-white overflow-x-hidden">
 //         {/* Mobile View */}
@@ -469,7 +414,6 @@ export default function WardenLogin() {
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
-  const [showPunchModal, setShowPunchModal] = useState(false);
   const [token, setToken] = useState("");
   const router = useRouter();
 
@@ -485,159 +429,87 @@ export default function WardenLogin() {
     }
   }, [resendTimer]);
 
-  // Step 1: Send OTP to WhatsApp
-  // const handleSendOTP = async (e) => {
-  //   e.preventDefault();
-  //   setLoading(true);
+  // Step 1: Send OTP
+  const handleSendOTP = async (e) => {
+    e.preventDefault();
+    
+    if (!wardenId.trim()) {
+      toast.error("Please enter Warden ID");
+      return;
+    }
+    
+    setLoading(true);
 
-  //   try {
-  //     const response = await axios.post(
-  //       `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/send-login-otp`,
-  //       { wardenId }
-  //     );
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/send-login-otp`,
+        { wardenId }
+      );
 
-  //     setMaskedNumber(response.data.contactNumber || "your registered number");
-  //     setStep(2);
-  //     setResendTimer(60);
-  //     toast.success("OTP sent to your WhatsApp!");
-  //   } catch (error) {
-  //     toast.error(error.response?.data?.message || "Failed to send OTP. Please try again.");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-const handleSendOTP = async (e) => {
-  e.preventDefault();
+      setMaskedNumber(response.data.email || response.data.contactNumber || "your registered email");
+      setStep(2);
+      setResendTimer(60);
+      toast.success("OTP sent to your email and WhatsApp!");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to send OTP. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  if (!wardenId.trim()) {
-    toast.error("Please enter Warden ID");
-    return;
-  }
+  // Step 2: Verify OTP and Login
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault();
+    
+    if (!otp.trim() || otp.length !== 6) {
+      toast.error("Please enter a valid 6-digit OTP");
+      return;
+    }
+    
+    setLoading(true);
 
-  setLoading(true);
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/login`,
+        { wardenId, otp }
+      );
 
-  try {
-    // ❌ REMOVE API CALL
-    // const response = await axios.post(...)
+      const { token, warden } = response.data;
 
-    setMaskedNumber("your registered number"); // fake display
-    setStep(2);
-    setResendTimer(60);
+      localStorage.setItem("wardenToken", token);
+      localStorage.setItem("wardenInfo", JSON.stringify(warden));
+      setToken(token);
 
-    toast.success("Proceed to login");
-  } catch (error) {
-    toast.error("Something went wrong");
-  } finally {
-    setLoading(false);
-  }
-};
-
-
-  // // Step 2: Verify OTP and Login
-  // const handleVerifyOTP = async (e) => {
-  //   e.preventDefault();
-  //   setLoading(true);
-
-  //   try {
-  //     const response = await axios.post(
-  //       `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/login`,
-  //       { wardenId, otp }
-  //     );
-
-  //     const { token, warden } = response.data;
-
-  //     localStorage.setItem("wardenToken", token);
-  //     localStorage.setItem("wardenInfo", JSON.stringify(warden));
-  //     setToken(token);
-
-  //     // Check punch status
-  //     const punchStatus = await axios.get(
-  //       `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/punch-status`,
-  //       { headers: { Authorization: `Bearer ${token}` } }
-  //     );
-
-  //     const { punchedIn, punchedOut } = punchStatus.data;
-
-  //     if (!punchedIn) {
-  //       toast.success("Login successful! Punch in required.");
-  //       setShowPunchModal(true);
-  //     } else if (punchedIn && !punchedOut) {
-  //       toast.success("Login successful! Already punched in.");
-  //       setShowPunchModal(false);
-  //       router.push("/warden-dashboard");
-  //     } else if (punchedIn && punchedOut) {
-  //       toast.success("Already punched in and out. Redirecting...");
-  //       setShowPunchModal(false);
-  //       router.push("/warden-dashboard");
-  //     }
-  //   } catch (error) {
-  //     toast.error(error.response?.data?.message || "Invalid OTP. Please try again.");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-const handleVerifyOTP = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-
-  try {
-    const response = await axios.post(
-      `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/login`,
-      { wardenId } // 🔥 ONLY THIS (otp hata diya)
-    );
-
-    const { token, warden } = response.data;
-
-    localStorage.setItem("wardenToken", token);
-    localStorage.setItem("wardenInfo", JSON.stringify(warden));
-    setToken(token);
-
-    const punchStatus = await axios.get(
-      `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/punch-status`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    const { punchedIn, punchedOut } = punchStatus.data;
-
-    if (!punchedIn) {
-      toast.success("Login successful! Punch in required.");
-      setShowPunchModal(true);
-    } else {
       toast.success("Login successful!");
       router.push("/warden-dashboard");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Invalid OTP. Please try again.");
+    } finally {
+      setLoading(false);
     }
+  };
 
-  } catch (error) {
-    toast.error(error.response?.data?.message || "Login failed");
-  } finally {
-    setLoading(false);
-  }
-};
-  // // Resend OTP
-  // const handleResendOTP = async () => {
-  //   if (resendTimer > 0) return;
-
-  //   setLoading(true);
-  //   setOtp("");
-
-  //   try {
-  //     await axios.post(
-  //       `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/send-login-otp`,
-  //       { wardenId }
-  //     );
-
-  //     setResendTimer(60);
-  //     toast.success("OTP resent successfully!");
-  //   } catch (error) {
-  //     toast.error(error.response?.data?.message || "Failed to resend OTP");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
+  // Resend OTP
   const handleResendOTP = async () => {
-  toast.info("OTP not required");
-};
+    if (resendTimer > 0) return;
+
+    setLoading(true);
+    setOtp("");
+
+    try {
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/send-login-otp`,
+        { wardenId }
+      );
+
+      setResendTimer(60);
+      toast.success("OTP resent successfully!");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to resend OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Go back to step 1
   const handleBack = () => {
@@ -645,49 +517,13 @@ const handleVerifyOTP = async (e) => {
     setOtp("");
   };
 
-  const handlePunchIn = async () => {
-    try {
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_PROD_API_URL}/api/wardenauth/attendance/punch-in`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      toast.success("Punched in successfully!");
-      setTimeout(() => {
-        setShowPunchModal(false);
-        router.push("/warden-dashboard");
-      }, 1000);
-    } catch (error) {
-      if (error.response?.data?.message === "Already punched in for today") {
-        toast.info("Already punched in. Redirecting...");
-        setTimeout(() => {
-          router.push("/warden-dashboard");
-        }, 1500);
-      } else {
-        toast.error(error.response?.data?.message || "Punch in failed.");
-      }
-    }
-  };
+
 
   return (
     <>
       <ToastContainer position="top-right" autoClose={3000} />
 
-      {/* Punch In Modal */}
-      {showPunchModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-lg bg-white/10">
-          <div className="bg-white/30 border border-white/50 backdrop-blur-md rounded-2xl p-8 shadow-2xl max-w-md w-full text-center text-black">
-            <h2 className="text-2xl font-bold mb-4">Mark Your Attendance</h2>
-            <p className="mb-6 text-gray-800">Please punch in to continue to your dashboard.</p>
-            <button
-              onClick={handlePunchIn}
-              className="bg-[#BEC5AD] hover:bg-[#a9b29d] text-black font-bold px-6 py-2 rounded-lg shadow"
-            >
-              Punch In
-            </button>
-          </div>
-        </div>
-      )}
+
 
       <div className="min-h-screen w-full bg-white overflow-x-hidden">
         {/* Mobile View */}
@@ -769,23 +605,28 @@ const handleVerifyOTP = async (e) => {
               </form>
             ) : (
               // Step 2: Enter OTP
-              <form onSubmit={handleVerifyOTP} className="space-y-4">
-                <div className="text-center mb-3">
-                  <p className="text-xs text-gray-600">
-                    OTP sent to: <span className="font-semibold">{maskedNumber}</span>
+              <form onSubmit={handleVerifyOTP} className="space-y-6 w-full">
+                <div className="text-center mb-4">
+                  <p className="text-sm text-gray-600">
+                    OTP sent to Registered Email: <br/><span className="font-semibold">{maskedNumber}</span>
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-black block">Enter OTP</label>
+                <div>
+                  <label className="block text-lg font-bold mb-2 text-black text-left">Enter OTP</label>
                   <input
                     type="text"
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                    placeholder="6-digit OTP"
+                    placeholder="Enter 6-digit OTP"
                     required
                     maxLength={6}
-                    className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#A4B494] focus:border-transparent placeholder:text-gray-400 text-black text-center tracking-widest"
+                    className="w-full px-5 py-3 text-gray-800 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9AAA87] placeholder:font-medium text-center text-xl tracking-widest transition-all duration-300 ease-in-out transform focus:scale-[1.02] hover:shadow-lg"
+                    style={{
+                      boxShadow: "0px 4px 10px 0px #00000040",
+                      fontFamily: "Poppins, sans-serif",
+                      fontWeight: "500",
+                    }}
                   />
                 </div>
 
@@ -910,22 +751,27 @@ const handleVerifyOTP = async (e) => {
             ) : (
               // Step 2: Enter OTP (Desktop)
               <form onSubmit={handleVerifyOTP} className="w-full max-w-md space-y-6">
-                <div className="text-center mb-3">
+                <div className="text-center mb-4">
                   <p className="text-sm text-gray-600">
-                    OTP sent to: <span className="font-semibold">{maskedNumber}</span>
+                    OTP sent to Registered Email: <br/><span className="font-semibold">{maskedNumber}</span>
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-lg font-semibold text-black block">Enter OTP</label>
+                <div>
+                  <label className="block text-lg font-bold mb-2 text-black w-full text-left">Enter OTP</label>
                   <input
                     type="text"
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                    placeholder="6-digit OTP"
+                    placeholder="Enter 6-digit OTP"
                     required
                     maxLength={6}
-                    className="w-full px-4 py-3 rounded-[1rem] border border-gray-300 shadow-md focus:outline-none focus:ring-2 focus:ring-[#A4B494] focus:border-transparent placeholder:text-gray-400 text-black text-center tracking-widest text-xl"
+                    className="w-full px-5 py-3 text-gray-800 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9AAA87] placeholder:font-medium text-center text-xl tracking-widest transition-all duration-300 ease-in-out transform focus:scale-[1.02] hover:shadow-lg"
+                    style={{
+                      boxShadow: "0px 4px 10px 0px #00000040",
+                      fontFamily: "Poppins, sans-serif",
+                      fontWeight: "500",
+                    }}
                   />
                 </div>
 

@@ -14,6 +14,9 @@ function getStatusColor(status) {
     approved: "text-green-600 bg-green-100 border border-green-200",
     rejected: "text-red-600 bg-red-100 border border-red-200",
     parent_approved: "text-purple-600 bg-purple-100 border border-purple-200",
+    parent_rejected: "text-pink-600 bg-pink-100 border border-pink-200",
+    warden_approved: "text-blue-600 bg-blue-100 border border-blue-200",
+    warden_rejected: "text-rose-600 bg-rose-100 border border-rose-200",
   };
   return colors[status.toLowerCase()] || "text-gray-600 bg-gray-100 border border-gray-200";
 }
@@ -26,6 +29,9 @@ export default function LeaveRequestsDashboard() {
   const [actionPopup, setActionPopup] = useState({ id: null, type: null });
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   const fetchFilteredLeaves = async () => {
     setLoading(true);
@@ -132,17 +138,23 @@ export default function LeaveRequestsDashboard() {
 
   const clearFilters = () => {
     setFilters({ student: "", status: "", date: "" });
+    setCurrentPage(1);
     toast.info("Filters cleared");
   };
 
   const handleChange = (field) => (e) => {
     setFilters((prev) => ({ ...prev, [field]: e.target.value }));
+    setCurrentPage(1);
   };
 
   useEffect(() => {
     fetchFilteredLeaves();
     fetchStats();
   }, [filters]);
+
+  const totalPages = Math.ceil(leaveRequests.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedData = leaveRequests.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   if (initialLoading) {
     return (
@@ -246,6 +258,10 @@ export default function LeaveRequestsDashboard() {
               >
                 <option value="">All Statuses</option>
                 <option value="pending">Pending</option>
+                <option value="parent_approved">Parent Approved</option>
+                <option value="parent_rejected">Parent Rejected</option>
+                <option value="warden_approved">Warden Approved</option>
+                <option value="warden_rejected">Warden Rejected</option>
                 <option value="approved">Approved</option>
                 <option value="rejected">Rejected</option>
               </select>
@@ -258,12 +274,21 @@ export default function LeaveRequestsDashboard() {
           {/* Date */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</label>
-            <input
-              type="date"
-              value={filters.date}
-              onChange={handleChange("date")}
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#A4B494] focus:border-transparent transition"
-            />
+            <div className="relative">
+              <input
+                type="date"
+                value={filters.date}
+                onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                onChange={handleChange("date")}
+                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 pr-8 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#A4B494] focus:border-transparent transition cursor-pointer [color-scheme:light] [&::-webkit-calendar-picker-indicator]:hidden"
+              />
+              <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </div>
           </div>
 
           {/* Clear */}
@@ -284,11 +309,11 @@ export default function LeaveRequestsDashboard() {
 
       {/* Mobile Card View */}
       <div className="block md:hidden space-y-4">
-        {leaveRequests.map((req) => (
+        {paginatedData.map((req) => (
           <div key={req._id} className="bg-[#F9F9F9] p-4 rounded-lg border shadow space-y-1">
             <p><strong>ID:</strong> {req.studentId?.studentId || "-"}</p>
             <p><strong>Name:</strong> {req.studentId?.firstName} {req.studentId?.lastName}</p>
-            <p><strong>Type:</strong> {req.leaveType}</p>
+            <p><strong>Type:</strong> {req.leaveType === 'Others' && req.otherLeaveType ? `Others (${req.otherLeaveType})` : req.leaveType}</p>
             <p><strong>Start:</strong> {new Date(req.startDate).toLocaleDateString()}</p>
             <p><strong>End:</strong> {new Date(req.endDate).toLocaleDateString()}</p>
             <p>
@@ -376,7 +401,7 @@ export default function LeaveRequestsDashboard() {
                 </td>
               </tr>
             ) : (
-              leaveRequests.map((req) => (
+              paginatedData.map((req) => (
                 <tr key={req._id} className="hover:bg-[#A4B494]/10 transition-colors duration-150 group">
 
                   {/* Student ID */}
@@ -399,7 +424,7 @@ export default function LeaveRequestsDashboard() {
                   {/* Leave Type */}
                   <td className="px-5 py-3.5">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                      {req.leaveType}
+                      {req.leaveType === 'Others' && req.otherLeaveType ? `Others (${req.otherLeaveType})` : req.leaveType}
                     </span>
                   </td>
 
@@ -470,20 +495,153 @@ export default function LeaveRequestsDashboard() {
         </table>
       </div>
 
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-gray-100">
+          <div className="text-sm text-gray-600 font-medium bg-gray-50 px-4 py-2 rounded-full">
+            Showing {startIndex + 1} - {Math.min(startIndex + ITEMS_PER_PAGE, leaveRequests.length)} of {leaveRequests.length} requests
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className={`px-3 py-1.5 rounded-lg font-medium text-sm transition-all duration-200 ${
+                currentPage === 1 
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                  : 'bg-white text-gray-700 border border-gray-200 hover:border-[#A4B494] hover:text-[#A4B494] hover:shadow-sm'
+              }`}
+            >
+              Previous
+            </button>
+            
+            <div className="flex flex-wrap items-center justify-center gap-1">
+              {[...Array(totalPages)].map((_, i) => (
+                <button
+                  key={i + 1}
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={`w-8 h-8 rounded-lg font-medium text-sm transition-all duration-200 ${
+                    currentPage === i + 1
+                      ? 'bg-[#A4B494] text-white shadow-md'
+                      : 'bg-white text-gray-600 border border-gray-200 hover:border-[#A4B494] hover:text-[#A4B494]'
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className={`px-3 py-1.5 rounded-lg font-medium text-sm transition-all duration-200 ${
+                currentPage === totalPages 
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                  : 'bg-white text-gray-700 border border-gray-200 hover:border-[#A4B494] hover:text-[#A4B494] hover:shadow-sm'
+              }`}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* View Modal */}
       {selectedLeave && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full shadow-lg">
-            <h2 className="text-lg font-semibold mb-4">Leave Request Details</h2>
-            <p><strong>Name:</strong> {selectedLeave.studentId?.firstName} {selectedLeave.studentId?.lastName}</p>
-            <p><strong>ID:</strong> {selectedLeave.studentId?.studentId}</p>
-            <p><strong>Type:</strong> {selectedLeave.leaveType}</p>
-            <p><strong>Start:</strong> {new Date(selectedLeave.startDate).toLocaleDateString()}</p>
-            <p><strong>End:</strong> {new Date(selectedLeave.endDate).toLocaleDateString()}</p>
-            <p><strong>Status:</strong> {selectedLeave.status}</p>
-            <p><strong>Reason:</strong> {selectedLeave.reason || "N/A"}</p>
-            <div className="mt-4 text-right">
-              <button onClick={() => setSelectedLeave(null)} className="bg-red-500 px-4 py-2 text-white rounded">Close</button>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="bg-[#A4B494] text-white px-6 py-4 flex justify-between items-center shrink-0">
+              <h3 className="text-xl font-semibold flex items-center gap-2">
+                Leave Request Details
+              </h3>
+              <button 
+                onClick={() => setSelectedLeave(null)}
+                className="text-white/80 hover:text-white transition-colors bg-black/10 hover:bg-black/20 p-1.5 rounded-full"
+              >
+                <MdClose size={20} />
+              </button>
+            </div>
+            
+            {/* Content */}
+            <div className="p-6 md:p-8 overflow-y-auto">
+              {/* Profile Card */}
+              <div className="flex items-center gap-4 p-4 mb-6 bg-gray-50 border border-gray-100 rounded-lg">
+                <div className="w-12 h-12 rounded-full bg-[#A4B494]/20 flex items-center justify-center text-lg font-bold text-[#1a312a]">
+                  {selectedLeave.studentId?.firstName?.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h4 className="text-lg font-bold text-gray-800">
+                    {selectedLeave.studentId?.firstName} {selectedLeave.studentId?.lastName}
+                  </h4>
+                  <p className="text-sm text-gray-500 font-medium font-mono">
+                    ID: {selectedLeave.studentId?.studentId}
+                  </p>
+                </div>
+              </div>
+
+              {/* Grid Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">
+                    Leave Type
+                  </label>
+                  <p className="text-base font-medium text-gray-800 bg-gray-50/50 px-3 py-2 rounded border border-gray-100">
+                    {selectedLeave.leaveType === 'Others' && selectedLeave.otherLeaveType 
+                      ? `Others (${selectedLeave.otherLeaveType})` 
+                      : selectedLeave.leaveType}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">
+                    Current Status
+                  </label>
+                  <div className="mt-1">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-sm font-semibold capitalize ${getStatusColor(selectedLeave.status)}`}>
+                      {selectedLeave.status.replace('_', ' ')}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">
+                    Start Date
+                  </label>
+                  <p className="text-base font-medium text-gray-800 bg-gray-50/50 px-3 py-2 rounded border border-gray-100 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    {new Date(selectedLeave.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">
+                    End Date
+                  </label>
+                  <p className="text-base font-medium text-gray-800 bg-gray-50/50 px-3 py-2 rounded border border-gray-100 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    {new Date(selectedLeave.endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </p>
+                </div>
+                
+                <div className="md:col-span-2">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">
+                    Reason for Leave
+                  </label>
+                  <div className="bg-gray-50/80 p-4 rounded-lg border border-gray-100 text-gray-700 min-h-[80px] whitespace-pre-wrap">
+                    {selectedLeave.reason || <span className="text-gray-400 italic">No reason provided.</span>}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Footer */}
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end shrink-0">
+              <button 
+                onClick={() => setSelectedLeave(null)} 
+                className="bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 px-5 py-2 rounded-lg font-semibold transition-colors"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
