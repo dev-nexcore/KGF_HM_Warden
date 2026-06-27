@@ -167,25 +167,20 @@ const StudentManagement = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [studentInvoices, setStudentInvoices] = useState([]);
   const [invoicesLoading, setInvoicesLoading] = useState(false);
-  const [activeFilter, setActiveFilter] = useState("All");
+  const [activeFilter, setActiveFilter] = useState("Total Students");
   const [currentPage, setCurrentPage] = useState(1);
+  const [bedData, setBedData] = useState({ totalBeds: 0, occupiedBeds: 0, availableBeds: 0 });
   const itemsPerPage = 8;
 
   // ── Stats ──────────────────────────────────────────────────────────────────
-  const stats = {
-    total: students.length,
-    paid: students.filter((s) => s.feeStatus === "Paid").length,
-    pending: students.filter((s) => ["Pending", "Unpaid", "Partial"].includes(s.feeStatus)).length,
-    assigned: students.filter((s) => s.room && s.room !== "Not Assigned").length,
-    unassigned: students.filter((s) => !s.room || s.room === "Not Assigned").length,
-  };
 
   const STAT_CARDS = [
-    { key: "All",           label: "Total Students", value: stats.total,      accent: "#4F8CCF", icon: Icons.total },
-    { key: "Paid Fees",     label: "Paid Fees",       value: stats.paid,       accent: "#22C55E", icon: Icons.paid },
-    { key: "Pending Fees",  label: "Pending Fees",    value: stats.pending,    accent: "#FF9D00", icon: Icons.pending },
-    { key: "Room Assigned", label: "Room Assigned",   value: stats.assigned,   accent: "#8B5CF6", icon: Icons.assigned },
-    { key: "Not Assigned",  label: "Not Assigned",    value: stats.unassigned, accent: "#EF4444", icon: Icons.unassigned },
+    { key: "Total Students", label: "Total Students", value: students.filter(s => !s.isWorking).length, accent: "#4F8CCF", icon: Icons.total, total: students.length },
+    { key: "Total Workers",  label: "Total Workers",  value: students.filter(s => s.isWorking).length, accent: "#FF9D00", icon: Icons.pending, total: students.length },
+    { key: "Total Parents",  label: "Total Parents",  value: parents.length, accent: "#22C55E", icon: Icons.paid, total: parents.length },
+    { key: "Total Beds",     label: "Total Beds",     value: bedData.totalBeds, accent: "#6366F1", icon: Icons.total, total: bedData.totalBeds },
+    { key: "Occupied Beds",  label: "Occupied Beds",  value: bedData.occupiedBeds, accent: "#8B5CF6", icon: Icons.assigned, total: bedData.totalBeds },
+    { key: "Available Beds", label: "Available Beds", value: bedData.availableBeds, accent: "#EF4444", icon: Icons.unassigned, total: bedData.totalBeds },
   ];
 
   useEffect(() => {
@@ -202,7 +197,7 @@ const StudentManagement = () => {
   const registerStudentAPI = async (studentData) => {
     try {
       const fd = new FormData();
-      ["firstName","lastName","contactNumber","roomBedNumber","email","admissionDate","feeStatus","emergencyContactName","emergencyContactNumber"].forEach(k => fd.append(k, studentData[k] || ""));
+      ["firstName","lastName","contactNumber","roomBedNumber","roomType","email","admissionDate","feeStatus","emergencyContactName","emergencyContactNumber"].forEach(k => fd.append(k, studentData[k] || ""));
       fd.append("hasCollegeId", studentData.hasCollegeId);
       fd.append("isWorking", studentData.isWorking);
       if (studentData.aadharCard instanceof File) fd.append("aadharCard", studentData.aadharCard);
@@ -228,7 +223,7 @@ const StudentManagement = () => {
   const registerWorkerAPI = async (workerData) => {
     try {
       const fd = new FormData();
-      ["firstName","lastName","contactNumber","roomBedNumber","email","admissionDate","feeStatus","emergencyContactName","emergencyContactNumber"].forEach(k => fd.append(k, workerData[k] || ""));
+      ["firstName","lastName","contactNumber","roomBedNumber","roomType","email","admissionDate","feeStatus","emergencyContactName","emergencyContactNumber"].forEach(k => fd.append(k, workerData[k] || ""));
       fd.append("hasCollegeId", workerData.hasCollegeId);
       fd.append("isWorking", true);
       if (workerDocuments.aadharCard) fd.append("aadharCard", workerDocuments.aadharCard);
@@ -251,6 +246,7 @@ const StudentManagement = () => {
   const fetchStudentsWithoutParentsAPI = async () => { try { return (await api.get(`/api/wardenauth/students-without-parents`)).data; } catch(e) { throw e.response?.data; } };
   const fetchAvailableRoomsAPI = async () => { try { return (await api.get(`/api/wardenauth/inventory/available-beds`)).data; } catch(e) { throw e.response?.data; } };
   const fetchAvailableRoomsNumbersAPI = async () => { try { return (await api.get(`/api/wardenauth/inventory/available-rooms`)).data; } catch(e) { throw e.response?.data; } };
+  const fetchBedOccupancyAPI = async () => { try { return (await api.get(`/api/wardenauth/bed-occupancy-status`)).data; } catch(e) { throw e.response?.data; } };
   const fetchRoomDetailsAPI = async (id) => { try { return (await api.get(`/api/wardenauth/inventory/${id}`)).data; } catch(e) { return null; } };
   const fetchParentsAPI = async () => { try { return (await api.get(`/api/wardenauth/parents`)).data; } catch(e) { throw e.response?.data; } };
   const deleteParentAPI = async (id) => { try { return (await api.delete(`/api/wardenauth/delete-parent/${id}`)).data; } catch(e) { throw e.response?.data; } };
@@ -279,7 +275,12 @@ const StudentManagement = () => {
         
         // Robust fee mapping based on room type and worker status
         let feeValue = "-";
-        const rType = String(s.roomType || "");
+        const capacityMap = {
+          "101": 5, "102": 5, "103": 5, "104": 5, "201": 5, "202": 5, "203": 5, "204": 5, "205": 5,
+          "301": 4, "302": 4, "303": 4, "304": 4, "305": 4, "401": 3, "402": 3, "403": 3, "404": 3, "405": 3,
+        };
+        const actualRoomNo = roomDetails?.inventory?.roomNo || roomDetails?.roomNo || "";
+        const rType = String(s.roomType || (actualRoomNo ? capacityMap[actualRoomNo] : ""));
         
         if (isWorking) {
           if (rType === "5") feeValue = "₹ 6,000";
@@ -294,7 +295,7 @@ const StudentManagement = () => {
         }
         
         const monthlyFee = feeValue;
-        return { id: s.studentId, firstName: s.firstName, lastName: s.lastName, name: `${s.firstName} ${s.lastName}`, room: roomDisplay, contact: s.contactNumber, email: s.email, emergencyContactNumber: s.emergencyContactNumber, admissionDate: s.admissionDate, emergencyContactName: s.emergencyContactName, feeStatus: s.feeStatus, dues: `₹ ${s.dues || 0}/-`, roomType: s.roomType, monthlyFee, roomDetails, roomObjectId: (s.roomBedNumber && typeof s.roomBedNumber === 'object') ? s.roomBedNumber._id : s.roomBedNumber, documents: s.documents || {}, isWorking: s.isWorking };
+        return { id: s.id || s.studentId, firstName: s.firstName, lastName: s.lastName, name: `${s.firstName} ${s.lastName}`, room: roomDisplay, contact: s.contactNumber, email: s.email, emergencyContactNumber: s.emergencyContactNumber, admissionDate: s.admissionDate, emergencyContactName: s.emergencyContactName, feeStatus: s.feeStatus, dues: `₹ ${s.dues || 0}/-`, roomType: rType, monthlyFee, roomDetails, roomObjectId: (s.roomBedNumber && typeof s.roomBedNumber === 'object') ? s.roomBedNumber._id : s.roomBedNumber, documents: s.documents || {}, isWorking: s.isWorking, isAddedToBiometric: s.isAddedToBiometric, isPendingApproval: s.isPendingApproval, isRejected: s.isRejected, rejectReason: s.rejectReason };
       }));
       setStudents(transformed);
       console.log(transformed)
@@ -316,6 +317,7 @@ const StudentManagement = () => {
         setAvailableRooms((await fetchAvailableRoomsAPI()).availableBeds || []);
         setAvailableRoomNumbers((await fetchAvailableRoomsNumbersAPI()).availableRooms || []);
         setStudentsWithoutParents((await fetchStudentsWithoutParentsAPI()).students || []);
+        setBedData(await fetchBedOccupancyAPI());
       } catch (e) { console.error(e); }
     })();
   }, [refreshTrigger, activeTab]);
@@ -570,8 +572,8 @@ const StudentManagement = () => {
   const getFeeStatusStyle = (status) => ({
     width:"120px", height:"26px", display:"inline-flex", alignItems:"center", justifyContent:"center",
     borderRadius:"8px", fontFamily:"Poppins", fontWeight:"600", textAlign:"center", fontSize:"12px",
-    background: status==="Paid"?"#22C55E":status==="Unpaid"?"#FF9D00":status==="Partial"?"#F59E0B":"#e5e7eb",
-    color: ["Paid","Unpaid","Partial"].includes(status)?"#FFFFFF":"#000000",
+    background: status==="Paid"?"#22C55E":status==="Unpaid"?"#FF9D00":status==="Partial"?"#F59E0B":status==="Pending"?"#6B7280":"#e5e7eb",
+    color: ["Paid","Unpaid","Partial","Pending"].includes(status)?"#FFFFFF":"#000000",
   });
 
   const inputStyle = { height:"40px", background:"#FFFFFF", boxShadow:"0px 4px 10px rgba(0,0,0,0.25)", borderRadius:"10px", color:"#000", border:"none", outline:"none" };
@@ -582,11 +584,10 @@ const StudentManagement = () => {
     if (activeTab === "worker") { if (!s.isWorking) return false; }
     else if (activeTab === "student") { if (s.isWorking) return false; }
 
-    if (activeFilter === "All") return true;
-    if (activeFilter === "Paid Fees") return s.feeStatus === "Paid";
-    if (activeFilter === "Pending Fees") return ["Pending","Unpaid","Partial"].includes(s.feeStatus);
-    if (activeFilter === "Room Assigned") return s.room && s.room !== "Not Assigned";
-    if (activeFilter === "Not Assigned") return !s.room || s.room === "Not Assigned";
+    if (activeFilter === "Total Students") return !s.isWorking;
+    if (activeFilter === "Total Workers") return s.isWorking;
+    if (activeFilter === "Occupied Beds") return s.room && s.room !== "Not Assigned";
+    // For "Total Parents" and "Available Beds", we don't have a direct student filter, so show all
     return true;
   });
 
@@ -796,19 +797,7 @@ const StudentManagement = () => {
           <input type="text" name="relation" value={formData.relation} onChange={handleInputChange} placeholder="e.g. Father, Mother" className="w-full px-4 text-black font-semibold text-[12px] font-[Poppins]" style={inputStyle} />
         </div>
 
-        {/* Fee Status */}
-        <div className="w-full px-2">
-          <label className="block mb-2 text-black ml-2" style={labelStyle}>Fee Status</label>
-          <div className="relative w-[300px] max-w-full h-[40px]">
-            <select name="feeStatus" value={formData.feeStatus} onChange={handleInputChange} className="w-full h-full px-4 bg-white rounded-[10px] border-0 outline-none cursor-pointer appearance-none text-[12px] font-semibold font-[Poppins]" style={{ WebkitAppearance:"none", boxShadow:"0px 4px 10px 0px #00000040", color: formData.feeStatus===""?"#0000008A":"#000" }}>
-              <option value="" disabled hidden>Select Fee Status</option>
-              <option value="Paid">Paid</option>
-              <option value="Unpaid">Unpaid</option>
-              <option value="Partial">Partial</option>
-            </select>
-            <ChevronDown />
-          </div>
-        </div>
+
       </div>
 
       <div className="flex flex-col sm:flex-row justify-center gap-4">
@@ -1012,19 +1001,7 @@ const StudentManagement = () => {
           <p className="text-xs text-gray-600 mt-1 ml-2">Automatically set to today's date</p>
         </div>
 
-        {/* Fee Status */}
-        <div className="w-full px-2">
-          <label className="block mb-2 text-black ml-2" style={labelStyle}>Fee Status</label>
-          <div className="relative w-[300px] max-w-full h-[40px]">
-            <select name="feeStatus" value={workerFormData.feeStatus} onChange={handleWorkerInputChange} className="w-full h-full px-4 bg-white rounded-[10px] border-0 outline-none cursor-pointer appearance-none text-[12px] font-semibold font-[Poppins]" style={{ WebkitAppearance:"none", boxShadow:"0px 4px 10px 0px #00000040", color: workerFormData.feeStatus===""?"#0000008A":"#000" }}>
-              <option value="" disabled hidden>Select Fee Status</option>
-              <option value="Paid">Paid</option>
-              <option value="Unpaid">Unpaid</option>
-              <option value="Partial">Partial</option>
-            </select>
-            <ChevronDown />
-          </div>
-        </div>
+
       </div>
 
       <div className="flex justify-center">
@@ -1167,7 +1144,7 @@ const StudentManagement = () => {
 
         {/* ── STATS CARDS (TOP) ── */}
         <div className="w-full max-w-7xl mx-auto mb-8 px-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {STAT_CARDS.map(card => (
               <StatCard
                 key={card.key}
@@ -1177,7 +1154,7 @@ const StudentManagement = () => {
                 accent={card.accent}
                 isActive={activeFilter === card.key}
                 onClick={() => setActiveFilter(prev => prev === card.key ? "All" : card.key)}
-                total={stats.total}
+                total={card.total}
               />
             ))}
           </div>
@@ -1232,7 +1209,7 @@ const StudentManagement = () => {
               <h2 className="text-xl font-bold text-black mb-6" style={{ fontFamily:"Inter" }}>Student Details</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-black">
                 {[
-                  ["Student ID", studentDetailsData.id],
+                  ["Student ID", studentDetailsData.isPendingApproval ? "Pending" : studentDetailsData.id],
                   ["Student Name", studentDetailsData.name],
                   ["Contact Number", studentDetailsData.contact],
                   ["Email", studentDetailsData.email || "N/A"],
@@ -1418,11 +1395,11 @@ const StudentManagement = () => {
                 {/* Desktop Table */}
             <div className="hidden lg:block">
               <div className="border border-black rounded-[19.6px] overflow-hidden">
-                <div className="bg-white text-black grid grid-cols-9 text-center">
-                  {["Student ID","Name","Room/Bed","Type","Fee","Contact","Fees Status","Dues","Action"].map((h,i) => (
+                <div className="bg-white text-black grid grid-cols-11 text-center">
+                  {["Student ID","Name","Room/Bed","Type","Fee","Contact","Fees Status","Dues","Biometric","Status","Action"].map((h,i) => (
                     <div key={h} className="px-2 py-3 relative flex justify-center items-center" style={{ fontFamily:"Poppins", fontWeight:"600", fontSize:"13px" }}>
                       <span className="w-full break-words">{h}</span>
-                      {i < 8 && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-5 border border-black"/>}
+                      {i < 10 && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-5 border border-black"/>}
                     </div>
                   ))}
                 </div>
@@ -1431,8 +1408,8 @@ const StudentManagement = () => {
                     <div className="py-8 text-center text-gray-600 font-medium">No {activeTab === "worker" ? "workers" : "students"} found for this filter.</div>
                   )}
                   {currentStudents.map((s, i) => (
-                    <div key={s.id} className="text-black grid grid-cols-9 items-center border-b border-black/10 last:border-0 pb-2">
-                      <div className="px-2 py-2 break-words text-xs">{s.id}</div>
+                    <div key={s.id} className="text-black grid grid-cols-11 items-center border-b border-black/10 last:border-0 pb-2">
+                      <div className="px-2 py-2 break-words text-xs">{s.isPendingApproval ? "Pending" : s.id}</div>
                       <div className="px-2 py-2 break-words text-xs font-bold">{s.name}</div>
                       <div className="px-2 py-2 break-words leading-tight text-[10px]">{s.room}</div>
                       <div className="px-2 py-2 text-[10px] break-words">{s.roomType ? `${s.roomType} Bed` : "-"}</div>
@@ -1440,12 +1417,39 @@ const StudentManagement = () => {
                       <div className="px-2 py-2 text-[10px] break-words">{s.contact}</div>
                       <div className="px-2 py-2 flex justify-center"><span style={getFeeStatusStyle(s.feeStatus)}>{s.feeStatus}</span></div>
                       <div className="px-2 py-2">{s.dues}</div>
+                      <div className="px-2 py-2 flex justify-center">
+                        {s.isAddedToBiometric ? (
+                          <span className="text-green-600 font-bold" title="Added to Biometric">✅</span>
+                        ) : (
+                          <span className="text-red-500 font-bold" title="Not added to Biometric">❌</span>
+                        )}
+                      </div>
+                      <div className="px-2 py-2 flex flex-col justify-center items-center">
+                        {s.isRejected ? (
+                          <>
+                            <span className="text-[10px] font-bold text-red-600 bg-red-100 px-2 py-1 rounded-md text-center w-full">Rejected</span>
+                            <span className="text-[8px] text-red-500 mt-1" title={s.rejectReason}>{s.rejectReason.substring(0, 15)}{s.rejectReason.length > 15 ? "..." : ""}</span>
+                          </>
+                        ) : s.isPendingApproval ? (
+                          <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-md text-center w-full">Pending</span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-1 rounded-md text-center w-full">Approved</span>
+                        )}
+                      </div>
                       <div className="px-2 py-2 flex justify-center gap-3">
-                        <button onClick={() => handleViewDetails(s.id)} className="hover:scale-110 transition-transform" title="View Details"><Eye size={22} strokeWidth={2.5}/></button>
-                        <div className="w-px h-5 bg-black self-center"/>
-                        <button onClick={() => handleEdit(s.id)} className="hover:scale-110 transition-transform" title="Edit Student">
-                          <svg width="22" height="22" viewBox="0 0 27 26" fill="none"><mask id={`m${i}`} style={{maskType:"alpha"}} maskUnits="userSpaceOnUse" x="0" y="0" width="27" height="26"><rect x=".678" y=".025" width="25.736" height="25.736" fill="#D9D9D9"/></mask><g mask={`url(#m${i})`}><path d="M2.824 25.761V21.472h21.446v4.289H2.824ZM7.113 17.182h1.501l8.364-8.337-1.528-1.528-8.337 8.365v1.5ZM4.968 19.327V14.77l12.01-11.983c.197-.197.425-.348.683-.462.26-.113.532-.17.818-.17.286 0 .563.057.831.17.268.107.51.268.725.482l1.474 1.501c.215.197.371.429.469.697.098.268.147.545.147.831 0 .268-.049.504-.147.763-.098.26-.254.497-.469.712L9.526 19.327H4.968Z" fill="#1C1B1F"/></g></svg>
-                        </button>
+                        {s.isRejected ? (
+                          <span className="text-[10px] italic text-red-500">Rejected</span>
+                        ) : s.isPendingApproval ? (
+                          <span className="text-[10px] italic text-gray-500">Wait Approval</span>
+                        ) : (
+                          <>
+                            <button onClick={() => handleViewDetails(s.id)} className="hover:scale-110 transition-transform" title="View Details"><Eye size={22} strokeWidth={2.5}/></button>
+                            <div className="w-px h-5 bg-black self-center"/>
+                            <button onClick={() => handleEdit(s.id)} className="hover:scale-110 transition-transform" title="Edit Student">
+                              <svg width="22" height="22" viewBox="0 0 27 26" fill="none"><mask id={`m${i}`} style={{maskType:"alpha"}} maskUnits="userSpaceOnUse" x="0" y="0" width="27" height="26"><rect x=".678" y=".025" width="25.736" height="25.736" fill="#D9D9D9"/></mask><g mask={`url(#m${i})`}><path d="M2.824 25.761V21.472h21.446v4.289H2.824ZM7.113 17.182h1.501l8.364-8.337-1.528-1.528-8.337 8.365v1.5ZM4.968 19.327V14.77l12.01-11.983c.197-.197.425-.348.683-.462.26-.113.532-.17.818-.17.286 0 .563.057.831.17.268.107.51.268.725.482l1.474 1.501c.215.197.371.429.469.697.098.268.147.545.147.831 0 .268-.049.504-.147.763-.098.26-.254.497-.469.712L9.526 19.327H4.968Z" fill="#1C1B1F"/></g></svg>
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -1461,16 +1465,37 @@ const StudentManagement = () => {
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <h3 className="font-bold text-base text-black">{s.name}</h3>
-                      <p className="text-xs text-gray-500 mt-0.5">ID: {s.id}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">ID: {s.isPendingApproval ? "Pending" : s.id}</p>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => handleViewDetails(s.id)} className="p-2 bg-[#BEC5AD] rounded-lg hover:bg-[#A4B494] transition-colors"><Eye size={16}/></button>
-                      <button onClick={() => handleEdit(s.id)} className="p-2 bg-[#BEC5AD] rounded-lg hover:bg-[#A4B494] transition-colors">
-                        <svg width="16" height="16" viewBox="0 0 27 26" fill="none"><mask id={`mm${i}`} style={{maskType:"alpha"}} maskUnits="userSpaceOnUse" x="0" y="0" width="27" height="26"><rect x=".678" y=".025" width="25.736" height="25.736" fill="#D9D9D9"/></mask><g mask={`url(#mm${i})`}><path d="M2.824 25.761V21.472h21.446v4.289H2.824ZM7.113 17.182h1.501l8.364-8.337-1.528-1.528-8.337 8.365v1.5ZM4.968 19.327V14.77l12.01-11.983c.197-.197.425-.348.683-.462.26-.113.532-.17.818-.17.286 0 .563.057.831.17.268.107.51.268.725.482l1.474 1.501c.215.197.371.429.469.697.098.268.147.545.147.831 0 .268-.049.504-.147.763-.098.26-.254.497-.469.712L9.526 19.327H4.968Z" fill="#1C1B1F"/></g></svg>
-                      </button>
+                      {s.isRejected ? (
+                        <span className="text-xs italic text-red-500 flex items-center">Rejected</span>
+                      ) : s.isPendingApproval ? (
+                        <span className="text-xs italic text-gray-500 flex items-center">Wait Approval</span>
+                      ) : (
+                        <>
+                          <button onClick={() => handleViewDetails(s.id)} className="p-2 bg-[#BEC5AD] rounded-lg hover:bg-[#A4B494] transition-colors"><Eye size={16}/></button>
+                          <button onClick={() => handleEdit(s.id)} className="p-2 bg-[#BEC5AD] rounded-lg hover:bg-[#A4B494] transition-colors">
+                            <svg width="16" height="16" viewBox="0 0 27 26" fill="none"><mask id={`mm${i}`} style={{maskType:"alpha"}} maskUnits="userSpaceOnUse" x="0" y="0" width="27" height="26"><rect x=".678" y=".025" width="25.736" height="25.736" fill="#D9D9D9"/></mask><g mask={`url(#mm${i})`}><path d="M2.824 25.761V21.472h21.446v4.289H2.824ZM7.113 17.182h1.501l8.364-8.337-1.528-1.528-8.337 8.365v1.5ZM4.968 19.327V14.77l12.01-11.983c.197-.197.425-.348.683-.462.26-.113.532-.17.818-.17.286 0 .563.057.831.17.268.107.51.268.725.482l1.474 1.501c.215.197.371.429.469.697.098.268.147.545.147.831 0 .268-.049.504-.147.763-.098.26-.254.497-.469.712L9.526 19.327H4.968Z" fill="#1C1B1F"/></g></svg>
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
-                  <div className="space-y-2 text-sm">
+                  <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
+                    <div>
+                      <p className="text-xs text-gray-500 font-semibold mb-0.5">Approval Status</p>
+                      {s.isRejected ? (
+                        <div className="flex flex-col items-start gap-1">
+                          <span className="text-[10px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-md">Rejected</span>
+                          <span className="text-[8px] text-red-500" title={s.rejectReason}>{s.rejectReason}</span>
+                        </div>
+                      ) : s.isPendingApproval ? (
+                         <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-md">Pending</span>
+                      ) : (
+                         <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-md">Approved</span>
+                      )}
+                    </div>
                     <div className="flex justify-between items-center gap-2">
                       <div className="flex-1 bg-gray-50 rounded-lg px-3 py-2">
                         <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Room / Bed</span>
@@ -1498,6 +1523,12 @@ const StudentManagement = () => {
                     <div className="flex justify-between items-center pt-1 border-t border-gray-100">
                       <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Fee Status</span>
                       <span style={getFeeStatusStyle(s.feeStatus)} className="text-[10px]">{s.feeStatus}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-1 border-t border-gray-100">
+                      <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Biometric</span>
+                      <span className="text-[10px]">
+                        {s.isAddedToBiometric ? "✅ Added" : "❌ Pending"}
+                      </span>
                     </div>
                   </div>
                 </div>
