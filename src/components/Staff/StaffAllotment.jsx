@@ -47,6 +47,7 @@ const StaffAllotment = () => {
   // ── activeTab removed; we only deal with 'staff' ──
   const [activeFilter, setActiveFilter] = useState(null);
   const [refresh, setRefresh] = useState(0);
+  const [staffLoading, setStaffLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -123,12 +124,18 @@ const StaffAllotment = () => {
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+    if (["firstName", "lastName"].includes(name)) value = value.replace(/[^A-Za-z\s]/g, "");
+    if (name === "contactNumber") value = value.replace(/\D/g, "").slice(0, 10);
+    if (name === "salary") value = value.replace(/\D/g, "");
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleEditInputChange = (e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+    if (["firstName", "lastName"].includes(name)) value = value.replace(/[^A-Za-z\s]/g, "");
+    if (name === "contactNumber") value = value.replace(/\D/g, "").slice(0, 10);
+    if (name === "salary") value = value.replace(/\D/g, "");
     setEditFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -246,7 +253,21 @@ const staffStats = [
   // ── Register handlers ─────────────────────────────────────────
   
 
+  const validateStaffForm = (data) => {
+    if (!data.firstName.trim() || !/^[A-Za-z\s]+$/.test(data.firstName)) return "First Name must contain only letters and is required.";
+    if (!data.lastName.trim() || !/^[A-Za-z\s]+$/.test(data.lastName)) return "Last Name must contain only letters and is required.";
+    if (!data.emailId.trim() || !/\s+@\s+\.\s+/.test(data.emailId)) return "Valid Email is required.";
+    if (data.salary === "" || Number(data.salary) < 0) return "Salary Amount cannot be negative.";
+    return null;
+  };
+
   const handleRegisterStaff = async () => {
+    const errorMsg = validateStaffForm(formData);
+    if (errorMsg) {
+      toast.error(errorMsg);
+      return;
+    }
+    setStaffLoading(true);
     try {
       const payload = new FormData();
       payload.append("firstName", formData.firstName);
@@ -285,6 +306,8 @@ const staffStats = [
     } catch (error) {
       console.error(error);
       setSuccessMsg(error.response?.data?.message || "Error registering staff");
+    } finally {
+      setStaffLoading(false);
     }
   };
 
@@ -330,6 +353,11 @@ const staffStats = [
   };
 
   const handleUpdateStaff = async () => {
+    const errorMsg = validateStaffForm(editFormData);
+    if (errorMsg) {
+      toast.error(errorMsg);
+      return;
+    }
     try {
       const payload = new FormData();
       payload.append("firstName", editFormData.firstName);
@@ -494,7 +522,7 @@ const staffStats = [
                   onChange={handleInputChange} placeholder="Specify Designation"
                   className="w-full h-[45px] px-4 bg-white rounded-[10px] shadow-[0px_2px_8px_rgba(0,0,0,0.1)] border-0 outline-none focus:ring-2 focus:ring-[#4F8CCF]/50 transition-all text-black font-medium text-[14px] placeholder-gray-500" />
               )}
-              <input type="number" name="salary" value={formData.salary} onChange={handleInputChange}
+              <input type="text" name="salary" value={formData.salary} onChange={handleInputChange}
                 placeholder="Salary Amount (₹)" className="w-full h-[45px] px-4 bg-white rounded-[10px] shadow-[0px_2px_8px_rgba(0,0,0,0.1)] border-0 outline-none focus:ring-2 focus:ring-[#4F8CCF]/50 transition-all text-black font-medium text-[14px] placeholder-gray-500" />
               <div className="flex gap-3">
                 <div className="relative w-full">
@@ -520,8 +548,8 @@ const staffStats = [
               </div>
             </div>
             <div className="mt-6 text-center">
-              <button onClick={handleRegisterStaff} className="bg-white px-8 py-3 rounded-xl font-bold hover:bg-gray-100 transition-all shadow-sm hover:shadow-md active:scale-95">
-                Register Staff
+              <button disabled={staffLoading} onClick={handleRegisterStaff} className={`bg-white px-8 py-3 rounded-xl font-bold transition-all shadow-sm ${staffLoading ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-100 hover:shadow-md active:scale-95"}`}>
+                {staffLoading ? "Registering..." : "Register Staff"}
               </button>
             </div>
           </div>
@@ -600,7 +628,7 @@ const staffStats = [
                 placeholder="Contact Number" className="w-full h-[45px] px-4 bg-gray-50 rounded-[10px] border border-gray-200 outline-none focus:ring-2 focus:ring-[#4F8CCF]/50 transition-all text-black font-medium text-[14px]" />
               <input type="email" name="emailId" value={editFormData.emailId} onChange={handleEditInputChange}
                 placeholder="Email" className="w-full h-[45px] px-4 bg-gray-50 rounded-[10px] border border-gray-200 outline-none focus:ring-2 focus:ring-[#4F8CCF]/50 transition-all text-black font-medium text-[14px]" />
-              <input type="number" name="salary" value={editFormData.salary} onChange={handleEditInputChange}
+              <input type="text" name="salary" value={editFormData.salary} onChange={handleEditInputChange}
                 placeholder="Salary Amount (₹)" className="w-full h-[45px] px-4 bg-gray-50 rounded-[10px] border border-gray-200 outline-none focus:ring-2 focus:ring-[#4F8CCF]/50 transition-all text-black font-medium text-[14px]" />
                 <>
                   <select name="designation" value={editFormData.designation} onChange={handleEditInputChange}

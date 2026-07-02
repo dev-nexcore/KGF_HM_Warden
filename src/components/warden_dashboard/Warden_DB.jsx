@@ -68,17 +68,23 @@ const WardenDashboard = () => {
     const action = activity.action?.toLowerCase() || "";
     const target = activity.target?.toLowerCase() || "";
     
+    if (activeFilter === "Total Students") {
+      return target.includes("student") || desc.includes("student") || action.includes("student");
+    }
     if (activeFilter === "Today's Check-In") {
       return action.includes("check_in") || desc.includes("check in");
     }
     if (activeFilter === "Today's Check-Outs") {
       return action.includes("check_out") || desc.includes("check out");
     }
-    if (activeFilter === "Occupied Beds" || activeFilter === "Available Beds") {
-      return target.includes("bed") || desc.includes("bed") || desc.includes("room");
+    if (activeFilter === "Occupied Beds" || activeFilter === "Available Beds" || activeFilter === "Damaged Beds") {
+      return target.includes("bed") || desc.includes("bed") || desc.includes("room") || desc.includes("maintenance");
+    }
+    if (activeFilter === "Upcoming Inspections") {
+      return action.includes("inspection") || desc.includes("inspection");
     }
     
-    return true; // fallback
+    return false; // fallback
   });
 
   return (

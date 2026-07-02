@@ -29,6 +29,7 @@ export default function LeaveRequestsDashboard() {
   const [actionPopup, setActionPopup] = useState({ id: null, type: null });
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
@@ -105,7 +106,9 @@ export default function LeaveRequestsDashboard() {
 
 
   const handleAction = async () => {
+    if (isProcessing) return;
     const { id, type } = actionPopup;
+    setIsProcessing(true);
     try {
       if (type === "delete") {
         await axios.delete(`${API_BASE}/leave/${id}`, {
@@ -133,6 +136,8 @@ export default function LeaveRequestsDashboard() {
       fetchStats();
     } catch (err) {
       toast.error(`⚠️ Failed to ${type} leave request.`, { autoClose: 3000 });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -654,8 +659,20 @@ export default function LeaveRequestsDashboard() {
             <h2 className="text-lg font-semibold mb-4">Confirm {actionPopup.type}</h2>
             <p>Are you sure you want to <strong>{actionPopup.type}</strong> this leave request?</p>
             <div className="mt-6 flex justify-center gap-4">
-              <button onClick={() => handleAction()} className="bg-green-600 text-white px-4 py-2 rounded">Yes</button>
-              <button onClick={() => setActionPopup({ id: null, type: null })} className="bg-gray-300 px-4 py-2 rounded">No</button>
+              <button 
+                onClick={() => handleAction()} 
+                disabled={isProcessing}
+                className={`px-4 py-2 rounded text-white ${isProcessing ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
+              >
+                {isProcessing ? "Processing..." : "Yes"}
+              </button>
+              <button 
+                onClick={() => !isProcessing && setActionPopup({ id: null, type: null })} 
+                disabled={isProcessing}
+                className={`px-4 py-2 rounded ${isProcessing ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-300 hover:bg-gray-400'}`}
+              >
+                No
+              </button>
             </div>
           </div>
         </div>

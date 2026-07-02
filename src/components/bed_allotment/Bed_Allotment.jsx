@@ -112,6 +112,7 @@ export default function BedAllotment() {
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
             options={["Available", "In Use", "Damaged", "In maintenance"]}
           />
+          {(filters.floor || filters.roomNo || filters.status) && (
           <div className="flex flex-col justify-end">
             <button
               onClick={clearFilters}
@@ -120,12 +121,25 @@ export default function BedAllotment() {
               Clear Filters
             </button>
           </div>
+          )}
         </div>
       </div>
 
-      <div className="bg-white rounded-xl drop-shadow-lg p-6">
-        <h3 className="mb-4 font-semibold">Bed Status Overview</h3>
-        <div className="rounded-xl bg-[#bfc8ad] p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="bg-white rounded-xl p-6 mt-8">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="font-bold text-xl text-gray-800">Bed Status Overview</h3>
+          <div className="flex items-center gap-5">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+              <span className="text-sm text-gray-500 font-medium">In Use</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+              <span className="text-sm text-gray-500 font-medium">Available</span>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-2xl bg-[#bfc8ad] p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {bedList.length === 0 ? (
             <p className="text-sm text-gray-700 col-span-full">No beds found for selected filters.</p>
           ) : (
@@ -166,24 +180,47 @@ const InputFilter = ({ label, value, onChange, options = [] }) => (
 );
 
 const BedCard = ({ bed }) => {
-  const statusStyles = {
-    "Available": "gray-400",
-    "In Use": "green-500",
-    "Damaged": "red-500",
-    "In maintenance": "yellow-500",
+  const statusConfig = {
+    "Available": { color: "text-gray-500", bg: "bg-gray-200", dot: "bg-gray-400" },
+    "In Use": { color: "text-green-700", bg: "bg-green-100", dot: "bg-green-600" },
+    "Damaged": { color: "text-red-700", bg: "bg-red-100", dot: "bg-red-500" },
+    "In maintenance": { color: "text-yellow-700", bg: "bg-yellow-100", dot: "bg-yellow-500" },
   };
 
-  const badgeColor = statusStyles[bed.status] || "gray-300";
+  const config = statusConfig[bed.status] || statusConfig["Available"];
+  const barcodeParts = (bed.barcodeId || "").split('-');
+  const bedName = barcodeParts.length >= 2 ? barcodeParts.slice(0, 2).join('-') : bed.barcodeId;
+  const uniqueCode = barcodeParts.length > 2 ? barcodeParts.slice(2).join('-') : "";
 
   return (
-    <div className="rounded-3xl p-4 bg-white border border-gray-300 shadow flex flex-col min-w-[210px] relative">
-      <span className={`absolute top-0 right-0 border-2 w-9 h-9 rounded-full bg-${badgeColor} inline-block`}></span>
-      <div className="font-semibold text-[16px] mb-1">Bed {bed.barcodeId}</div>
-      <div className="text-xs mb-2">Floor {bed.floor}, Room {bed.roomNo}</div>
-      <div className="mt-auto">
-        <span className="text-xs">
-          Status: <span className={`text-${badgeColor}`}>{bed.status}</span>
-        </span>
+    <div className="rounded-2xl p-5 bg-white shadow flex flex-col w-full relative">
+      <div className="flex justify-between items-start mb-3">
+        <div>
+          <div className="font-bold text-[16px] text-gray-900 leading-snug">Bed {bedName}</div>
+          {uniqueCode && <div className="font-bold text-[16px] text-gray-900 leading-snug">{uniqueCode}</div>}
+        </div>
+        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${config.bg}`}>
+          <div className={`w-2 h-2 rounded-full ${config.dot}`}></div>
+          <span className={`text-[12px] font-medium ${config.color}`}>{bed.status}</span>
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-1.5 mb-4 mt-2">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
+          <path d="M3 10l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        </svg>
+        <span className="text-[13.5px] text-gray-500">Floor {bed.floor}, Room {bed.roomNo}</span>
+      </div>
+      
+      <hr className="border-gray-200 mb-3" />
+      
+      <div className="flex justify-between items-center text-[13px] text-gray-500">
+        <div>
+          Status: <span className={config.color}>{bed.status}</span>
+        </div>
+        <div className="cursor-pointer hover:text-gray-700">
+          View &rarr;
+        </div>
       </div>
     </div>
   );
