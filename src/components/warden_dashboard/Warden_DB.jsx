@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { FaRupeeSign } from "react-icons/fa";
 import { 
   TrendingUp, 
@@ -186,14 +187,14 @@ const WardenDashboard = () => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
               { label: "Add Student", icon: <UserPlus />, path: "/student", color: "bg-blue-50 text-blue-600" },
-              { label: "Inspections", icon: <ClipboardCheck />, path: "/recent-inspections", color: "bg-purple-50 text-purple-600" },
-              { label: "Leaves", icon: <Calendar />, path: "/requested-leave", color: "bg-orange-50 text-orange-600" },
-              { label: "Attendance", icon: <Calendar />, path: "/attendance", color: "bg-green-50 text-green-600" },
+              { label: "Inspections", icon: <ClipboardCheck />, path: "/inspection", color: "bg-purple-50 text-purple-600" },
+              { label: "Leaves", icon: <Calendar />, path: "/warden-leave", color: "bg-orange-50 text-orange-600" },
+              { label: "Attendance", icon: <Calendar />, path: "/attendance-monitoring", color: "bg-green-50 text-green-600" },
             ].map((action, i) => (
-              <a key={i} href={action.path} className="flex flex-col items-center justify-center p-4 rounded-xl border border-gray-50 hover:border-blue-100 hover:bg-gray-50 transition-all group">
+              <Link key={i} href={action.path} className="flex flex-col items-center justify-center p-4 rounded-xl border border-gray-50 hover:border-blue-100 hover:bg-gray-50 transition-all group">
                 <span className={`w-12 h-12 ${action.color} rounded-full flex items-center justify-center text-xl mb-2 group-hover:scale-110 transition-transform`}>{action.icon}</span>
                 <span className="text-xs font-bold text-gray-700 text-center">{action.label}</span>
-              </a>
+              </Link>
             ))}
           </div>
         </div>
@@ -213,9 +214,9 @@ const WardenDashboard = () => {
                   <p className="text-sm font-medium text-rose-600">{stats.pendingLeavesCount} Leave Requests</p>
                 </div>
               </div>
-              <a href="/requested-leave" className="p-1.5 hover:bg-rose-200 rounded-lg transition-colors text-rose-600">
+              <Link href="/warden-leave" className="p-1.5 hover:bg-rose-200 rounded-lg transition-colors text-rose-600">
                 <ArrowRight size={16} />
-              </a>
+              </Link>
             </div>
             <div className="flex items-center justify-between p-3 bg-amber-50 rounded-xl border border-amber-100">
               <div className="flex items-center gap-3">
@@ -225,9 +226,9 @@ const WardenDashboard = () => {
                   <p className="text-sm font-medium text-amber-600">{stats.inProgressComplaintsCount} Complaints</p>
                 </div>
               </div>
-              <a href="/complaints" className="p-1.5 hover:bg-amber-200 rounded-lg transition-colors text-amber-600">
+              <Link href="/complaint" className="p-1.5 hover:bg-amber-200 rounded-lg transition-colors text-amber-600">
                 <ArrowRight size={16} />
-              </a>
+              </Link>
             </div>
           </div>
         </div>
