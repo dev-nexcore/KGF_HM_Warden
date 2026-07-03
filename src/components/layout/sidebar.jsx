@@ -39,17 +39,19 @@ export default function Sidebar() {
       <ToastContainer position="top-right" autoClose={3000} />
 
       {/* Hamburger */}
-      <button
-        aria-label="Open sidebar"
-        className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-[#A4B494] text-black shadow-md"
-        onClick={() => setSidebarOpen(true)}
-      >
-        <div className="space-y-1.5">
-          <span className="block w-6 h-0.5 bg-black"></span>
-          <span className="block w-6 h-0.5 bg-black"></span>
-          <span className="block w-6 h-0.5 bg-black"></span>
-        </div>
-      </button>
+      {!sidebarOpen && (
+        <button
+          aria-label="Open sidebar"
+          className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-[#A4B494] text-black shadow-md"
+          onClick={() => setSidebarOpen(true)}
+        >
+          <div className="space-y-1.5">
+            <span className="block w-6 h-0.5 bg-black"></span>
+            <span className="block w-6 h-0.5 bg-black"></span>
+            <span className="block w-6 h-0.5 bg-black"></span>
+          </div>
+        </button>
+      )}
 
       {/* Sidebar */}
       <aside
