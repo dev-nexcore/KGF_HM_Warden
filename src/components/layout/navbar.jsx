@@ -52,12 +52,12 @@ export default function Navbar() {
   return (
     // <nav className="flex w-full items-center justify-between px-8 py-4 pl-16 md:pl-8 bg-[#BEC5AD]">
     <nav className="flex w-full items-center justify-between px-4 md:px-8 py-4 bg-[#BEC5AD]">
-      <div className="flex-1 pl-3">
-        <h1 className="text-2xl font-semibold text-black">
+      <div className="flex-1 pl-12 md:pl-3">
+        <h1 className="text-xl md:text-2xl font-semibold text-black leading-tight">
           Welcome Back
           {warden ? `, ${warden.firstName} ${warden.lastName}` : ""}
         </h1>
-        <p className="italic text-black text-sm -mt-1">-have a great day</p>
+        <p className="italic text-black text-sm md:text-sm mt-0.5 md:-mt-1">-have a great day</p>
       </div>
       
       {/* Profile Image/Icon - Clickable */}

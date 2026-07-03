@@ -23,6 +23,16 @@ export default function BedAllotment() {
     status: "",
   });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 640);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   useEffect(() => {
     fetchStats();
     fetchAllBeds(); // Load floor and roomNo filters initially
@@ -30,6 +40,7 @@ export default function BedAllotment() {
 
   useEffect(() => {
     fetchBeds();
+    setCurrentPage(1);
   }, [filters]); // Auto-fetch beds when filter changes
 
   const fetchStats = async () => {
@@ -125,27 +136,47 @@ export default function BedAllotment() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl p-6 mt-8">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="font-bold text-xl text-gray-800">Bed Status Overview</h3>
-          <div className="flex items-center gap-5">
+      <div className="bg-white rounded-xl p-4 sm:p-6 mt-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-4 sm:gap-0 mb-6">
+          <h3 className="font-bold text-lg sm:text-xl text-gray-800">Bed Status Overview</h3>
+          <div className="flex items-center gap-4 sm:gap-5">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-green-500"></div>
-              <span className="text-sm text-gray-500 font-medium">In Use</span>
+              <span className="text-xs sm:text-sm text-gray-500 font-medium">In Use</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-              <span className="text-sm text-gray-500 font-medium">Available</span>
+              <span className="text-xs sm:text-sm text-gray-500 font-medium">Available</span>
             </div>
           </div>
         </div>
-        <div className="rounded-2xl bg-[#bfc8ad] p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="rounded-2xl bg-[#bfc8ad] p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {bedList.length === 0 ? (
             <p className="text-sm text-gray-700 col-span-full">No beds found for selected filters.</p>
           ) : (
-            bedList.map((bed, i) => <BedCard key={i} bed={bed} />)
+            (isMobile ? bedList.slice((currentPage - 1) * 10, currentPage * 10) : bedList).map((bed, i) => <BedCard key={i} bed={bed} />)
           )}
         </div>
+        
+        {isMobile && bedList.length > 10 && (
+          <div className="flex justify-between items-center mt-4">
+            <button 
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+              disabled={currentPage === 1} 
+              className="px-4 py-2 bg-gray-200 rounded-lg text-sm font-semibold disabled:opacity-50"
+            >
+              Prev
+            </button>
+            <span className="text-sm font-medium">Page {currentPage} of {Math.ceil(bedList.length / 10)}</span>
+            <button 
+              onClick={() => setCurrentPage(p => Math.min(Math.ceil(bedList.length / 10), p + 1))} 
+              disabled={currentPage === Math.ceil(bedList.length / 10)} 
+              className="px-4 py-2 bg-gray-200 rounded-lg text-sm font-semibold disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
