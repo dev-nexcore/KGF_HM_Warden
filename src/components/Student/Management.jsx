@@ -360,7 +360,7 @@ const StudentManagement = () => {
     if (!data.contactNumber.trim()) e.contactNumber = "Contact Number is required.";
     else if (!/^\d{10}$/.test(data.contactNumber)) e.contactNumber = "Contact Number must be exactly 10 digits.";
     if (!isEdit && !data.email.trim()) e.email = "Email is required.";
-    else if (data.email.trim() && !/\s+@\s+\.\s+/.test(data.email)) e.email = "Email is invalid.";
+    else if (data.email.trim() && !/\S+@\S+\.\S+/.test(data.email)) e.email = "Email is invalid.";
     if (!data.roomType) e.roomType = "Room Type is required.";
     if (data.emergencyContactNumber && !/^\d{10}$/.test(data.emergencyContactNumber)) {
       e.emergencyContactNumber = "Emergency Contact Number must be exactly 10 digits.";
@@ -515,7 +515,7 @@ const StudentManagement = () => {
     if (!data.lastName.trim()) e.lastName = "Last Name is required.";
     else if (!/^[A-Za-z\s]+$/.test(data.lastName)) e.lastName = "Last Name can only contain letters.";
     if (!data.email.trim()) e.email = "Email is required.";
-    else if (!/\s+@\s+\.\s+/.test(data.email)) e.email = "Email is invalid.";
+    else if (!/\S+@\S+\.\S+/.test(data.email)) e.email = "Email is invalid.";
     if (!data.contactNumber.trim()) e.contactNumber = "Contact Number is required.";
     else if (!/^\d{10}$/.test(data.contactNumber)) e.contactNumber = "Contact Number must be exactly 10 digits.";
     if (!data.relation.trim()) e.relation = "Relation is required";
@@ -569,7 +569,7 @@ const StudentManagement = () => {
     if (!data.contactNumber.trim()) e.contactNumber = "Contact Number is required.";
     else if (!/^\d{10}$/.test(data.contactNumber)) e.contactNumber = "Contact Number must be exactly 10 digits.";
     if (!data.email.trim()) e.email = "Email is required.";
-    else if (data.email.trim() && !/\s+@\s+\.\s+/.test(data.email)) e.email = "Email is invalid.";
+    else if (data.email.trim() && !/\S+@\S+\.\S+/.test(data.email)) e.email = "Email is invalid.";
     if (!data.roomType) e.roomType = "Room Type is required.";
     if (data.emergencyContactNumber && !/^\d{10}$/.test(data.emergencyContactNumber)) {
       e.emergencyContactNumber = "Emergency Contact Number must be exactly 10 digits.";
@@ -820,6 +820,7 @@ const StudentManagement = () => {
         <div className="w-full px-2">
           <label className="block mb-2 text-black ml-2" style={labelStyle}>Emergency Contact Number</label>
           <input type="tel" name="emergencyContactNumber" value={formData.emergencyContactNumber} onChange={handleInputChange} placeholder="Enter Contact Number" className="w-full px-4 text-black font-semibold text-[12px] font-[Poppins]" style={inputStyle} />
+          {errors.emergencyContactNumber && <p className="text-red-500 text-xs mt-1 ml-2">{errors.emergencyContactNumber}</p>}
         </div>
 
         {/* Admission Date */}
@@ -835,12 +836,14 @@ const StudentManagement = () => {
         <div className="w-full px-2">
           <label className="block mb-2 text-black ml-2" style={labelStyle}>Emergency Contact Name</label>
           <input type="text" name="emergencyContactName" value={formData.emergencyContactName} onChange={handleInputChange} placeholder="Enter Name" className="w-full px-4 text-black font-semibold text-[12px] font-[Poppins]" style={inputStyle} />
+          {errors.emergencyContactName && <p className="text-red-500 text-xs mt-1 ml-2">{errors.emergencyContactName}</p>}
         </div>
 
         {/* Relation */}
         <div className="w-full px-2">
           <label className="block mb-2 text-black ml-2" style={labelStyle}>Relation</label>
           <input type="text" name="relation" value={formData.relation} onChange={handleInputChange} placeholder="e.g. Father, Mother" className="w-full px-4 text-black font-semibold text-[12px] font-[Poppins]" style={inputStyle} />
+          {errors.relation && <p className="text-red-500 text-xs mt-1 ml-2">{errors.relation}</p>}
         </div>
 
 
@@ -1267,20 +1270,11 @@ const StudentManagement = () => {
         {/* ── Registration Tabs ── */}
         {!editingStudent && (
           <div className="w-full max-w-7xl mx-auto mb-10">
-            {/* Desktop Tabs */}
-            <div className="hidden sm:flex mb-4 gap-3 overflow-x-auto pb-2 custom-scrollbar whitespace-nowrap">
-              {["student", "parent", "worker"].map(tab => (
-                <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-3 rounded-[12px] font-semibold transition-colors text-sm ${activeTab === tab ? "bg-[#BEC5AD] text-black shadow-md border border-[#4F8CCF]/50" : "bg-gray-200 text-gray-600 hover:bg-gray-300"}`} style={{ fontFamily: "Poppins" }}>
-                  {tab === "student" ? "Register Student" : tab === "parent" ? "Register Parent" : "Register Worker"}
-                </button>
-              ))}
-            </div>
-            {/* Mobile Dropdown */}
-            <div className="sm:hidden mb-4 relative h-[45px]">
+            <div className="mb-4 relative h-[45px] w-full sm:w-[300px]">
               <select 
                 value={activeTab} 
                 onChange={(e) => setActiveTab(e.target.value)}
-                className="w-full h-full px-4 bg-[#BEC5AD] rounded-[12px] border-0 outline-none cursor-pointer appearance-none text-[14px] font-semibold text-black shadow-md border border-[#4F8CCF]/50"
+                className="w-full h-full px-4 bg-[#BEC5AD] rounded-[12px] outline-none cursor-pointer appearance-none text-[14px] font-semibold text-black shadow-md border border-[#4F8CCF]/50"
                 style={{ WebkitAppearance: "none", fontFamily: "Poppins" }}
               >
                 <option value="student">Register Student</option>
