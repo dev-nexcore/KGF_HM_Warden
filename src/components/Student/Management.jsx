@@ -157,6 +157,7 @@ const StudentManagement = () => {
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
   const [parentErrors, setParentErrors] = useState({});
+  const [workerErrors, setWorkerErrors] = useState({});
   const [parentLoading, setParentLoading] = useState(false);
   const [workerFormData, setWorkerFormData] = useState({
     firstName: "", lastName: "", contactNumber: "", email: "",
@@ -558,6 +559,7 @@ const StudentManagement = () => {
     if (["firstName", "lastName", "emergencyContactName"].includes(name)) value = value.replace(/[^A-Za-z\s]/g, "");
     if (["contactNumber", "emergencyContactNumber"].includes(name)) value = value.replace(/\D/g, "").slice(0, 10);
     setWorkerFormData(p => ({ ...p, [name]: value }));
+    if (workerErrors[name]) setWorkerErrors(p => { const n = { ...p }; delete n[name]; return n; });
   };
 
   const validateWorkerForm = (data) => {
@@ -594,7 +596,8 @@ const StudentManagement = () => {
   const handleWorkerSubmit = async () => {
     const errs = validateWorkerForm(workerFormData);
     if (Object.keys(errs).length) {
-      toast.error("Please fill all required fields");
+      setWorkerErrors(errs);
+      toast.error("Please fill all required fields correctly");
       return;
     }
     setWorkerLoading(true);
@@ -926,12 +929,14 @@ const StudentManagement = () => {
         <div className="w-full px-2">
           <label className="block mb-1 text-black ml-2" style={labelStyle}>First Name</label>
           <input type="text" name="firstName" value={workerFormData.firstName} onChange={handleWorkerInputChange} placeholder="Enter First Name" className="w-full px-4 text-black font-semibold text-[12px] font-[Poppins]" style={inputStyle} />
+          {workerErrors.firstName && <p className="text-red-500 text-xs mt-1 ml-2">{workerErrors.firstName}</p>}
         </div>
 
         {/* Last Name */}
         <div className="w-full px-2">
           <label className="block mb-1 text-black ml-2" style={labelStyle}>Last Name</label>
           <input type="text" name="lastName" value={workerFormData.lastName} onChange={handleWorkerInputChange} placeholder="Enter Last Name" className="w-full px-4 text-black font-semibold text-[12px] font-[Poppins]" style={inputStyle} />
+          {workerErrors.lastName && <p className="text-red-500 text-xs mt-1 ml-2">{workerErrors.lastName}</p>}
         </div>
 
         {/* Documents */}
@@ -960,12 +965,14 @@ const StudentManagement = () => {
         <div className="w-full px-2">
           <label className="block mb-1 text-black ml-2" style={labelStyle}>Contact Number</label>
           <input type="tel" name="contactNumber" value={workerFormData.contactNumber} onChange={handleWorkerInputChange} placeholder="Enter Phone Number" className="w-full px-4 text-black font-semibold text-[12px] font-[Poppins]" style={inputStyle} />
+          {workerErrors.contactNumber && <p className="text-red-500 text-xs mt-1 ml-2">{workerErrors.contactNumber}</p>}
         </div>
 
         {/* Email */}
         <div className="w-full px-2">
           <label className="block mb-1 text-black ml-2" style={labelStyle}>E-Mail</label>
           <input type="email" name="email" value={workerFormData.email} onChange={handleWorkerInputChange} placeholder="Enter E-Mail" className="w-full h-[40px] px-4 bg-white rounded-[10px] border-0 outline-none text-black font-semibold text-[12px] font-[Poppins]" style={inputStyle} />
+          {workerErrors.email && <p className="text-red-500 text-xs mt-1 ml-2">{workerErrors.email}</p>}
         </div>
         {/* Room Type */}
         <div className="w-full px-2">
@@ -979,6 +986,7 @@ const StudentManagement = () => {
             </select>
             <ChevronDown />
           </div>
+          {workerErrors.roomType && <p className="text-red-500 text-xs mt-1 ml-2">{workerErrors.roomType}</p>}
         </div>
 
         {/* Fee Information (Full Price - No Discount) */}
@@ -1033,12 +1041,14 @@ const StudentManagement = () => {
         <div className="w-full px-2">
           <label className="block mb-1 text-black ml-2" style={labelStyle}>Emergency Contact Number</label>
           <input type="tel" name="emergencyContactNumber" value={workerFormData.emergencyContactNumber} onChange={handleWorkerInputChange} placeholder="Enter Contact Number" className="w-full px-4 text-black font-semibold text-[12px] font-[Poppins]" style={inputStyle} />
+          {workerErrors.emergencyContactNumber && <p className="text-red-500 text-xs mt-1 ml-2">{workerErrors.emergencyContactNumber}</p>}
         </div>
 
         {/* Emergency Contact Name */}
         <div className="w-full px-2">
           <label className="block mb-1 text-black ml-2" style={labelStyle}>Emergency Contact Name</label>
           <input type="text" name="emergencyContactName" value={workerFormData.emergencyContactName} onChange={handleWorkerInputChange} placeholder="Enter Name" className="w-full px-4 text-black font-semibold text-[12px] font-[Poppins]" style={inputStyle} />
+          {workerErrors.emergencyContactName && <p className="text-red-500 text-xs mt-1 ml-2">{workerErrors.emergencyContactName}</p>}
         </div>
 
         {/* Admission Date */}
