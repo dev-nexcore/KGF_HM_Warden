@@ -49,7 +49,7 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-screen overflow-y-auto no-scrollbar w-60 bg-[#A4B494] py-8 pl-5 flex flex-col justify-between rounded-tr-4xl shadow transform transition-transform duration-300 ease-in-out z-40 md:static md:translate-x-0 md:rounded-tr-4xl md:shadow ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed top-0 left-0 h-[100dvh] overflow-y-auto no-scrollbar w-60 bg-[#A4B494] py-8 pl-5 flex flex-col md:justify-between rounded-tr-4xl shadow transform transition-transform duration-300 ease-in-out z-40 md:static md:translate-x-0 md:rounded-tr-4xl md:shadow ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
       >
         {/* Close on mobile */}
