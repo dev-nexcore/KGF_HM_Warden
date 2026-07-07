@@ -20,6 +20,12 @@ export default function Sidebar() {
     setSidebarOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    const handleToggle = () => setSidebarOpen(prev => !prev);
+    window.addEventListener("toggleSidebar", handleToggle);
+    return () => window.removeEventListener("toggleSidebar", handleToggle);
+  }, []);
+
   const getLinkClass = (href) =>
     `flex items-center gap-2 py-3 px-4 rounded-l-3xl text-sm transition ${pathname.startsWith(href)
       ? "bg-white text-black font-semibold"
@@ -39,20 +45,7 @@ export default function Sidebar() {
     <div className="bg-[#BEC5AD] h-screen sticky top-0 z-100 ">
       <ToastContainer position="top-right" autoClose={3000} />
 
-      {/* Hamburger */}
-      {!sidebarOpen && (
-        <button
-          aria-label="Open sidebar"
-          className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-[#A4B494] text-black shadow-md"
-          onClick={() => setSidebarOpen(true)}
-        >
-          <div className="space-y-1.5">
-            <span className="block w-6 h-0.5 bg-black"></span>
-            <span className="block w-6 h-0.5 bg-black"></span>
-            <span className="block w-6 h-0.5 bg-black"></span>
-          </div>
-        </button>
-      )}
+      {/* Mobile Menu Button handled by Navbar */}
 
       {/* Sidebar */}
       <aside

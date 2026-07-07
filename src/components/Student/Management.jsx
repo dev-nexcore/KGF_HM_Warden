@@ -1614,9 +1614,11 @@ const StudentManagement = () => {
                           )}
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
+                      {/* Card Details */}
+                      <div className="mt-3 space-y-3 text-sm">
+                        {/* Row 1: Approval Status */}
                         <div>
-                          <p className="text-xs text-gray-500 font-semibold mb-0.5">Approval Status</p>
+                          <p className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-1">Approval Status</p>
                           {s.isRejected ? (
                             <div className="flex flex-col items-start gap-1">
                               <span className="text-[10px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-md">Rejected</span>
@@ -1628,37 +1630,47 @@ const StudentManagement = () => {
                             <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-md">Approved</span>
                           )}
                         </div>
-                        <div className="flex justify-between items-center gap-2">
-                          <div className="flex-1 bg-gray-50 rounded-lg px-3 py-2">
+
+                        {/* Row 2: Room & Type side by side */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="bg-gray-50 rounded-lg px-3 py-2">
                             <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Room / Bed</span>
                             <p className="text-black font-semibold text-xs mt-0.5">{s.room}</p>
                           </div>
-                          <div className="flex-1 bg-gray-50 rounded-lg px-3 py-2">
+                          <div className="bg-gray-50 rounded-lg px-3 py-2">
                             <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Type</span>
                             <p className="text-black font-semibold text-xs mt-0.5">{s.roomType ? `${s.roomType} Bed` : "-"}</p>
                           </div>
                         </div>
-                        <div className="flex justify-between items-center px-1">
-                          <div>
+
+                        {/* Row 3: Contact & Monthly Fee */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="bg-gray-50 rounded-lg px-3 py-2">
                             <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Contact</span>
-                            <p className="text-black text-xs font-medium">{s.contact}</p>
+                            <p className="text-black text-xs font-medium mt-0.5">{s.contact}</p>
                           </div>
-                          <div className="text-center">
+                          <div className="bg-gray-50 rounded-lg px-3 py-2">
                             <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Monthly Fee</span>
-                            <p className="text-blue-700 font-bold text-xs">{s.monthlyFee}</p>
+                            <p className="text-blue-700 font-bold text-xs mt-0.5">{s.monthlyFee}</p>
                           </div>
-                          <div className="text-right">
+                        </div>
+
+                        {/* Row 4: Fee Status & Dues */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                            <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Fee Status</span>
+                            <span style={getFeeStatusStyle(s.feeStatus)} className="text-[10px]">{s.feeStatus}</span>
+                          </div>
+                          <div className="bg-gray-50 rounded-lg px-3 py-2">
                             <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Dues</span>
-                            <p className="text-red-600 font-bold text-sm">{s.dues}</p>
+                            <p className="text-red-600 font-bold text-xs mt-0.5">{s.dues}</p>
                           </div>
                         </div>
-                        <div className="flex justify-between items-center pt-1 border-t border-gray-100">
-                          <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Fee Status</span>
-                          <span style={getFeeStatusStyle(s.feeStatus)} className="text-[10px]">{s.feeStatus}</span>
-                        </div>
-                        <div className="flex justify-between items-center pt-1 border-t border-gray-100">
+
+                        {/* Row 5: Biometric */}
+                        <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
                           <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Biometric</span>
-                          <span className="text-[10px]">
+                          <span className="text-xs font-medium">
                             {s.isAddedToBiometric ? "✅ Added" : "❌ Pending"}
                           </span>
                         </div>
