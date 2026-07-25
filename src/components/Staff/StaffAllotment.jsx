@@ -254,10 +254,11 @@ const staffStats = [
   
 
   const validateStaffForm = (data) => {
-    if (!data.firstName.trim() || !/^[A-Za-z\s]+$/.test(data.firstName)) return "First Name must contain only letters and is required.";
-    if (!data.lastName.trim() || !/^[A-Za-z\s]+$/.test(data.lastName)) return "Last Name must contain only letters and is required.";
-    if (!data.emailId.trim() || !/\s+@\s+\.\s+/.test(data.emailId)) return "Valid Email is required.";
-    if (data.salary === "" || Number(data.salary) < 0) return "Salary Amount cannot be negative.";
+    if (!data.firstName || !data.firstName.trim() || !/^[A-Za-z\s]+$/.test(data.firstName)) return "First Name must contain only letters and is required.";
+    if (!data.lastName || !data.lastName.trim() || !/^[A-Za-z\s]+$/.test(data.lastName)) return "Last Name must contain only letters and is required.";
+    const email = data.emailId || data.email || "";
+    if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) return "Valid Email is required.";
+    if (data.salary === "" || data.salary === undefined || data.salary === null || Number(data.salary) < 0) return "Salary Amount cannot be negative.";
     return null;
   };
 
