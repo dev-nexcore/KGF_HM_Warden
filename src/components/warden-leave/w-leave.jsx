@@ -26,6 +26,7 @@ export default function LeaveRequestsDashboard() {
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [stats, setStats] = useState([]);
   const [selectedLeave, setSelectedLeave] = useState(null);
+  const [rejectReason, setRejectReason] = useState("");
   const [actionPopup, setActionPopup] = useState({ id: null, type: null });
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -123,15 +124,17 @@ export default function LeaveRequestsDashboard() {
         );
         toast.success("Leave request approved successfully.", { autoClose: 3000 });
       } else if (type === "rejected") {
+        if (!rejectReason.trim()) { toast.error("Rejection reason is required"); return; }
         await axios.put(
           `${API_BASE}/${id}/status`,
-          { status: "rejected" },
+          { status: "rejected", wardenComments: rejectReason },
           { headers: { Authorization: `Bearer ${localStorage.getItem("wardenToken")}` } }
         );
         toast.success("❌ Leave request rejected successfully.", { autoClose: 3000 });
       }
 
       setActionPopup({ id: null, type: null });
+      setRejectReason("");
       fetchFilteredLeaves();
       fetchStats();
     } catch (err) {
@@ -636,6 +639,33 @@ export default function LeaveRequestsDashboard() {
                     {selectedLeave.reason || <span className="text-gray-400 italic">No reason provided.</span>}
                   </div>
                 </div>
+
+                {selectedLeave.parentComment && (
+                  <div className="md:col-span-2">
+                    <p className="text-xs font-bold text-purple-500 uppercase tracking-wider mb-2">Parent Feedback</p>
+                    <div className="text-sm font-medium text-purple-800 bg-purple-50 px-4 py-3.5 rounded-xl border border-purple-200 shadow-sm whitespace-pre-wrap italic">
+                      "{selectedLeave.parentComment}"
+                    </div>
+                  </div>
+                )}
+
+                {selectedLeave.wardenComments && (
+                  <div className="md:col-span-2">
+                    <p className="text-xs font-bold text-blue-500 uppercase tracking-wider mb-2">Warden Feedback</p>
+                    <div className="text-sm font-medium text-blue-800 bg-blue-50 px-4 py-3.5 rounded-xl border border-blue-200 shadow-sm whitespace-pre-wrap italic">
+                      "{selectedLeave.wardenComments}"
+                    </div>
+                  </div>
+                )}
+
+                {selectedLeave.status?.toLowerCase().includes("rejected") && selectedLeave.adminComments && (
+                  <div className="md:col-span-2">
+                    <p className="text-xs font-bold text-red-500 uppercase tracking-wider mb-2">Admin Rejection Feedback</p>
+                    <div className="text-sm font-medium text-red-800 bg-red-50 px-4 py-3.5 rounded-xl border border-red-200 shadow-sm whitespace-pre-wrap italic">
+                      "{selectedLeave.adminComments}"
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             
@@ -654,24 +684,43 @@ export default function LeaveRequestsDashboard() {
 
       {/* Confirm Action Popup */}
       {actionPopup.id && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg max-w-sm w-full shadow-lg text-center">
-            <h2 className="text-lg font-semibold mb-4">Confirm {actionPopup.type}</h2>
-            <p>Are you sure you want to <strong>{actionPopup.type}</strong> this leave request?</p>
-            <div className="mt-6 flex justify-center gap-4">
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white p-6 rounded-2xl max-w-sm w-full shadow-2xl text-center">
+            <h2 className="text-lg font-bold mb-2">Confirm {actionPopup.type.replace('_', ' ')}</h2>
+            <p className="text-sm text-gray-500 mb-6">Are you sure you want to <strong>{actionPopup.type.replace('_', ' ')}</strong> this leave request?</p>
+            
+            {actionPopup.type === "rejected" && (
+              <div className="mb-6 text-left">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-2">Rejection Reason</label>
+                <textarea
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none resize-y min-h-[80px]"
+                  placeholder="Enter reason for rejection..."
+                  value={rejectReason}
+                  onChange={e => setRejectReason(e.target.value)}
+                />
+              </div>
+            )}
+
+            <div className="flex justify-center gap-3">
               <button 
-                onClick={() => handleAction()} 
+                onClick={() => !isProcessing && (setActionPopup({ id: null, type: null }), setRejectReason(""))} 
                 disabled={isProcessing}
-                className={`px-4 py-2 rounded text-white ${isProcessing ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
+                className={`flex-1 px-4 py-2.5 rounded-xl font-bold transition-colors ${isProcessing ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
               >
-                {isProcessing ? "Processing..." : "Yes"}
+                Cancel
               </button>
               <button 
-                onClick={() => !isProcessing && setActionPopup({ id: null, type: null })} 
-                disabled={isProcessing}
-                className={`px-4 py-2 rounded ${isProcessing ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-300 hover:bg-gray-400'}`}
+                onClick={() => handleAction()} 
+                disabled={isProcessing || (actionPopup.type === "rejected" && !rejectReason.trim())}
+                className={`flex-1 px-4 py-2.5 rounded-xl font-bold transition-colors text-white ${
+                  isProcessing 
+                    ? 'bg-gray-300 cursor-not-allowed' 
+                    : actionPopup.type === "rejected"
+                      ? 'bg-red-500 hover:bg-red-600'
+                      : 'bg-green-500 hover:bg-green-600'
+                } disabled:opacity-50`}
               >
-                No
+                {isProcessing ? "Processing..." : "Confirm"}
               </button>
             </div>
           </div>
