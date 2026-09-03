@@ -101,34 +101,34 @@ export default function EmergencyContact() {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-10">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-10 font-[Poppins]">
       <Toaster position="top-right" reverseOrder={false} />
 
       {/* Header */}
       <section>
-        <div className="flex items-center mb-4">
-          <div className="w-1 h-7 bg-red-500 mr-3"></div>
-          <h2 className="text-xl font-bold">Contacts</h2>
+        <div className="flex items-center mb-6">
+          <div className="w-1.5 h-7 bg-[#BEC5AD] mr-3 rounded-full"></div>
+          <h2 className="text-2xl font-bold text-gray-800 tracking-tight">Contacts</h2>
         </div>
 
         {/* Search & Filter */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
           <div className="relative w-full md:w-1/2">
-            <FiSearch className="absolute top-3.5 left-3 text-gray-400" />
+            <FiSearch className="absolute top-3.5 left-4 text-gray-400" size={18} />
             <input
               type="text"
               placeholder="Search by ID or Name..."
-              className="w-full pl-10 pr-4 py-2 rounded-lg shadow focus:outline-none text-black bg-white"
+              className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 shadow-sm focus:ring-2 focus:ring-[#BEC5AD] outline-none text-sm font-medium transition-all"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <div className="flex gap-3 flex-wrap">
             <button
-              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-medium px-4 py-2 rounded-lg shadow"
+              className="flex items-center gap-2 bg-[#BEC5AD] hover:bg-[#a8b096] text-white font-semibold px-5 py-3 rounded-xl shadow-sm transition-all"
               onClick={handleClearFilter}
             >
-              <FiFilter />
+              <FiFilter size={18} />
               Clear Filter
             </button>
           </div>
@@ -321,10 +321,10 @@ export default function EmergencyContact() {
           </table>
         </div> */}
 
-        <div className="hidden md:block overflow-hidden rounded-2xl border border-gray-100 shadow-sm">
+        <div className="hidden md:block overflow-hidden rounded-[20px] shadow-sm border border-gray-200">
           <table className="min-w-full bg-white text-sm">
             <thead>
-              <tr className="bg-[#A4B494]/30 border-b border-[#A4B494]/40">
+              <tr className="bg-gradient-to-r from-[#BEC5AD] to-[#a8b096] text-white border-b border-[#BEC5AD]/40">
                 {["ID", "Name", "Contact Name", "Relation", "Phone No.", "Actions"].map((h) => (
                   <th key={h} className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
                     {h}
@@ -342,7 +342,7 @@ export default function EmergencyContact() {
                   {/* Student Name */}
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-[#A4B494]/30 flex items-center justify-center text-xs font-bold text-[#1a312a] shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-[#BEC5AD]/30 flex items-center justify-center text-xs font-bold text-[#1a312a] shrink-0">
                         {c.student?.charAt(0).toUpperCase()}
                       </div>
                       <span className="font-medium text-gray-800">{c.student}</span>
@@ -368,12 +368,12 @@ export default function EmergencyContact() {
                     {editingId === c.id ? (
                       <input
                         type="text"
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#A4B494] transition"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#BEC5AD] transition"
                         value={editValues.relation}
                         onChange={(e) => setEditValues({ ...editValues, relation: e.target.value })}
                       />
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#BEC5AD]/20 text-[#1a312a]">
                         {c.relation}
                       </span>
                     )}

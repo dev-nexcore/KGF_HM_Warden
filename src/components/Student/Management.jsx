@@ -2,7 +2,7 @@
 // export default StudentManagement;
 "use client";
 import { useState, useEffect } from "react";
-import { Eye, Info } from "lucide-react";
+import { Eye, Info, Pencil } from "lucide-react";
 import api from "@/lib/api";
 import Tesseract from "tesseract.js";
 import { ToastContainer, toast } from "react-toastify";
@@ -30,53 +30,45 @@ const StatCard = ({ icon, label, value, accent, isActive, onClick, total }) => {
   return (
     <button
       onClick={onClick}
-      className={`
-        group relative flex flex-col gap-3 rounded-2xl p-5 text-left
-        border-2 transition-all duration-200 cursor-pointer
-        ${isActive
-          ? "border-[#4F8CCF] bg-white shadow-lg scale-[1.02]"
-          : "border-transparent bg-[#D6DAC8] hover:bg-white hover:border-gray-300 hover:shadow-md hover:scale-[1.01]"}
-      `}
-      style={{ fontFamily: "Poppins" }}
+      className={`bg-white rounded-xl border transition-all duration-300 min-h-[140px] flex flex-col justify-between p-5 w-full text-left relative overflow-hidden group ${isActive
+          ? "border-[#4F8CCF] shadow-md ring-1 ring-[#4F8CCF]"
+          : "border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 hover:-translate-y-0.5"
+        }`}
     >
-      {/* Top row: icon + count */}
-      <div className="flex items-start justify-between">
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center"
-          style={{ background: `${accent}18` }}
-        >
-          <span style={{ color: accent }}>{icon}</span>
+      <div className="flex justify-between items-start w-full z-10">
+        <div>
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{label}</p>
+          <h3 className="text-3xl font-extrabold text-gray-800">{value}</h3>
         </div>
-        <span
-          className="text-3xl font-extrabold leading-none"
-          style={{ color: accent }}
+        <div
+          className="p-3 rounded-xl transition-all duration-300"
+          style={{
+            color: isActive ? '#fff' : accent,
+            backgroundColor: isActive ? accent : `${accent}15`
+          }}
         >
-          {value}
-        </span>
+          {icon}
+        </div>
       </div>
 
-      {/* Label */}
-      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider leading-snug">
-        {label}
-      </p>
+      {/* Decorative subtle background accent */}
+      <div className="absolute -right-4 -bottom-4 opacity-[0.04] transform group-hover:scale-125 transition-transform duration-500 pointer-events-none">
+        <div style={{ width: '100px', height: '100px', color: accent }}>{icon}</div>
+      </div>
 
-      {/* Mini progress bar (only when not "Total") */}
-      {label !== "Total Students" && (
-        <div className="w-full h-1 rounded-full bg-gray-200 overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${pct}%`, background: accent }}
-          />
-        </div>
-      )}
-
-      {/* Active indicator dot */}
-      {isActive && (
-        <span
-          className="absolute top-3 right-3 w-2 h-2 rounded-full"
-          style={{ background: accent }}
-        />
-      )}
+      <div className="w-full mt-4 z-10">
+        {label !== "Total Students" && label !== "Total Parents" && (
+          <>
+            <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-1000 ease-out"
+                style={{ width: `${pct}%`, background: accent }}
+              />
+            </div>
+            <p className="text-[10px] text-gray-400 mt-1.5 font-semibold text-right">{pct}% of total</p>
+          </>
+        )}
+      </div>
     </button>
   );
 };
@@ -657,11 +649,43 @@ const StudentManagement = () => {
     </svg>
   );
 
+  const DocumentPreviewBox = ({ fileData, docKey, label, studentIdOverride, isParent }) => {
+    if (!fileData || (!hasDocument(fileData) && !(fileData instanceof File))) return null;
+    const isFile = fileData instanceof File;
+    const objectId = studentIdOverride || (isParent ? editingParent?._id : editingStudent);
+    const url = isFile
+      ? URL.createObjectURL(fileData)
+      : (isParent
+        ? `${getParentDocumentUrl(objectId, docKey)}?token=${localStorage.getItem('wardenToken') || ''}`
+        : `${getDocumentUrl(objectId, docKey)}?token=${localStorage.getItem('wardenToken') || ''}`);
+    const name = isFile ? fileData.name : getDocumentName(fileData);
+
+    return (
+      <div className="mt-2 flex items-start gap-3 bg-white/50 p-2 rounded-lg border border-gray-100 shadow-sm">
+        <div
+          className="w-16 h-12 bg-white rounded border border-gray-200 overflow-hidden flex items-center justify-center cursor-pointer hover:border-[#4F8CCF] transition-colors flex-shrink-0"
+          onClick={() => window.open(url, "_blank")}
+        >
+          <img
+            src={url}
+            alt={`${label} Preview`}
+            className="w-full h-full object-contain"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.parentElement.innerHTML = '<div class="text-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mx-auto text-gray-400 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg><span class="text-[9px] text-gray-500 font-medium leading-tight block">File</span></div>';
+            }}
+          />
+        </div>
+        <div className="flex flex-col justify-center h-12 min-w-0">
+          <span className="text-[11px] text-green-700 font-medium truncate w-full" title={name}>✓ {name}</span>
+          <button type="button" onClick={() => window.open(url, "_blank")} className="text-[11px] text-[#4F8CCF] hover:text-blue-700 font-bold underline text-left mt-1">Open Full</button>
+        </div>
+      </div>
+    );
+  };
+
   const formContent = (isEditMode) => (
     <>
-      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-black mb-4 sm:mb-6" style={{ fontFamily: "Inter", fontWeight: "700" }}>
-        {isEditMode ? "Edit Student & Allot Bed" : "Register New Student & Allot Bed"}
-      </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
 
         {/* First Name */}
@@ -686,49 +710,44 @@ const StudentManagement = () => {
             {/* Aadhar */}
             <div>
               <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>Aadhar Card</label>
-              {studentDocuments.aadharCard && !(studentDocuments.aadharCard instanceof File) && hasDocument(studentDocuments.aadharCard) && (
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs text-green-700 font-medium">✓ {getDocumentName(studentDocuments.aadharCard)}</span>
-                  <button type="button" onClick={() => window.open(getDocumentUrl(editingStudent, "aadharCard"), "_blank")} className="text-xs text-blue-600 underline">View Uploaded</button>
-                </div>
-              )}
               <input type="file" accept="image/*" onChange={e => handleDocumentUpload(e, "aadhar", "student")} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" disabled={ocrLoading} />
-              {studentDocuments.aadharCard instanceof File && <p className="text-xs text-green-600 mt-1">✓ {studentDocuments.aadharCard.name}</p>}
+              <DocumentPreviewBox fileData={studentDocuments.aadharCard} docKey="aadharCard" label="Aadhar Card" />
             </div>
 
-            {/* College ID checkbox */}
-            <div className="flex items-center gap-3 pt-2">
-              <input type="checkbox" checked={!formData.hasCollegeId} onChange={e => setFormData(p => ({ ...p, hasCollegeId: !e.target.checked }))} className="w-4 h-4" />
-              <label className="text-sm font-medium text-black">College ID Card Not Received Yet</label>
-            </div>
-
-            {formData.hasCollegeId && (
+            {/* PAN Card (Worker Only) */}
+            {formData.isWorking && (
               <div>
-                <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>Student ID Card</label>
-                {studentDocuments.studentIdCard && !(studentDocuments.studentIdCard instanceof File) && hasDocument(studentDocuments.studentIdCard) && (
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs text-green-700 font-medium">✓ {getDocumentName(studentDocuments.studentIdCard)}</span>
-                    <button type="button" onClick={() => window.open(getDocumentUrl(editingStudent, "studentIdCard"), "_blank")} className="text-xs text-blue-600 underline">View Uploaded</button>
-                  </div>
-                )}
-                <input type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={e => setStudentDocuments(p => ({ ...p, studentIdCard: e.target.files[0] }))} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" />
-                {studentDocuments.studentIdCard instanceof File && <p className="text-xs text-green-600 mt-1">✓ {studentDocuments.studentIdCard.name}</p>}
+                <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>PAN Card</label>
+                <input type="file" accept="image/*" onChange={e => handleDocumentUpload(e, "pan", "student")} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" disabled={ocrLoading} />
+                <DocumentPreviewBox fileData={studentDocuments.panCard} docKey="panCard" label="PAN Card" />
               </div>
             )}
 
-            {!formData.hasCollegeId && (
-              <div>
-                <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>Fees Receipt</label>
-                {studentDocuments.feesReceipt && !(studentDocuments.feesReceipt instanceof File) && hasDocument(studentDocuments.feesReceipt) && (
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs text-green-700 font-medium">✓ {getDocumentName(studentDocuments.feesReceipt)}</span>
-                    <button type="button" onClick={() => window.open(getDocumentUrl(editingStudent, "feesReceipt"), "_blank")} className="text-xs text-blue-600 underline">View Uploaded</button>
+            {/* College ID checkbox */}
+            {!formData.isWorking && (
+              <>
+                <div className="flex items-center gap-3 pt-2">
+                  <input type="checkbox" checked={!formData.hasCollegeId} onChange={e => setFormData(p => ({ ...p, hasCollegeId: !e.target.checked }))} className="w-4 h-4" />
+                  <label className="text-sm font-medium text-black">College ID Card Not Received Yet</label>
+                </div>
+
+                {formData.hasCollegeId && (
+                  <div>
+                    <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>Student ID Card</label>
+                    <input type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={e => setStudentDocuments(p => ({ ...p, studentIdCard: e.target.files[0] }))} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" />
+                    <DocumentPreviewBox fileData={studentDocuments.studentIdCard} docKey="studentIdCard" label="Student ID Card" />
                   </div>
                 )}
-                <input type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={e => setStudentDocuments(p => ({ ...p, feesReceipt: e.target.files[0] }))} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" />
-                {studentDocuments.feesReceipt instanceof File && <p className="text-xs text-green-600 mt-1">✓ {studentDocuments.feesReceipt.name}</p>}
-                <p className="text-xs text-gray-600 mt-1">Temporary document until student gets college ID card</p>
-              </div>
+
+                {!formData.hasCollegeId && (
+                  <div>
+                    <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>Fees Receipt</label>
+                    <input type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={e => setStudentDocuments(p => ({ ...p, feesReceipt: e.target.files[0] }))} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" />
+                    <DocumentPreviewBox fileData={studentDocuments.feesReceipt} docKey="feesReceipt" label="Fees Receipt" />
+                    <p className="text-xs text-gray-600 mt-1">Temporary document until student gets college ID card</p>
+                  </div>
+                )}
+              </>
             )}
 
             {ocrLoading && (
@@ -863,7 +882,6 @@ const StudentManagement = () => {
 
   const parentFormContent = () => (
     <>
-      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-black mb-4 sm:mb-6" style={{ fontFamily: "Inter", fontWeight: "700" }}>Register Parent Account</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {[
           { name: "firstName", label: "First Name", type: "text", placeholder: "Enter First Name", error: parentErrors.firstName },
@@ -881,15 +899,18 @@ const StudentManagement = () => {
 
         {/* Parent docs */}
         <div className="w-full px-2 md:col-span-2">
-          <div className="bg-white/50 rounded-lg p-4 space-y-4">
+          <div className="bg-gray-50 border border-gray-100 rounded-lg p-4 space-y-4">
             <h3 className="font-semibold text-black mb-2">Upload Documents (Optional — Auto-fill with OCR)</h3>
-            {["aadhar", "pan"].map(type => (
-              <div key={type}>
-                <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>{type === "aadhar" ? "Aadhar Card" : "PAN Card"}</label>
-                <input type="file" accept="image/*" onChange={e => handleDocumentUpload(e, type, "parent")} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" disabled={ocrLoading} />
-                {parentDocuments[type === "aadhar" ? "aadharCard" : "panCard"] && <p className="text-xs text-green-600 mt-1">✓ {parentDocuments[type === "aadhar" ? "aadharCard" : "panCard"].name}</p>}
-              </div>
-            ))}
+            {["aadhar", "pan"].map(type => {
+              const docKey = type === "aadhar" ? "aadharCard" : "panCard";
+              return (
+                <div key={type}>
+                  <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>{type === "aadhar" ? "Aadhar Card" : "PAN Card"}</label>
+                  <input type="file" accept="image/*" onChange={e => handleDocumentUpload(e, type, "parent")} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" disabled={ocrLoading} />
+                  <DocumentPreviewBox fileData={parentDocuments[docKey]} docKey={docKey} label={type === "aadhar" ? "Aadhar Card" : "PAN Card"} isParent={true} />
+                </div>
+              );
+            })}
             {ocrLoading && (
               <div><div className="w-full bg-gray-200 rounded-full h-2"><div className="bg-blue-600 h-2 rounded-full" style={{ width: `${ocrProgress}%` }} /></div><p className="text-xs text-center mt-1">Processing... {ocrProgress}%</p></div>
             )}
@@ -920,23 +941,19 @@ const StudentManagement = () => {
 
   const workerFormContent = () => (
     <>
-      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-black mb-4 sm:mb-6" style={{ fontFamily: "Inter", fontWeight: "700" }}>
-        Register New Working Student
-      </h2>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
 
         {/* First Name */}
         <div className="w-full px-2">
           <label className="block mb-1 text-black ml-2" style={labelStyle}>First Name</label>
           <input type="text" name="firstName" value={workerFormData.firstName} onChange={handleWorkerInputChange} placeholder="Enter First Name" className="w-full px-4 text-black font-semibold text-[12px] font-[Poppins]" style={inputStyle} />
-          {workerErrors.firstName && <p className="text-red-500 text-xs mt-1 ml-2">{workerErrors.firstName}</p>}
         </div>
 
         {/* Last Name */}
         <div className="w-full px-2">
           <label className="block mb-1 text-black ml-2" style={labelStyle}>Last Name</label>
           <input type="text" name="lastName" value={workerFormData.lastName} onChange={handleWorkerInputChange} placeholder="Enter Last Name" className="w-full px-4 text-black font-semibold text-[12px] font-[Poppins]" style={inputStyle} />
-          {workerErrors.lastName && <p className="text-red-500 text-xs mt-1 ml-2">{workerErrors.lastName}</p>}
         </div>
 
         {/* Documents */}
@@ -946,13 +963,13 @@ const StudentManagement = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>Aadhar Card</label>
-                <input type="file" accept="image/*" onChange={e => handleDocumentUpload(e, "aadhar", "worker")} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" disabled={ocrLoading} />
-                {workerDocuments.aadharCard && <p className="text-xs text-green-600 mt-1">✓ {workerDocuments.aadharCard.name}</p>}
+                <input type="file" accept="image/*,.pdf" onChange={e => handleDocumentUpload(e, "aadhar", "worker")} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" disabled={ocrLoading} />
+                <DocumentPreviewBox fileData={workerDocuments.aadharCard} docKey="aadharCard" label="Aadhar Card" />
               </div>
               <div>
                 <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>PAN Card</label>
-                <input type="file" accept="image/*" onChange={e => handleDocumentUpload(e, "pan", "worker")} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" disabled={ocrLoading} />
-                {workerDocuments.panCard && <p className="text-xs text-green-600 mt-1">✓ {workerDocuments.panCard.name}</p>}
+                <input type="file" accept="image/*,.pdf" onChange={e => handleDocumentUpload(e, "pan", "worker")} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" disabled={ocrLoading} />
+                <DocumentPreviewBox fileData={workerDocuments.panCard} docKey="panCard" label="PAN Card" />
               </div>
             </div>
             {ocrLoading && (
@@ -965,14 +982,12 @@ const StudentManagement = () => {
         <div className="w-full px-2">
           <label className="block mb-1 text-black ml-2" style={labelStyle}>Contact Number</label>
           <input type="tel" name="contactNumber" value={workerFormData.contactNumber} onChange={handleWorkerInputChange} placeholder="Enter Phone Number" className="w-full px-4 text-black font-semibold text-[12px] font-[Poppins]" style={inputStyle} />
-          {workerErrors.contactNumber && <p className="text-red-500 text-xs mt-1 ml-2">{workerErrors.contactNumber}</p>}
         </div>
 
         {/* Email */}
         <div className="w-full px-2">
           <label className="block mb-1 text-black ml-2" style={labelStyle}>E-Mail</label>
           <input type="email" name="email" value={workerFormData.email} onChange={handleWorkerInputChange} placeholder="Enter E-Mail" className="w-full h-[40px] px-4 bg-white rounded-[10px] border-0 outline-none text-black font-semibold text-[12px] font-[Poppins]" style={inputStyle} />
-          {workerErrors.email && <p className="text-red-500 text-xs mt-1 ml-2">{workerErrors.email}</p>}
         </div>
         {/* Room Type */}
         <div className="w-full px-2">
@@ -986,7 +1001,6 @@ const StudentManagement = () => {
             </select>
             <ChevronDown />
           </div>
-          {workerErrors.roomType && <p className="text-red-500 text-xs mt-1 ml-2">{workerErrors.roomType}</p>}
         </div>
 
         {/* Fee Information (Full Price - No Discount) */}
@@ -1119,136 +1133,150 @@ const StudentManagement = () => {
   };
 
   const parentTable = () => (
-    <div className="w-full max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-black" style={{ fontFamily: "Inter" }}>Parent List</h2>
-      </div>
-
+    <>
       {/* Desktop Table */}
-      <div className="hidden md:block border border-black rounded-[19.6px] overflow-hidden">
-        <div className="bg-white text-black grid grid-cols-6 text-center font-bold text-[13px] py-3 border-b border-black">
-          <div className="relative border-r border-black/10 last:border-0">Parent Name</div>
-          <div className="relative border-r border-black/10 last:border-0">Contact</div>
-          <div className="relative border-r border-black/10 last:border-0">Relation</div>
-          <div className="relative border-r border-black/10 last:border-0">Student ID</div>
-          <div className="relative border-r border-black/10 last:border-0">Status</div>
-          <div>Action</div>
-        </div>
-        <div className="bg-[#BEC5AD] flex flex-col gap-y-2 p-2 min-h-[100px]">
-          {parents.length === 0 ? (
-            <div className="py-12 text-center text-gray-600 font-medium italic">No parents registered yet.</div>
-          ) : (
-            parents.map((p, i) => (
-              <div key={p._id} className="bg-white/40 rounded-xl grid grid-cols-6 text-center text-xs py-3 items-center border border-black/5 hover:bg-white/60 transition-colors">
-                <div className="font-bold text-black">{p.firstName} {p.lastName}</div>
-                <div className="text-black font-medium">{p.contactNumber}</div>
-                <div className="text-black">{p.relation}</div>
-                <div className="font-semibold text-blue-800">{p.studentId}</div>
-                <div className="flex flex-col justify-center items-center px-2">
-                  {p.isRejected ? (
-                    <>
-                      <span className="text-[10px] font-bold text-red-600 bg-red-100 px-2 py-1 rounded-md text-center w-full">Rejected</span>
-                      <span className="text-[8px] text-red-500 mt-1" title={p.rejectReason}>{p.rejectReason?.substring(0, 15)}{p.rejectReason?.length > 15 ? "..." : ""}</span>
-                    </>
-                  ) : p.isPendingApproval ? (
-                    <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-md text-center w-full">Pending</span>
-                  ) : (
-                    <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-1 rounded-md text-center w-full">Approved</span>
-                  )}
-                </div>
-                <div className="flex justify-center items-center gap-3">
-                  {p.isRejected ? (
-                    <button onClick={() => handleViewReason(p.rejectReason)} className="hover:scale-110 transition-transform text-red-500" title="View Reason"><Info size={22} strokeWidth={2.5} /></button>
-                  ) : p.isPendingApproval ? (
-                    <span className="text-[10px] italic text-gray-500">Wait Approval</span>
-                  ) : (
-                    <>
-                      <button onClick={() => handleParentView(p)} className="hover:scale-110 transition-transform text-black" title="View Details"><Eye size={18} /></button>
-                      <div className="w-px h-4 bg-black/20" />
-                      <button onClick={() => handleParentEdit(p)} className="hover:scale-110 transition-transform text-black" title="Edit Parent">
-                        <svg width="18" height="18" viewBox="0 0 27 26" fill="none"><mask id={`mp${i}`} style={{ maskType: "alpha" }} maskUnits="userSpaceOnUse" x="0" y="0" width="27" height="26"><rect x=".678" y=".025" width="25.736" height="25.736" fill="#D9D9D9" /></mask><g mask={`url(#mp${i})`}><path d="M2.824 25.761V21.472h21.446v4.289H2.824ZM7.113 17.182h1.501l8.364-8.337-1.528-1.528-8.337 8.365v1.5ZM4.968 19.327V14.77l12.01-11.983c.197-.197.425-.348.683-.462.26-.113.532-.17.818-.17.286 0 .563.057.831.17.268.107.51.268.725.482l1.474 1.501c.215.197.371.429.469.697.098.268.147.545.147.831 0 .268-.049.504-.147.763-.098.26-.254.497-.469.712L9.526 19.327H4.968Z" fill="currentColor" /></g></svg>
-                      </button>
-                      <div className="w-px h-4 bg-black/20" />
-                      <button onClick={() => handleDeleteParent(p._id)} className="hover:scale-110 transition-transform text-red-600" title="Delete Parent">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Mobile Cards for Parents */}
-      <div className="md:hidden space-y-3">
-        {parents.length === 0 ? (
-          <div className="py-8 text-center text-gray-600 font-medium italic">No parents registered yet.</div>
-        ) : (
-          parents.map((p, i) => (
-            <div key={p._id} className="bg-white rounded-xl p-4 border border-black/10 shadow-sm">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h3 className="font-bold text-black">{p.firstName} {p.lastName}</h3>
-                  <p className="text-xs text-blue-800 font-semibold mt-0.5">ID: {p.studentId}</p>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  {p.isRejected ? (
-                    <span className="text-[10px] font-bold text-red-600 bg-red-100 px-2 py-1 rounded-md text-center">Rejected</span>
-                  ) : p.isPendingApproval ? (
-                    <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-md text-center">Pending</span>
-                  ) : (
-                    <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-1 rounded-md text-center">Approved</span>
-                  )}
-                  <div className="flex gap-2">
+      <div className="hidden lg:block overflow-x-auto p-4">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="border-b-2 border-gray-200">
+              {["Sr No", "Parent Name", "Contact", "Relation", "Student ID", "Status", "Action"].map((h) => (
+                <th key={h} className="px-4 py-3 text-sm font-semibold text-gray-700">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {parents.length === 0 && (
+              <tr>
+                <td colSpan="7" className="text-center py-12 text-gray-500 text-lg">
+                  No parents registered yet.
+                </td>
+              </tr>
+            )}
+            {parents.map((p, i) => (
+              <tr key={p._id} className="bg-white border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <td className="px-4 py-3 text-sm text-gray-600 font-bold whitespace-nowrap">{i + 1}</td>
+                <td className="px-4 py-3 text-sm text-gray-600 font-bold whitespace-nowrap">{p.firstName} {p.lastName}</td>
+                <td className="px-4 py-3 text-sm text-gray-600 font-medium whitespace-nowrap">{p.contactNumber}</td>
+                <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{p.relation}</td>
+                <td className="px-4 py-3 text-sm font-semibold text-blue-800 whitespace-nowrap">{p.studentId}</td>
+                <td className="px-4 py-3 text-sm whitespace-nowrap">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${p.isRejected ? 'bg-red-100 text-red-800' : p.isPendingApproval
+                      ? 'bg-orange-100 text-orange-800'
+                      : 'bg-green-100 text-green-800'
+                    }`}>
+                    {p.isRejected ? "Rejected" : p.isPendingApproval ? "Pending" : "Approved"}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-sm whitespace-nowrap">
+                  <div className="flex items-center gap-3">
                     {p.isRejected ? (
-                      <button onClick={() => handleViewReason(p.rejectReason)} className="p-2 bg-red-50 rounded-lg text-red-500" title="View Reason"><Info size={16} /></button>
+                      <>
+                        <button onClick={() => handleParentView(p)} className="text-blue-600 hover:text-blue-800 transition-colors" title="View Details"><Eye size={18} /></button>
+                        <div className="w-px h-4 bg-gray-300" />
+                        <button onClick={() => handleViewReason(p.rejectReason)} className="text-red-600 hover:text-red-800 transition-colors" title="View Reason"><Info size={18} /></button>
+                        <div className="w-px h-4 bg-gray-300" />
+                        <button onClick={() => handleDeleteParent(p._id)} className="text-red-500 hover:text-red-700 transition-colors" title="Delete Parent"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg></button>
+                      </>
                     ) : p.isPendingApproval ? (
-                      <span className="text-[10px] italic text-gray-500 py-2">Wait Approval</span>
+                      <>
+                        <button onClick={() => handleParentView(p)} className="text-blue-600 hover:text-blue-800 transition-colors" title="View Details"><Eye size={18} /></button>
+                        <div className="w-px h-4 bg-gray-300" />
+                        <button onClick={() => handleDeleteParent(p._id)} className="text-red-500 hover:text-red-700 transition-colors" title="Delete Parent"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg></button>
+                      </>
                     ) : (
                       <>
-                        <button onClick={() => handleParentView(p)} className="p-2 bg-gray-100 rounded-lg"><Eye size={16} /></button>
-                        <button onClick={() => handleParentEdit(p)} className="p-2 bg-gray-100 rounded-lg text-black">
-                          <svg width="16" height="16" viewBox="0 0 27 26" fill="none"><path d="M2.824 25.761V21.472h21.446v4.289H2.824ZM7.113 17.182h1.501l8.364-8.337-1.528-1.528-8.337 8.365v1.5ZM4.968 19.327V14.77l12.01-11.983c.197-.197.425-.348.683-.462.26-.113.532-.17.818-.17.286 0 .563.057.831.17.268.107.51.268.725.482l1.474 1.501c.215.197.371.429.469.697.098.268.147.545.147.831 0 .268-.049.504-.147.763-.098.26-.254.497-.469.712L9.526 19.327H4.968Z" fill="currentColor" /></svg>
+                        <button onClick={() => handleParentView(p)} className="text-blue-600 hover:text-blue-800 transition-colors" title="View Details"><Eye size={18} /></button>
+                        <button onClick={() => handleParentEdit(p)} className="text-blue-600 hover:text-blue-800 transition-colors" title="Edit Parent"><Pencil size={18} /></button>
+                        <button onClick={() => handleDeleteParent(p._id)} className="text-red-500 hover:text-red-700 transition-colors" title="Delete Parent">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
                         </button>
-                        <button onClick={() => handleDeleteParent(p._id)} className="p-2 bg-red-50 rounded-lg text-red-600"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg></button>
                       </>
                     )}
                   </div>
-                </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile view logic */}
+      <div className="lg:hidden p-4 space-y-4">
+        {parents.length === 0 ? (
+          <p className="text-center text-gray-500 py-8">No parents registered yet.</p>
+        ) : (
+          parents.map((p, i) => (
+            <div key={p._id} className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 relative">
+              <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
+                <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${p.isRejected ? 'bg-red-100 text-red-800' : p.isPendingApproval
+                    ? 'bg-orange-100 text-orange-800'
+                    : 'bg-green-100 text-green-800'
+                  }`}>
+                  {p.isRejected ? "Rejected" : p.isPendingApproval ? "Pending" : "Approved"}
+                </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <p className="text-gray-500">Contact</p>
-                  <p className="font-medium">{p.contactNumber}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Relation</p>
-                  <p className="font-medium">{p.relation}</p>
-                </div>
+              <div className="mb-2">
+                <span className="text-xs font-semibold text-gray-500">Name:</span>
+                <span className="ml-2 text-sm text-gray-700 font-bold">{p.firstName} {p.lastName}</span>
+              </div>
+              <div className="mb-2">
+                <span className="text-xs font-semibold text-gray-500">ID:</span>
+                <span className="ml-2 text-sm text-gray-800 font-medium">{p.studentId}</span>
+              </div>
+              <div className="mb-2">
+                <span className="text-xs font-semibold text-gray-500">Contact:</span>
+                <span className="ml-2 text-sm text-gray-700">{p.contactNumber}</span>
+              </div>
+              <div className="mb-2 flex items-center">
+                <span className="text-xs font-semibold text-gray-500">Relation:</span>
+                <span className="ml-2 text-sm text-gray-700 font-medium">{p.relation}</span>
+              </div>
+              <div className="flex gap-3 mt-3 pt-2 border-t border-gray-200">
+                {p.isRejected ? (
+                  <>
+                    <button onClick={() => handleParentView(p)} className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors text-sm"><Eye size={16} /> View</button>
+                    <button onClick={() => handleViewReason(p.rejectReason)} className="flex items-center gap-1 text-red-600 hover:text-red-800 transition-colors text-sm"><Info size={16} /> Reason</button>
+                    <button onClick={() => handleDeleteParent(p._id)} className="flex items-center gap-1 text-red-500 hover:text-red-700 transition-colors text-sm"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg></button>
+                  </>
+                ) : p.isPendingApproval ? (
+                  <>
+                    <button onClick={() => handleParentView(p)} className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors text-sm"><Eye size={16} /> View</button>
+                    <button onClick={() => handleDeleteParent(p._id)} className="flex items-center gap-1 text-red-500 hover:text-red-700 transition-colors text-sm"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg></button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => handleParentView(p)} className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors text-sm"><Eye size={16} /> View</button>
+                    <button onClick={() => handleParentEdit(p)} className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors text-sm"><Pencil size={16} /> Edit</button>
+                    <button onClick={() => handleDeleteParent(p._id)} className="flex items-center gap-1 text-red-500 hover:text-red-700 transition-colors text-sm"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg></button>
+                  </>
+                )}
               </div>
             </div>
           ))
         )}
       </div>
-    </div>
+    </>
   );
 
   // ── RENDER ─────────────────────────────────────────────────────────────────
   return (
-    <div className="bg-white min-h-screen" style={{ fontFamily: "Poppins", fontWeight: "500" }}>
-      <div className="p-4 sm:p-6 lg:p-10">
+    <div className="pl-1 pr-2 sm:pl-2 sm:pr-4 bg-white min-h-screen mt-4 font-sans">
+      <div className="w-full">
 
         {/* ── Header ── */}
-        <div className="w-full max-w-7xl mx-auto mb-6 px-4">
-          <h1 className="text-[25px] leading-[25px] font-extrabold text-black text-left" style={{ fontFamily: "Inter" }}>
-            <span className="border-l-4 border-[#4F8CCF] pl-2 inline-flex items-center h-[25px]">Student Management</span>
-          </h1>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-7">
+          <div className="flex items-center">
+            <div className="h-6 w-1 bg-[#4F8CCF] mr-2"></div>
+            <h1 className="text-[25px] leading-[25px] font-extrabold text-black flex items-center" style={{ fontFamily: "Inter" }}>
+              Student Management
+            </h1>
+          </div>
         </div>
 
         {/* ── STATS CARDS (TOP) ── */}
-        <div className="w-full max-w-7xl mx-auto mb-8 px-4">
+        <div className="w-full mb-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {STAT_CARDS.map(card => (
               <StatCard
@@ -1279,7 +1307,7 @@ const StudentManagement = () => {
 
         {/* ── Registration Tabs ── */}
         {!editingStudent && (
-          <div className="w-full max-w-7xl mx-auto mb-10">
+          <div className="w-full mb-10">
             {/* Desktop Tabs */}
             <div className="hidden sm:flex mb-4 gap-3 overflow-x-auto pb-2 custom-scrollbar whitespace-nowrap">
               {["student", "parent", "worker"].map(tab => (
@@ -1306,19 +1334,37 @@ const StudentManagement = () => {
                 </svg>
               </div>
             </div>
-            <div className="bg-[#BEC5AD] rounded-[20px] p-4 sm:p-6 lg:p-8" style={{ boxShadow: "0px 4px 20px 0px #00000040 inset" }}>
-              {activeTab === "student" ? formContent(false) : activeTab === "parent" ? parentFormContent() : workerFormContent()}
+            <div className="bg-[#f4f6f0] rounded-2xl shadow-lg overflow-hidden mb-6 border border-[#BEC5AD]/30">
+              <div className="bg-gradient-to-r from-[#BEC5AD] to-[#a8b096] px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                <div>
+                  <h2 className="text-xl font-semibold text-black">
+                    {activeTab === "student" ? "Register New Student & Allot Bed" : activeTab === "parent" ? "Register Parent Account" : "Register New Worker"}
+                  </h2>
+                </div>
+              </div>
+              <div className="p-4 sm:p-6 lg:p-8">
+                {activeTab === "student" ? formContent(false) : activeTab === "parent" ? parentFormContent() : workerFormContent()}
+              </div>
             </div>
           </div>
         )}
         {/* ── Edit Modal ── */}
         {showEditModal && editingStudent && (
           <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 p-4">
-            <div className="bg-[#BEC5AD] rounded-[20px] p-4 sm:p-6 lg:p-8 w-full max-w-2xl relative max-h-[90vh] overflow-y-auto" style={{ boxShadow: "0px 4px 20px 0px #00000040 inset" }}>
-              <button onClick={resetForm} className="absolute top-4 right-4 text-black hover:text-gray-700 cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-              {formContent(true)}
+            <div className="bg-[#f4f6f0] rounded-2xl shadow-xl overflow-hidden w-full max-w-2xl relative flex flex-col border border-[#BEC5AD]/30" style={{ fontFamily: "Inter", maxHeight: '90vh' }}>
+              
+              {/* Header */}
+              <div className="bg-gradient-to-r from-[#BEC5AD] to-[#a8b096] px-6 py-4 flex justify-between items-center shrink-0">
+                <h2 className="text-xl font-semibold text-black">{formData.isWorking ? "Edit Worker Details" : "Edit Student & Allot Bed"}</h2>
+                <button onClick={resetForm} className="text-black/70 hover:text-black transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-6 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                {formContent(true)}
+              </div>
             </div>
           </div>
         )}
@@ -1326,87 +1372,88 @@ const StudentManagement = () => {
         {/* ── Details Modal ── */}
         {showDetailsModal && studentDetailsData && (
           <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 p-4">
-            <div className="bg-[#BEC5AD] rounded-[20px] p-4 sm:p-6 lg:p-8 w-full max-w-2xl relative max-h-[90vh] overflow-y-auto" style={{ boxShadow: "0px 4px 20px 0px #00000040 inset" }}>
-              <button onClick={() => { setShowDetailsModal(false); setStudentDetailsData(null); }} className="absolute top-4 right-4 text-black hover:text-gray-700 cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-              <h2 className="text-xl font-bold text-black mb-6" style={{ fontFamily: "Inter" }}>Student Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-black">
+            <div className="bg-[#f4f6f0] rounded-2xl shadow-xl overflow-hidden w-full max-w-2xl relative flex flex-col border border-[#BEC5AD]/30" style={{ fontFamily: "Inter", maxHeight: '90vh' }}>
+              <div className="bg-gradient-to-r from-[#BEC5AD] to-[#a8b096] px-6 py-4 flex justify-between items-center shrink-0">
+                <h2 className="text-xl font-bold text-black" style={{ fontFamily: "Inter" }}>Student Details</h2>
+                <button onClick={() => { setShowDetailsModal(false); setStudentDetailsData(null); }} className="text-black/70 hover:text-black transition-colors cursor-pointer">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-4">
                 {[
-                  ["Student ID", studentDetailsData.isPendingApproval ? "Pending" : studentDetailsData.id],
-                  ["Student Name", studentDetailsData.name],
+                  [studentDetailsData.isWorking ? "Worker ID" : "Student ID", studentDetailsData.isPendingApproval ? "Pending" : studentDetailsData.id],
+                  [studentDetailsData.isWorking ? "Worker Name" : "Student Name", studentDetailsData.name],
                   ["Contact Number", studentDetailsData.contact],
                   ["Email", studentDetailsData.email || "N/A"],
                   ["Room/Bed", studentDetailsData.room],
                   ["Room Type", studentDetailsData.roomType ? `${studentDetailsData.roomType} Bed` : "N/A"],
                   ["Emergency Contact", studentDetailsData.emergencyContactNumber || "N/A"],
-                  ["Admission Date", studentDetailsData.admissionDate || "N/A"],
+                  ["Admission Date", studentDetailsData.admissionDate ? new Date(studentDetailsData.admissionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : "N/A"],
                   ["Emergency Contact Name", studentDetailsData.emergencyContactName || "N/A"],
+                  ["Relation", studentDetailsData.relation || "N/A"],
                 ].map(([k, v]) => (
                   <div key={k}>
-                    <p className="font-semibold text-sm text-gray-600 mb-0.5">{k}</p>
-                    <p className="font-medium text-black">{v}</p>
+                    <p className="text-sm font-semibold text-gray-700 mb-1">{k}</p>
+                    <p className="text-sm font-bold text-gray-800 break-all">{v}</p>
                   </div>
                 ))}
                 <div>
-                  <p className="font-semibold text-sm text-gray-600 mb-1">Fee Status</p>
+                  <p className="text-sm font-semibold text-gray-700 mb-1">Fee Status</p>
                   <span style={getFeeStatusStyle(studentDetailsData.feeStatus)}>{studentDetailsData.feeStatus}</span>
                 </div>
                 <div>
-                  <p className="font-semibold text-sm text-gray-600 mb-0.5">Dues</p>
-                  <p className="font-medium text-black">{studentDetailsData.dues}</p>
+                  <p className="text-sm font-semibold text-gray-700 mb-1">Dues</p>
+                  <p className="text-sm font-bold text-gray-800">{studentDetailsData.dues}</p>
                 </div>
               </div>
 
-              {/* Invoice History */}
-              <div className="mt-6 border-t border-black/20 pt-5">
-                <h3 className="text-base font-bold text-black mb-3" style={{ fontFamily: "Inter" }}>Invoice History</h3>
-                {invoicesLoading ? (
-                  <p className="text-sm text-gray-600 italic">Loading invoices...</p>
-                ) : studentInvoices.length > 0 ? (
-                  <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
-                    {studentInvoices.map(inv => (
-                      <div key={inv._id} className="flex justify-between items-center bg-white/40 p-2.5 rounded-lg border border-black/5 hover:bg-white/60 transition-colors">
-                        <div className="flex flex-col">
-                          <span className="text-xs font-bold text-black">{inv.invoiceType} - {inv.invoiceNumber}</span>
-                          <span className="text-[10px] text-gray-600">Due: {new Date(inv.dueDate).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex flex-col items-end">
-                          <span className="text-sm font-bold text-black">₹{inv.amount.toLocaleString()}</span>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${inv.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                            {inv.status.toUpperCase()}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500 italic">No invoices found for this student.</p>
-                )}
-              </div>
-
               {/* Documents */}
-              <div className="mt-6 border-t border-black/20 pt-5">
-                <h3 className="text-base font-bold text-black mb-3" style={{ fontFamily: "Inter" }}>Uploaded Documents</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {[["Aadhar Card", "aadharCard"], ["PAN Card", "panCard"], ["Student ID Card", "studentIdCard"], ["Fees Receipt", "feesReceipt"]].map(([label, key]) => (
-                    <div key={key} className="bg-white/50 rounded-lg p-3">
-                      <p className="font-semibold text-black text-sm mb-2">{label}</p>
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <h3 className="text-base font-bold text-gray-800 mb-4" style={{ fontFamily: "Inter" }}>Uploaded Documents</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {[["Aadhar Card", "aadharCard"], ["PAN Card", "panCard"], ["Student ID Card", "studentIdCard"], ["Fees Receipt", "feesReceipt"]]
+                    .filter(([_, key]) => !(studentDetailsData.id?.startsWith("STUW") && (key === "studentIdCard" || key === "feesReceipt")))
+                    .map(([label, key]) => (
+                    <div key={key} className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                      <p className="font-semibold text-gray-800 text-sm mb-3">{label}</p>
                       {hasDocument(studentDetailsData.documents?.[key]) ? (
-                        <button onClick={() => {
-                          const token = localStorage.getItem('adminToken');
-                          window.open(`${getDocumentUrl(studentDetailsData.id, key)}?token=${token}`, '_blank');
-                        }} className="px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xs font-semibold">View Document</button>
+                        <div className="flex flex-col gap-3">
+                          <div
+                            className="w-full h-28 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden flex items-center justify-center cursor-pointer hover:border-[#4F8CCF] transition-colors"
+                            onClick={() => {
+                              const token = localStorage.getItem('wardenToken');
+                              window.open(`${getDocumentUrl(studentDetailsData.id, key)}?token=${token}`, '_blank');
+                            }}
+                          >
+                            <img
+                              src={`${getDocumentUrl(studentDetailsData.id, key)}?token=${localStorage.getItem('wardenToken')}`}
+                              alt={label}
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.parentElement.innerHTML = '<div class="text-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg><span class="text-xs text-gray-500 font-medium leading-tight block">Document<br/>Click to view</span></div>';
+                              }}
+                            />
+                          </div>
+                          <button onClick={() => {
+                            const token = localStorage.getItem('wardenToken');
+                            window.open(`${getDocumentUrl(studentDetailsData.id, key)}?token=${token}`, '_blank');
+                          }} className="w-full py-2 bg-[#4F8CCF] text-white rounded-lg hover:bg-blue-600 transition-colors text-[11px] font-bold tracking-wide uppercase">Open Document</button>
+                        </div>
                       ) : (
-                        <p className="text-xs text-gray-500">Not uploaded</p>
+                        <div className="h-28 flex items-center justify-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                          <p className="text-xs text-gray-400 font-medium">Not uploaded</p>
+                        </div>
                       )}
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="flex justify-center mt-6">
-                <button onClick={() => { setShowDetailsModal(false); handleEdit(studentDetailsData.id); }} className="px-6 py-2 bg-white text-black rounded-[10px] shadow hover:bg-gray-200 transition-colors font-[Poppins] font-semibold text-[15px] cursor-pointer">Edit Student</button>
+              <div className="flex justify-center mt-8 border-t border-gray-200 pt-6">
+                <button onClick={() => { setShowDetailsModal(false); handleEdit(studentDetailsData.id); }} className="px-8 py-2.5 bg-[#4F8CCF] text-white rounded-xl shadow-md hover:bg-blue-600 transition-colors font-semibold text-[15px] cursor-pointer">Edit {studentDetailsData.isWorking ? "Worker" : "Student"}</button>
+              </div>
               </div>
             </div>
           </div>
@@ -1415,12 +1462,15 @@ const StudentManagement = () => {
         {/* ── Parent Details Modal ── */}
         {showParentDetailsModal && parentDetailsData && (
           <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 p-4">
-            <div className="bg-[#BEC5AD] rounded-[20px] p-4 sm:p-6 lg:p-8 w-full max-w-2xl relative max-h-[90vh] overflow-y-auto" style={{ boxShadow: "0px 4px 20px 0px #00000040 inset" }}>
-              <button onClick={() => { setShowParentDetailsModal(false); setParentDetailsData(null); }} className="absolute top-4 right-4 text-black hover:text-gray-700 cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-              <h2 className="text-xl font-bold text-black mb-6" style={{ fontFamily: "Inter" }}>Parent Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-black">
+            <div className="bg-[#f4f6f0] rounded-2xl shadow-xl overflow-hidden w-full max-w-2xl relative flex flex-col border border-[#BEC5AD]/30" style={{ fontFamily: "Inter", maxHeight: '90vh' }}>
+              <div className="bg-gradient-to-r from-[#BEC5AD] to-[#a8b096] px-6 py-4 flex justify-between items-center shrink-0">
+                <h2 className="text-xl font-bold text-black" style={{ fontFamily: "Inter" }}>Parent Details</h2>
+                <button onClick={() => { setShowParentDetailsModal(false); setParentDetailsData(null); }} className="text-black/70 hover:text-black transition-colors cursor-pointer">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-4">
                 {[
                   ["First Name", parentDetailsData.firstName],
                   ["Last Name", parentDetailsData.lastName],
@@ -1430,33 +1480,56 @@ const StudentManagement = () => {
                   ["Student ID", parentDetailsData.studentId],
                 ].map(([k, v]) => (
                   <div key={k}>
-                    <p className="font-semibold text-sm text-gray-600 mb-0.5">{k}</p>
-                    <p className="font-medium text-black">{v}</p>
+                    <p className="text-sm font-semibold text-gray-700 mb-1">{k}</p>
+                    <p className="text-sm font-bold text-gray-800 break-all">{v}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-6 border-t border-black/20 pt-5">
-                <h3 className="text-base font-bold text-black mb-3" style={{ fontFamily: "Inter" }}>Uploaded Documents</h3>
-                <div className="grid grid-cols-2 gap-3">
+              {/* Documents */}
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <h3 className="text-base font-bold text-gray-800 mb-4" style={{ fontFamily: "Inter" }}>Uploaded Documents</h3>
+                <div className="grid grid-cols-2 gap-4">
                   {[["Aadhar Card", "aadharCard"], ["PAN Card", "panCard"]].map(([label, key]) => (
-                    <div key={key} className="bg-white/50 rounded-lg p-3">
-                      <p className="font-semibold text-black text-sm mb-2">{label}</p>
+                    <div key={key} className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                      <p className="font-semibold text-gray-800 text-sm mb-3">{label}</p>
                       {hasDocument(parentDetailsData.documents?.[key]) ? (
-                        <button onClick={() => {
-                          const token = localStorage.getItem('wardenToken');
-                          window.open(`${getParentDocumentUrl(parentDetailsData._id, key)}?token=${token}`, '_blank');
-                        }} className="px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xs font-semibold">View Document</button>
+                        <div className="flex flex-col gap-3">
+                          <div
+                            className="w-full h-28 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden flex items-center justify-center cursor-pointer hover:border-[#4F8CCF] transition-colors"
+                            onClick={() => {
+                              const token = localStorage.getItem('wardenToken');
+                              window.open(`${getParentDocumentUrl(parentDetailsData._id, key)}?token=${token}`, '_blank');
+                            }}
+                          >
+                            <img
+                              src={`${getParentDocumentUrl(parentDetailsData._id, key)}?token=${localStorage.getItem('wardenToken')}`}
+                              alt={label}
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.parentElement.innerHTML = '<div class="text-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg><span class="text-xs text-gray-500 font-medium leading-tight block">Document<br/>Click to view</span></div>';
+                              }}
+                            />
+                          </div>
+                          <button onClick={() => {
+                            const token = localStorage.getItem('wardenToken');
+                            window.open(`${getParentDocumentUrl(parentDetailsData._id, key)}?token=${token}`, '_blank');
+                          }} className="w-full py-2 bg-[#4F8CCF] text-white rounded-lg hover:bg-blue-600 transition-colors text-[11px] font-bold tracking-wide uppercase">Open Document</button>
+                        </div>
                       ) : (
-                        <p className="text-xs text-gray-500">Not uploaded</p>
+                        <div className="h-28 flex items-center justify-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                          <p className="text-xs text-gray-400 font-medium">Not uploaded</p>
+                        </div>
                       )}
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="flex justify-center mt-6">
-                <button onClick={() => { setShowParentDetailsModal(false); handleParentEdit(parentDetailsData); }} className="px-6 py-2 bg-white text-black rounded-[10px] shadow hover:bg-gray-200 transition-colors font-[Poppins] font-semibold text-[15px] cursor-pointer">Edit Parent</button>
+              <div className="flex justify-center mt-8 border-t border-gray-200 pt-6">
+                <button onClick={() => { setShowParentDetailsModal(false); handleParentEdit(parentDetailsData); }} className="px-8 py-2.5 bg-[#4F8CCF] text-white rounded-xl shadow-md hover:bg-blue-600 transition-colors font-semibold text-[15px] cursor-pointer">Edit Parent</button>
+              </div>
               </div>
             </div>
           </div>
@@ -1465,11 +1538,14 @@ const StudentManagement = () => {
         {/* ── Parent Edit Modal ── */}
         {showParentEditModal && editingParent && (
           <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 p-4">
-            <div className="bg-[#BEC5AD] rounded-[20px] p-4 sm:p-6 lg:p-8 w-full max-w-2xl relative max-h-[90vh] overflow-y-auto" style={{ boxShadow: "0px 4px 20px 0px #00000040 inset" }}>
-              <button onClick={() => { setShowParentEditModal(false); setEditingParent(null); }} className="absolute top-4 right-4 text-black hover:text-gray-700 cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-              <h2 className="text-xl font-bold text-black mb-6" style={{ fontFamily: "Inter" }}>Edit Parent Details</h2>
+            <div className="bg-[#f4f6f0] rounded-2xl shadow-xl overflow-hidden w-full max-w-2xl relative flex flex-col border border-[#BEC5AD]/30" style={{ fontFamily: "Inter", maxHeight: '90vh' }}>
+              <div className="bg-gradient-to-r from-[#BEC5AD] to-[#a8b096] px-6 py-4 flex justify-between items-center shrink-0">
+                <h2 className="text-xl font-bold text-black" style={{ fontFamily: "Inter" }}>Edit Parent Details</h2>
+                <button onClick={() => { setShowParentEditModal(false); setEditingParent(null); }} className="text-black/70 hover:text-black transition-colors cursor-pointer">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="w-full px-2">
                   <label className="block mb-1 text-black ml-2" style={labelStyle}>First Name</label>
@@ -1492,188 +1568,175 @@ const StudentManagement = () => {
                   <label className="block mb-1 text-black ml-2" style={labelStyle}>Relation</label>
                   <input type="text" name="relation" value={parentFormData.relation} onChange={handleParentInputChange} className="w-full px-4 text-black font-semibold text-[12px]" style={inputStyle} />
                 </div>
-                <div className="w-full px-2">
-                  <label className="block mb-1 text-black ml-2" style={labelStyle}>Aadhar Card</label>
-                  <input type="file" accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf" onChange={(e) => handleDocumentUpload(e, 'aadhar', 'parent')} className="w-full px-4 text-black font-semibold text-[12px]" style={inputStyle} />
-                </div>
-                <div className="w-full px-2">
-                  <label className="block mb-1 text-black ml-2" style={labelStyle}>Pan Card</label>
-                  <input type="file" accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf" onChange={(e) => handleDocumentUpload(e, 'pan', 'parent')} className="w-full px-4 text-black font-semibold text-[12px]" style={inputStyle} />
+                <div className="w-full md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="w-full px-2">
+                    <label className="block mb-1 text-black ml-2" style={labelStyle}>Aadhar Card</label>
+                    <input type="file" accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf" onChange={(e) => handleDocumentUpload(e, 'aadhar', 'parent')} className="w-full px-4 text-black font-semibold text-[12px]" style={inputStyle} />
+                    <DocumentPreviewBox fileData={parentDocuments?.aadharCard} docKey="aadharCard" label="Aadhar Card" isParent={true} />
+                  </div>
+                  <div className="w-full px-2">
+                    <label className="block mb-1 text-black ml-2" style={labelStyle}>Pan Card</label>
+                    <input type="file" accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf" onChange={(e) => handleDocumentUpload(e, 'pan', 'parent')} className="w-full px-4 text-black font-semibold text-[12px]" style={inputStyle} />
+                    <DocumentPreviewBox fileData={parentDocuments?.panCard} docKey="panCard" label="Pan Card" isParent={true} />
+                  </div>
                 </div>
               </div>
               <div className="flex justify-center mt-6">
-                <button onClick={handleParentUpdate} disabled={loading} className="px-6 py-2 bg-white text-black rounded-[10px] shadow hover:bg-gray-200 transition-colors font-[Poppins] font-semibold text-[15px] cursor-pointer">
+                <button onClick={handleParentUpdate} disabled={loading} className="px-8 py-2.5 bg-[#4F8CCF] text-white rounded-xl shadow-md hover:bg-blue-600 transition-colors font-semibold text-[15px] cursor-pointer">
                   {loading ? "Updating..." : "Update Details"}
                 </button>
+              </div>
               </div>
             </div>
           </div>
         )}
 
         {/* ── Student List ── */}
-        <div id="student-list-section" className="w-full max-w-7xl mx-auto">
-          <div className="bg-[#BEC5AD] rounded-[20px] p-4 sm:p-6 lg:p-8 px-4 sm:px-0" style={{ boxShadow: "0px 4px 4px 0px #00000040 inset" }}>
+        <div id="student-list-section" className="w-full">
+          <div className="bg-[#f4f6f0] rounded-2xl shadow-lg overflow-hidden mb-6 border border-[#BEC5AD]/30">
+            <div className="bg-gradient-to-r from-[#BEC5AD] to-[#a8b096] px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+              <div>
+                <h2 className="text-xl font-semibold text-black">
+                  {activeTab === "parent" ? "Parent List" : activeTab === "worker" ? "Worker List" : "Student List"}
+                  {activeTab !== "parent" && activeFilter !== "All" && <span className="text-gray-800 text-sm ml-2 font-medium">— {activeFilter}</span>}
+                </h2>
+                <p className="text-sm text-gray-700 mt-1">Total: {activeTab === "parent" ? parents.length : filteredStudents.length} records</p>
+              </div>
+            </div>
+
             {activeTab === "parent" ? (
               parentTable()
             ) : (
               <>
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 px-4 sm:px-0">
-                  <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-black" style={{ fontFamily: "Inter" }}>
-                    {activeTab === "worker" ? "Worker List" : "Student List"}
-                    {activeFilter !== "All" && <span className="text-[#4F8CCF] text-lg ml-2 font-semibold">— {activeFilter}</span>}
-                  </h2>
-                </div>
-
                 {/* Desktop Table */}
-                <div className="hidden lg:block">
-                  <div className="border border-black rounded-[19.6px] overflow-hidden">
-                    <div className="bg-white text-black grid grid-cols-11 text-center">
-                      {["Student ID", "Name", "Room/Bed", "Type", "Fee", "Contact", "Fees Status", "Dues", "Biometric", "Status", "Action"].map((h, i) => (
-                        <div key={h} className="px-2 py-3 relative flex justify-center items-center" style={{ fontFamily: "Poppins", fontWeight: "600", fontSize: "13px" }}>
-                          <span className="w-full break-words">{h}</span>
-                          {i < 10 && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-5 border border-black" />}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="bg-[#BEC5AD] text-center text-sm flex flex-col gap-y-2 p-2 font-[Poppins] font-medium">
+                <div className="hidden lg:block overflow-x-auto p-4">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b-2 border-gray-200">
+                        {["Sr No", "Student ID", "Name", "Room/Bed", "Type", "Fee", "Contact", "Fees Status", "Dues", "Biometric", "Status", "Action"].map((h) => (
+                          <th key={h} className="px-4 py-3 text-sm font-semibold text-gray-700">
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
                       {currentStudents.length === 0 && (
-                        <div className="py-8 text-center text-gray-600 font-medium">No {activeTab === "worker" ? "workers" : "students"} found for this filter.</div>
+                        <tr>
+                          <td colSpan="12" className="text-center py-12 text-gray-500 text-lg">
+                            No {activeTab === "worker" ? "workers" : "students"} found.
+                          </td>
+                        </tr>
                       )}
                       {currentStudents.map((s, i) => (
-                        <div key={s.id} className="text-black grid grid-cols-11 items-center border-b border-black/10 last:border-0 pb-2">
-                          <div className="px-2 py-2 break-words text-xs">{s.isRejected ? "Rejected" : s.isPendingApproval ? "Pending" : s.id}</div>
-                          <div className="px-2 py-2 break-words text-xs font-bold">{s.name}</div>
-                          <div className="px-2 py-2 break-words leading-tight text-[10px]">{s.room}</div>
-                          <div className="px-2 py-2 text-[10px] break-words">{s.roomType ? `${s.roomType} Bed` : "-"}</div>
-                          <div className="px-2 py-2 text-[10px] font-bold text-blue-700">{s.monthlyFee}</div>
-                          <div className="px-2 py-2 text-[10px] break-words">{s.contact}</div>
-                          <div className="px-2 py-2 flex justify-center"><span style={getFeeStatusStyle(s.feeStatus)}>{s.feeStatus}</span></div>
-                          <div className="px-2 py-2">{s.dues}</div>
-                          <div className="px-2 py-2 flex justify-center">
-                            {s.isAddedToBiometric ? (
-                              <span className="text-green-600 font-bold" title="Added to Biometric">✅</span>
-                            ) : (
-                              <span className="text-red-500 font-bold" title="Not added to Biometric">❌</span>
-                            )}
-                          </div>
-                          <div className="px-2 py-2 flex flex-col justify-center items-center">
-                            {s.isRejected ? (
-                              <>
-                                <span className="text-[10px] font-bold text-red-600 bg-red-100 px-2 py-1 rounded-md text-center w-full">Rejected</span>
-                                <span className="text-[8px] text-red-500 mt-1" title={s.rejectReason}>{s.rejectReason.substring(0, 15)}{s.rejectReason.length > 15 ? "..." : ""}</span>
-                              </>
-                            ) : s.isPendingApproval ? (
-                              <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-md text-center w-full">Pending</span>
-                            ) : (
-                              <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-1 rounded-md text-center w-full">Approved</span>
-                            )}
-                          </div>
-                          <div className="px-2 py-2 flex justify-center gap-3">
-                            {s.isRejected ? (
-                              <button onClick={() => handleViewReason(s.rejectReason)} className="hover:scale-110 transition-transform text-red-500" title="View Reason"><Info size={22} strokeWidth={2.5} /></button>
-                            ) : s.isPendingApproval ? (
-                              <span className="text-[10px] italic text-gray-500">Wait Approval</span>
-                            ) : (
-                              <>
-                                <button onClick={() => handleViewDetails(s.id)} className="hover:scale-110 transition-transform" title="View Details"><Eye size={22} strokeWidth={2.5} /></button>
-                                <div className="w-px h-5 bg-black self-center" />
-                                <button onClick={() => handleEdit(s.id)} className="hover:scale-110 transition-transform" title="Edit Student">
-                                  <svg width="22" height="22" viewBox="0 0 27 26" fill="none"><mask id={`m${i}`} style={{ maskType: "alpha" }} maskUnits="userSpaceOnUse" x="0" y="0" width="27" height="26"><rect x=".678" y=".025" width="25.736" height="25.736" fill="#D9D9D9" /></mask><g mask={`url(#m${i})`}><path d="M2.824 25.761V21.472h21.446v4.289H2.824ZM7.113 17.182h1.501l8.364-8.337-1.528-1.528-8.337 8.365v1.5ZM4.968 19.327V14.77l12.01-11.983c.197-.197.425-.348.683-.462.26-.113.532-.17.818-.17.286 0 .563.057.831.17.268.107.51.268.725.482l1.474 1.501c.215.197.371.429.469.697.098.268.147.545.147.831 0 .268-.049.504-.147.763-.098.26-.254.497-.469.712L9.526 19.327H4.968Z" fill="#1C1B1F" /></g></svg>
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </div>
+                        <tr key={s.id} className="bg-white border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-3 text-sm text-gray-600 font-bold whitespace-nowrap">{indexOfFirstItem + i + 1}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600 font-medium whitespace-nowrap">{s.isRejected ? "Rejected" : s.isPendingApproval ? "Pending" : s.id}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600 font-bold whitespace-nowrap">{s.name}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{s.room}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{s.roomType ? `${s.roomType} Bed` : "-"}</td>
+                          <td className="px-4 py-3 text-sm font-bold text-blue-700 whitespace-nowrap">{s.monthlyFee}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{s.contact}</td>
+                          <td className="px-4 py-3 text-sm whitespace-nowrap">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${s.feeStatus === 'Paid' ? 'bg-green-100 text-green-800' :
+                                s.feeStatus === 'Unpaid' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-gray-100 text-gray-800'
+                              }`}>
+                              {s.feeStatus}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm font-bold text-red-500 whitespace-nowrap">{s.dues && s.dues !== "₹ 0/-" ? s.dues : "-"}</td>
+                          <td className="px-4 py-3 text-sm whitespace-nowrap">
+                            <span className="flex items-center gap-1 font-medium text-gray-700">
+                              {s.isAddedToBiometric ? "✅ Added" : "❌ Pending"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm whitespace-nowrap">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${s.isRejected ? 'bg-red-100 text-red-800' : s.isPendingApproval
+                                ? 'bg-orange-100 text-orange-800'
+                                : 'bg-green-100 text-green-800'
+                              }`}>
+                              {s.isRejected ? "Rejected" : s.isPendingApproval ? "Pending" : "Approved"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              {s.isRejected ? (
+                                <button onClick={() => handleViewReason(s.rejectReason)} className="text-red-500 hover:text-red-700 transition-colors" title="View Reason"><Info size={18} /></button>
+                              ) : s.isPendingApproval ? (
+                                <span className="text-xs italic text-gray-500">Wait Approval</span>
+                              ) : (
+                                <>
+                                  <button onClick={() => handleViewDetails(s.id)} title="View Details" className="text-blue-600 hover:text-blue-800 transition-colors"><Eye size={18} /></button>
+                                  <button onClick={() => handleEdit(s.id)} title="Edit Student" className="text-blue-600 hover:text-blue-800 transition-colors"><Pencil size={18} /></button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
                       ))}
-                    </div>
-                  </div>
+                    </tbody>
+                  </table>
                 </div>
 
-                {/* Mobile Cards */}
-                <div className="lg:hidden space-y-3">
-                  {currentStudents.length === 0 && <p className="text-center text-gray-600 py-8">No {activeTab === "worker" ? "workers" : "students"} found.</p>}
-                  {currentStudents.map((s, i) => (
-                    <div key={s.id} className="bg-white rounded-xl p-4 border border-black/10 shadow-sm">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-bold text-base text-black">{s.name}</h3>
-                          <p className="text-xs text-gray-500 mt-0.5">ID: {s.isRejected ? "Rejected" : s.isPendingApproval ? "Pending" : s.id}</p>
-                        </div>
-                        <div className="flex gap-2">
-                          {s.isRejected ? (
-                            <button onClick={() => handleViewReason(s.rejectReason)} className="p-2 bg-red-50 rounded-lg text-red-500" title="View Reason"><Info size={16} /></button>
-                          ) : s.isPendingApproval ? (
-                            <span className="text-xs italic text-gray-500 flex items-center">Wait Approval</span>
-                          ) : (
-                            <>
-                              <button onClick={() => handleViewDetails(s.id)} className="p-2 bg-[#BEC5AD] rounded-lg hover:bg-[#A4B494] transition-colors"><Eye size={16} /></button>
-                              <button onClick={() => handleEdit(s.id)} className="p-2 bg-[#BEC5AD] rounded-lg hover:bg-[#A4B494] transition-colors">
-                                <svg width="16" height="16" viewBox="0 0 27 26" fill="none"><mask id={`mm${i}`} style={{ maskType: "alpha" }} maskUnits="userSpaceOnUse" x="0" y="0" width="27" height="26"><rect x=".678" y=".025" width="25.736" height="25.736" fill="#D9D9D9" /></mask><g mask={`url(#mm${i})`}><path d="M2.824 25.761V21.472h21.446v4.289H2.824ZM7.113 17.182h1.501l8.364-8.337-1.528-1.528-8.337 8.365v1.5ZM4.968 19.327V14.77l12.01-11.983c.197-.197.425-.348.683-.462.26-.113.532-.17.818-.17.286 0 .563.057.831.17.268.107.51.268.725.482l1.474 1.501c.215.197.371.429.469.697.098.268.147.545.147.831 0 .268-.049.504-.147.763-.098.26-.254.497-.469.712L9.526 19.327H4.968Z" fill="#1C1B1F" /></g></svg>
-                              </button>
-                            </>
-                          )}
-                        </div>
+                {/* Mobile view logic */}
+                <div className="lg:hidden p-4 space-y-4">
+                  {currentStudents.length === 0 && <p className="text-center text-gray-500 py-8">No {activeTab === "worker" ? "workers" : "students"} found.</p>}
+                  {currentStudents.map((s) => (
+                    <div key={s.id} className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 relative">
+                      <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
+                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${s.isRejected ? 'bg-red-100 text-red-800' : s.isPendingApproval
+                            ? 'bg-orange-100 text-orange-800'
+                            : 'bg-green-100 text-green-800'
+                          }`}>
+                          {s.isRejected ? "Rejected" : s.isPendingApproval ? "Pending" : "Approved"}
+                        </span>
+                        <span className="text-[10px] font-medium text-gray-500 bg-white px-2 py-0.5 rounded-full border border-gray-200 shadow-sm">
+                          {s.isAddedToBiometric ? "✅ Bio" : "❌ Bio"}
+                        </span>
                       </div>
-                      {/* Card Details */}
-                      <div className="mt-3 space-y-3 text-sm">
-                        {/* Row 1: Approval Status */}
+                      <div className="mb-2">
+                        <span className="text-xs font-semibold text-gray-500">ID:</span>
+                        <span className="ml-2 text-sm text-gray-800 font-medium">{s.isRejected ? "Rejected" : s.isPendingApproval ? "Pending" : s.id}</span>
+                      </div>
+                      <div className="mb-2">
+                        <span className="text-xs font-semibold text-gray-500">Name:</span>
+                        <span className="ml-2 text-sm text-gray-700 font-bold">{s.name}</span>
+                      </div>
+                      <div className="mb-2">
+                        <span className="text-xs font-semibold text-gray-500">Room/Bed:</span>
+                        <span className="ml-2 text-sm text-gray-700">{s.room} {s.roomType ? `${s.roomType} Bed` : ""}</span>
+                      </div>
+                      <div className="mb-2">
+                        <span className="text-xs font-semibold text-gray-500">Contact:</span>
+                        <span className="ml-2 text-sm text-gray-700">{s.contact}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 mb-3">
                         <div>
-                          <p className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-1">Approval Status</p>
-                          {s.isRejected ? (
-                            <div className="flex flex-col items-start gap-1">
-                              <span className="text-[10px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-md">Rejected</span>
-                              <span className="text-[8px] text-red-500" title={s.rejectReason}>{s.rejectReason}</span>
-                            </div>
-                          ) : s.isPendingApproval ? (
-                            <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-md">Pending</span>
-                          ) : (
-                            <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-md">Approved</span>
-                          )}
-                        </div>
-
-                        {/* Row 2: Room & Type side by side */}
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="bg-gray-50 rounded-lg px-3 py-2">
-                            <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Room / Bed</span>
-                            <p className="text-black font-semibold text-xs mt-0.5">{s.room}</p>
-                          </div>
-                          <div className="bg-gray-50 rounded-lg px-3 py-2">
-                            <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Type</span>
-                            <p className="text-black font-semibold text-xs mt-0.5">{s.roomType ? `${s.roomType} Bed` : "-"}</p>
-                          </div>
-                        </div>
-
-                        {/* Row 3: Contact & Monthly Fee */}
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="bg-gray-50 rounded-lg px-3 py-2">
-                            <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Contact</span>
-                            <p className="text-black text-xs font-medium mt-0.5">{s.contact}</p>
-                          </div>
-                          <div className="bg-gray-50 rounded-lg px-3 py-2">
-                            <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Monthly Fee</span>
-                            <p className="text-blue-700 font-bold text-xs mt-0.5">{s.monthlyFee}</p>
-                          </div>
-                        </div>
-
-                        {/* Row 4: Fee Status & Dues */}
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                            <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Fee Status</span>
-                            <span style={getFeeStatusStyle(s.feeStatus)} className="text-[10px]">{s.feeStatus}</span>
-                          </div>
-                          <div className="bg-gray-50 rounded-lg px-3 py-2">
-                            <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Dues</span>
-                            <p className="text-red-600 font-bold text-xs mt-0.5">{s.dues}</p>
-                          </div>
-                        </div>
-
-                        {/* Row 5: Biometric */}
-                        <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                          <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Biometric</span>
-                          <span className="text-xs font-medium">
-                            {s.isAddedToBiometric ? "✅ Added" : "❌ Pending"}
+                          <span className="text-[10px] font-semibold text-gray-500 block mb-1">Fee Status</span>
+                          <span className={`px-2 py-1 rounded-full text-[10px] font-medium inline-block ${s.feeStatus === 'Paid' ? 'bg-green-100 text-green-800' :
+                              s.feeStatus === 'Unpaid' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-gray-100 text-gray-800'
+                            }`}>
+                            {s.feeStatus}
                           </span>
                         </div>
+                        <div>
+                          <span className="text-[10px] font-semibold text-gray-500 block mb-1">Dues</span>
+                          <span className="text-sm font-bold text-red-500">{s.dues && s.dues !== "₹ 0/-" ? s.dues : "-"}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-3 mt-3 pt-3 border-t border-gray-100">
+                        {s.isRejected ? (
+                          <button onClick={() => handleViewReason(s.rejectReason)} className="flex items-center gap-1 text-red-600 hover:text-red-800 transition-colors text-sm"><Info size={16} /> Reason</button>
+                        ) : s.isPendingApproval ? (
+                          <span className="text-xs italic text-gray-500">Wait Approval</span>
+                        ) : (
+                          <>
+                            <button onClick={() => handleViewDetails(s.id)} className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors text-sm"><Eye size={16} /> View</button>
+                            <button onClick={() => handleEdit(s.id)} className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors text-sm"><Pencil size={16} /> Edit</button>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -1681,15 +1744,23 @@ const StudentManagement = () => {
 
                 {/* Pagination */}
                 {filteredStudents.length > itemsPerPage && (
-                  <div className="mt-6 flex flex-wrap justify-center items-center gap-2">
-                    <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className={`px-4 py-2 rounded-lg border border-black font-semibold text-sm transition-colors ${currentPage === 1 ? "opacity-30 cursor-not-allowed" : "hover:bg-white"}`}>← Prev</button>
-                    <div className="flex gap-1">
-                      {[...Array(totalPages)].map((_, i) => (
-                        <button key={i + 1} onClick={() => paginate(i + 1)} className={`w-9 h-9 rounded-lg border border-black font-semibold text-sm transition-colors ${currentPage === i + 1 ? "bg-white shadow-md" : "hover:bg-white/50"}`}>{i + 1}</button>
-                      ))}
+                  <div className="mt-6 flex flex-wrap justify-center items-center gap-2 p-4">
+                    <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className={`px-4 py-2 rounded-lg border border-gray-300 font-semibold text-sm transition-colors ${currentPage === 1 ? "opacity-50 cursor-not-allowed bg-gray-50" : "hover:bg-gray-50 bg-white"}`}>← Prev</button>
+                    <div className="flex gap-1 hidden sm:flex">
+                      {[...Array(totalPages)].map((_, i) => {
+                        // Show limited pages to prevent overflow
+                        if (totalPages > 7) {
+                          if (i !== 0 && i !== totalPages - 1 && Math.abs(currentPage - (i + 1)) > 1) {
+                            if (i === 1 || i === totalPages - 2) return <span key={i} className="px-2 py-1 text-gray-400">...</span>;
+                            return null;
+                          }
+                        }
+                        return (
+                          <button key={i + 1} onClick={() => paginate(i + 1)} className={`w-9 h-9 rounded-lg font-semibold text-sm transition-colors ${currentPage === i + 1 ? "bg-blue-50 text-blue-700 border-blue-200 border" : "hover:bg-gray-50 border border-transparent"}`}>{i + 1}</button>
+                        );
+                      })}
                     </div>
-                    <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className={`px-4 py-2 rounded-lg border border-black font-semibold text-sm transition-colors ${currentPage === totalPages ? "opacity-30 cursor-not-allowed" : "hover:bg-white"}`}>Next →</button>
-                    <span className="text-sm text-black font-medium ml-2">{currentPage}/{totalPages || 1} · {filteredStudents.length} students</span>
+                    <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className={`px-4 py-2 rounded-lg border border-gray-300 font-semibold text-sm transition-colors ${currentPage === totalPages ? "opacity-50 cursor-not-allowed bg-gray-50" : "hover:bg-gray-50 bg-white"}`}>Next →</button>
                   </div>
                 )}
               </>

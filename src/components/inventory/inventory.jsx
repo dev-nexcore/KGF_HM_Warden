@@ -2,19 +2,20 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { FaSearch } from "react-icons/fa";
-import { QrCode, Camera, Download, Check, AlertCircle } from "lucide-react";
+import { QrCode, Camera, Download, Check, AlertCircle, RefreshCw } from "lucide-react";
 import api from "@/lib/api";
 import ItemDetailsModal from "../ItemDetailsModal/ItemDetailsModal";
+import ReplaceItemModal from "./ReplaceItemModal";
 import toast, { Toaster } from 'react-hot-toast';
-import { Trash2, X } from "lucide-react";
+import { Trash2, X, AlertTriangle } from "lucide-react";
 
 const BASE_URL = process.env.NEXT_PUBLIC_PROD_API_URL;
 
 const statusColor = {
-  "In Use": "bg-[#FF9D00] text-white",
-  Available: "bg-[#28C404] text-white",
-  "In maintenance": "bg-[#d6d6c2] text-black",
-  Damaged: "bg-[#FF0000] text-white",
+  "In Use": "bg-blue-100 text-blue-700 border-blue-200",
+  "Available": "bg-emerald-100 text-emerald-700 border-emerald-200",
+  "In maintenance": "bg-amber-100 text-amber-700 border-amber-200",
+  "Damaged": "bg-rose-100 text-rose-700 border-rose-200",
 };
 
 const PREDEFINED_LOCATIONS = [
@@ -63,25 +64,22 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
   const [loading, setLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [editReceiptFile, setEditReceiptFile] = useState(null);
   const [scannedItem, setScannedItem] = useState(null);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
-  const [showReplaceModal, setShowReplaceModal] = useState(false);
-  const [replacingItem, setReplacingItem] = useState(null);
-  const [replaceReason, setReplaceReason] = useState("");
-  const [replacePhoto, setReplacePhoto] = useState(null);
-  const [isSubmittingReplace, setIsSubmittingReplace] = useState(false);
-  
   const [otherEditLocation, setOtherEditLocation] = useState('');
   const [otherEditCategory, setOtherEditCategory] = useState('');
   const [otherEditStatus, setOtherEditStatus] = useState('');
   const [otherEditRoomNo, setOtherEditRoomNo] = useState('');
   const [otherEditFloor, setOtherEditFloor] = useState('');
+  
+  const [showReplaceModal, setShowReplaceModal] = useState(false);
+  const [itemToReplace, setItemToReplace] = useState(null);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50;
-  
+  const itemsPerPage = 20;
+
   const fileInputRef = useRef(null);
-  const replacePhotoRef = useRef(null);
 
   // ── Pagination Logic ──────────────────────────────────────────────────
   const filteredInventory = inventory.filter(
@@ -202,7 +200,7 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
     // Load custom options from localStorage after mount
     const customStatuses = JSON.parse(localStorage.getItem('customInventoryStatuses') || '[]');
     const customCategories = JSON.parse(localStorage.getItem('customInventoryCategories') || '[]');
-    
+
     setUniqueStatuses([...new Set(["All Status", ...PREDEFINED_STATUSES, ...inventory.map(item => item.status), ...customStatuses])].filter(Boolean));
     setUniqueCategories([...new Set(["All Categories", ...PREDEFINED_CATEGORIES, ...inventory.map(item => item.category), ...customCategories])].filter(Boolean));
   }, [inventory]);
@@ -216,8 +214,8 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
 
   const handleDeleteItem = async (id) => {
     try {
-      const deletePromise = api.delete(`/api/adminauth/inventory/${id}`);
-      
+      const deletePromise = api.delete(`/api/wardenauth/inventory/${id}`);
+
       toast.promise(deletePromise, {
         loading: 'Deleting item...',
         success: 'Item deleted successfully!',
@@ -225,7 +223,7 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
       });
 
       await deletePromise;
-      
+
       setInventory((prev) => prev.filter((item) => item._id !== id));
       setShowDeleteConfirm(false);
       setItemToDelete(null);
@@ -236,9 +234,9 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
 
   const handleBulkDelete = async () => {
     if (selectedItems.length === 0) return;
-    
+
     try {
-      const deletePromise = api.post('/api/adminauth/inventory/bulk-delete', {
+      const deletePromise = api.post('/api/wardenauth/inventory/bulk-delete', {
         itemIds: selectedItems
       });
 
@@ -249,7 +247,7 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
       });
 
       await deletePromise;
-      
+
       setInventory((prev) => prev.filter((item) => !selectedItems.includes(item._id)));
       setSelectedItems([]);
       setShowBulkDeleteConfirm(false);
@@ -260,7 +258,7 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
 
   const handleDeleteAll = async () => {
     try {
-      const deletePromise = api.delete('/api/adminauth/inventory/delete-all');
+      const deletePromise = api.delete('/api/wardenauth/inventory/delete-all');
       toast.promise(deletePromise, {
         loading: 'Deleting all inventory...',
         success: 'All inventory deleted successfully!',
@@ -283,7 +281,7 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
 
     try {
       const { data } = await api.put(
-        `/api/adminauth/inventory/${selectedItem._id}/receipt`,
+        `/api/wardenauth/inventory/${selectedItem._id}/receipt`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
@@ -293,53 +291,6 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
       alert(`Receipt uploaded for ${data.item.itemName}`);
     } catch (error) {
       console.error("Failed to upload receipt:", error);
-    }
-  };
-
-  const handleReplaceClick = (item) => {
-    setReplacingItem(item);
-    setShowReplaceModal(true);
-  };
-
-  const submitReplacementRequest = async () => {
-    if (!replaceReason.trim()) {
-      toast.error("Please enter a reason for replacement");
-      return;
-    }
-
-    setIsSubmittingReplace(true);
-    const toastId = toast.loading("Submitting replacement request...");
-
-    try {
-      const formData = new FormData();
-      formData.append("requisitionType", "inventory_replacement");
-      formData.append("data", JSON.stringify({
-        itemId: replacingItem._id,
-        itemName: replacingItem.itemName,
-        barcodeId: replacingItem.barcodeId,
-        reason: replaceReason
-      }));
-      
-      if (replacePhoto) {
-        formData.append("photo", replacePhoto);
-      }
-
-      const { data } = await api.post("/api/wardenauth/submit-inventory-replacement", formData, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
-
-      if (data.success) {
-        toast.success("Replacement request submitted for admin approval", { id: toastId });
-        setShowReplaceModal(false);
-        setReplacingItem(null);
-        setReplaceReason("");
-        setReplacePhoto(null);
-      }
-    } catch (error) {
-      console.error("Replacement request failed:", error);
-      toast.error(error.response?.data?.message || "Failed to submit request", { id: toastId });
-    } finally {
-      setIsSubmittingReplace(false);
     }
   };
 
@@ -355,7 +306,7 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
     try {
       setBulkUploadStatus("Uploading...");
       const { data } = await api.post(
-        "/api/adminauth/inventory/bulk-upload",
+        "/api/wardenauth/inventory/bulk-upload",
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -438,7 +389,14 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
   const generateMonthlyStockReport = async () => {
     try {
       setLoading(true);
-      const response = await api.get("/api/adminauth/inventory/stock-report", {
+
+      // Construct query parameters based on current filters
+      const params = new URLSearchParams();
+      if (statusFilter && statusFilter !== "All Status") params.append("status", statusFilter);
+      if (categoryFilter && categoryFilter !== "All Categories") params.append("category", categoryFilter);
+      if (searchQuery) params.append("search", searchQuery);
+
+      const response = await api.get(`/api/wardenauth/inventory/stock-report?${params.toString()}`, {
         headers: { "Content-Type": "application/json" },
         responseType: "blob",
       });
@@ -472,7 +430,7 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
 
   const handleEditClick = (item) => {
     setEditData({ ...item });
-    
+
     // Check if current values are "others" (not in predefined lists)
     if (item.location && !PREDEFINED_LOCATIONS.includes(item.location)) {
       setEditData(prev => ({ ...prev, location: '__others__' }));
@@ -489,13 +447,13 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
     }
 
     if (item.status && !PREDEFINED_STATUSES.map(s => s).includes(item.status)) {
-       // Note: status filter uses PREDEFINED_STATUSES
-       if (!PREDEFINED_STATUSES.includes(item.status)) {
-          setEditData(prev => ({ ...prev, status: '__others__' }));
-          setOtherEditStatus(item.status);
-       } else {
-          setOtherEditStatus('');
-       }
+      // Note: status filter uses PREDEFINED_STATUSES
+      if (!PREDEFINED_STATUSES.includes(item.status)) {
+        setEditData(prev => ({ ...prev, status: '__others__' }));
+        setOtherEditStatus(item.status);
+      } else {
+        setOtherEditStatus('');
+      }
     } else {
       setOtherEditStatus('');
     }
@@ -519,24 +477,49 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
 
   const handleEditSave = async () => {
     try {
-      let finalData = { ...editData };
+      const toastId = toast.loading("Saving changes...");
 
-      if (editData.location === '__others__') finalData.location = otherEditLocation;
-      if (editData.category === '__others__') finalData.category = otherEditCategory;
-      if (editData.status === '__others__') finalData.status = otherEditStatus;
-      if (editData.roomNo === '__others__') finalData.roomNo = otherEditRoomNo;
-      if (editData.floor === '__others__') finalData.floor = otherEditFloor;
+      const formDataToSend = new FormData();
+
+      // Basic info
+      formDataToSend.append("itemName", editData.itemName);
+      formDataToSend.append("barcodeId", editData.barcodeId);
+      formDataToSend.append("description", editData.description || "");
+      formDataToSend.append("purchaseDate", editData.purchaseDate || "");
+      if (editData.purchaseCost !== null && editData.purchaseCost !== undefined && editData.purchaseCost !== "") {
+        formDataToSend.append("purchaseCost", editData.purchaseCost);
+      } else {
+        formDataToSend.append("purchaseCost", "");
+      }
+
+      // Resolve "others" fields
+      formDataToSend.append("location", editData.location === '__others__' ? otherEditLocation : editData.location);
+      formDataToSend.append("category", editData.category === '__others__' ? otherEditCategory : editData.category);
+      formDataToSend.append("status", editData.status === '__others__' ? otherEditStatus : editData.status);
+      formDataToSend.append("roomNo", editData.roomNo === '__others__' ? otherEditRoomNo : editData.roomNo);
+      formDataToSend.append("floor", editData.floor === '__others__' ? otherEditFloor : editData.floor);
+
+      // Receipt file
+      if (editReceiptFile) {
+        formDataToSend.append("receipt", editReceiptFile);
+      }
 
       const { data } = await api.put(
-        `/api/adminauth/inventory/${editData._id}`,
-        finalData
+        `/api/wardenauth/inventory/${editData._id}`,
+        formDataToSend,
+        { headers: { "Content-Type": "multipart/form-data" } }
       );
+
       setInventory((prev) =>
         prev.map((item) => (item._id === data.item._id ? data.item : item))
       );
+
+      toast.success("Item updated successfully!", { id: toastId });
       setShowEditModal(false);
+      setEditReceiptFile(null);
     } catch (error) {
       console.error("Failed to update inventory:", error);
+      toast.error("Failed to update item. Please try again.");
     }
   };
 
@@ -548,7 +531,7 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
   const handleGenerateQR = async (item) => {
     try {
       const response = await api.post(
-        `/api/adminauth/inventory/${item._id}/qr-code`
+        `/api/wardenauth/inventory/${item._id}/qr-code`
       );
       if (response.data.success) {
         alert("QR code generated successfully!");
@@ -569,7 +552,7 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
   const handleDownloadQR = async (item) => {
     try {
       const response = await api.get(
-        `/api/adminauth/inventory/${item._id}/qr-code/download`,
+        `/api/wardenauth/inventory/${item._id}/qr-code/download`,
         { responseType: "blob" }
       );
 
@@ -596,7 +579,7 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
     try {
       setLoading(true);
       const { data } = await api.post(
-        "/api/adminauth/inventory/bulk-qr-generate",
+        "/api/wardenauth/inventory/bulk-qr-generate",
         { itemIds: selectedItems }
       );
 
@@ -634,29 +617,34 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
   };
 
   return (
-    <div className="bg-white min-h-screen py-4 w-full mt-6">
-      <div className="px-4 sm:px-6 mb-8">
+    <div className="pl-1 pr-2 sm:pl-2 sm:pr-4 bg-white min-h-screen mt-4 font-sans">
+      <div className="w-full">
 
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-1 h-6 bg-[#4F8CCF]"></div>
-            <h2 className="text-2xl font-bold text-black">Inventory List</h2>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-7 gap-4">
+          <div className="flex flex-col">
+            <div className="flex items-center">
+              <div className="h-6 w-1 bg-[#4F8CCF] mr-2"></div>
+              <h1 className="text-[25px] leading-[25px] font-extrabold text-black flex items-center" style={{ fontFamily: "Inter" }}>
+                Inventory Management
+              </h1>
+            </div>
+            <p className="text-gray-500 font-medium mt-1 text-sm ml-3" style={{ fontFamily: "Poppins" }}>Manage all foundation properties and assets</p>
           </div>
 
-          <div className="flex gap-4 flex-wrap justify-end sm:ml-auto w-full sm:w-auto">
+          <div className="flex gap-3 flex-wrap justify-end sm:ml-auto w-full sm:w-auto">
             {selectedItems.length > 0 && (
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowBulkQRModal(true)}
-                  className="flex items-center gap-2 cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded shadow-md text-sm font-medium"
+                  className="flex items-center gap-2 cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl shadow-md text-sm font-bold transition-colors"
                 >
                   <QrCode size={16} />
                   QR ({selectedItems.length})
                 </button>
                 <button
                   onClick={() => setShowBulkDeleteConfirm(true)}
-                  className="flex items-center gap-2 cursor-pointer bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded shadow-md text-sm font-medium"
+                  className="flex items-center gap-2 cursor-pointer bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-xl shadow-md text-sm font-bold transition-colors"
                 >
                   <Trash2 size={16} />
                   Delete ({selectedItems.length})
@@ -666,61 +654,40 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
 
             <button
               onClick={generateMonthlyStockReport}
-              className="flex items-center gap-2 bg-white border border-gray-300 cursor-pointer text-black px-4 py-1.5 rounded shadow-md font-base w-full sm:w-auto"
+              className="flex items-center gap-2 bg-white border border-gray-300 cursor-pointer text-gray-700 px-4 py-2.5 rounded-xl shadow-sm hover:bg-gray-50 text-sm font-bold transition-colors w-full sm:w-auto"
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 20 20"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M12.5 18.925L8.25 14.675L9.65 13.275L12.5 16.125L18.15 10.475L19.55 11.875L12.5 18.925ZM18 9H16V4H14V7H4V4H2V18H8V20H2C1.45 20 0.979167 19.8042 0.5875 19.4125C0.195833 19.0208 0 18.55 0 18V4C0 3.45 0.195833 2.97917 0.5875 2.5875C0.979167 2.19583 1.45 2 2 2H6.175C6.35833 1.41667 6.71667 0.9375 7.25 0.5625C7.78333 0.1875 8.36667 0 9 0C9.66667 0 10.2625 0.1875 10.7875 0.5625C11.3125 0.9375 11.6667 1.41667 11.85 2H16C16.55 2 17.0208 2.19583 17.4125 2.5875C17.8042 2.97917 18 3.45 18 4V9ZM9 4C9.28333 4 9.52083 3.90417 9.7125 3.7125C9.90417 3.52083 10 3.28333 10 3C10 2.71667 9.90417 2.47917 9.7125 2.2875C9.52083 2.09583 9.28333 2 9 2C8.71667 2 8.47917 2.09583 8.2875 2.2875C8.09583 2.47917 8 2.71667 8 3C8 3.28333 8.09583 3.52083 8.2875 3.7125C8.47917 3.90417 8.71667 4 9 4Z"
-                  fill="black"
-                />
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12.5 18.925L8.25 14.675L9.65 13.275L12.5 16.125L18.15 10.475L19.55 11.875L12.5 18.925ZM18 9H16V4H14V7H4V4H2V18H8V20H2C1.45 20 0.979167 19.8042 0.5875 19.4125C0.195833 19.0208 0 18.55 0 18V4C0 3.45 0.195833 2.97917 0.5875 2.5875C0.979167 2.19583 1.45 2 2 2H6.175C6.35833 1.41667 6.71667 0.9375 7.25 0.5625C7.78333 0.1875 8.36667 0 9 0C9.66667 0 10.2625 0.1875 10.7875 0.5625C11.3125 0.9375 11.6667 1.41667 11.85 2H16C16.55 2 17.0208 2.19583 17.4125 2.5875C17.8042 2.97917 18 3.45 18 4V9ZM9 4C9.28333 4 9.52083 3.90417 9.7125 3.7125C9.90417 3.52083 10 3.28333 10 3C10 2.71667 9.90417 2.47917 9.7125 2.2875C9.52083 2.09583 9.28333 2 9 2C8.71667 2 8.47917 2.09583 8.2875 2.2875C8.09583 2.47917 8 2.71667 8 3C8 3.28333 8.09583 3.52083 8.2875 3.7125C8.47917 3.90417 8.71667 4 9 4Z" fill="currentColor" />
               </svg>
-              Generate Monthly Stock Report
-            </button>
-
-            <button
-              onClick={onAddNewItem}
-              className="flex items-center gap-2 cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded shadow-md w-full sm:w-auto"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                fill="white"
-                viewBox="0 0 24 24"
-              >
-                <path d="M13 11V5h-2v6H5v2h6v6h2v-6h6v-2z" />
-              </svg>
-              Add New Item
+              Generate Report
             </button>
 
             <button
               onClick={() => setShowBulkUploadModal(true)}
-              className="flex items-center gap-2 cursor-pointer bg-purple-600 hover:bg-purple-700 text-white px-4 py-1.5 rounded shadow-md w-full sm:w-auto"
+              className="flex items-center gap-2 cursor-pointer bg-gray-800 hover:bg-gray-900 text-white px-4 py-2.5 rounded-xl shadow-md text-sm font-bold transition-colors w-full sm:w-auto"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                fill="white"
-                viewBox="0 0 24 24"
-              >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15.01l1.41 1.41L11 14.84V19h2v-4.16l1.59 1.59L16 15.01 12.01 11z" />
               </svg>
-              Bulk Upload Items
+              Bulk Upload
+            </button>
+
+            <button
+              onClick={onAddNewItem}
+              className="flex items-center gap-2 cursor-pointer bg-black hover:bg-gray-800 text-white px-5 py-2.5 rounded-xl shadow-md text-sm font-bold transition-colors w-full sm:w-auto"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M13 11V5h-2v6H5v2h6v6h2v-6h6v-2z" />
+              </svg>
+              Add Item
             </button>
 
             {inventory.length > 0 && (
               <button
                 onClick={() => setShowDeleteAllConfirm(true)}
-                className="flex items-center gap-2 cursor-pointer bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded shadow-md w-full sm:w-auto"
+                className="flex items-center gap-2 cursor-pointer bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl shadow-md text-sm font-bold transition-colors w-full sm:w-auto"
               >
-                <Trash2 size={17} />
+                <Trash2 size={16} />
                 Delete All
               </button>
             )}
@@ -728,134 +695,111 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
         </div>
 
         {/* ── Stats Filter Cards ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          {stats.map((stat) => {
-            const isActive = statusFilter === stat.key;
-            return (
-              <button
-                key={stat.key}
-                onClick={() => setStatusFilter(stat.key)}
-                className={`
-                  relative text-left rounded-xl border-2 px-4 pt-4 pb-3
-                  transition-all duration-150 cursor-pointer overflow-hidden
-                  shadow-[0px_2px_6px_0px_#00000018]
-                  ${
-                    isActive
-                      ? `${stat.activeBg} ${stat.activeBorder}`
-                      : "bg-white border-transparent hover:border-gray-200 hover:bg-gray-50"
-                  }
-                `}
-              >
-                {/* Icon */}
-                <span
-                  className={`mb-2 block transition-colors duration-150 ${
-                    isActive ? stat.activeText : "text-gray-400"
-                  }`}
-                >
-                  {stat.icon}
-                </span>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+          <button onClick={() => setStatusFilter("All Status")} className={`text-left bg-white p-4 rounded-xl shadow-sm border ${statusFilter === "All Status" ? "border-gray-800 ring-1 ring-gray-800" : "border-gray-200"}`}>
+            <p className="text-gray-500 text-sm font-medium">Total Items</p>
+            <p className="text-2xl font-bold text-gray-800 mt-1">{inventory.length}</p>
+          </button>
 
-                {/* Count */}
-                <p
-                  className={`text-2xl font-bold leading-none mb-1 transition-colors duration-150 ${
-                    isActive ? stat.activeText : "text-black"
-                  }`}
-                >
-                  {stat.count}
-                </p>
+          <button onClick={() => setStatusFilter("Available")} className={`text-left bg-emerald-50 p-4 rounded-xl shadow-sm border ${statusFilter === "Available" ? "border-emerald-500 ring-1 ring-emerald-500" : "border-emerald-200"}`}>
+            <p className="text-emerald-600 text-sm font-medium">Available</p>
+            <p className="text-2xl font-bold text-emerald-700 mt-1">{inventory.filter(i => i.status === "Available").length}</p>
+          </button>
 
-                {/* Label */}
-                <p className="text-xs text-gray-500 font-medium mb-2">
-                  {stat.label}
-                </p>
+          <button onClick={() => setStatusFilter("In Use")} className={`text-left bg-blue-50 p-4 rounded-xl shadow-sm border ${statusFilter === "In Use" ? "border-blue-500 ring-1 ring-blue-500" : "border-blue-200"}`}>
+            <p className="text-blue-600 text-sm font-medium">In Use</p>
+            <p className="text-2xl font-bold text-blue-700 mt-1">{inventory.filter(i => i.status === "In Use").length}</p>
+          </button>
 
-                {/* Pill */}
-                <span
-                  className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full transition-colors duration-150 ${
-                    isActive
-                      ? `${stat.pillBg} ${stat.pillText}`
-                      : "bg-gray-100 text-gray-500"
-                  }`}
-                >
-                  {stat.pillLabel}
-                </span>
+          <button onClick={() => setStatusFilter("In maintenance")} className={`text-left bg-amber-50 p-4 rounded-xl shadow-sm border ${statusFilter === "In maintenance" ? "border-amber-500 ring-1 ring-amber-500" : "border-amber-200"}`}>
+            <p className="text-amber-600 text-sm font-medium">Maintenance</p>
+            <p className="text-2xl font-bold text-amber-700 mt-1">{inventory.filter(i => i.status === "In maintenance").length}</p>
+          </button>
 
-                {/* Active bottom bar */}
-                {isActive && (
-                  <div
-                    className={`absolute bottom-0 left-3 right-3 h-[3px] rounded-t-full ${stat.activeBar}`}
-                  />
-                )}
-              </button>
-            );
-          })}
+          <button onClick={() => setStatusFilter("Damaged")} className={`text-left bg-rose-50 p-4 rounded-xl shadow-sm border ${statusFilter === "Damaged" ? "border-rose-500 ring-1 ring-rose-500" : "border-rose-200"}`}>
+            <p className="text-rose-600 text-sm font-medium">Damaged</p>
+            <p className="text-2xl font-bold text-rose-700 mt-1">{inventory.filter(i => i.status === "Damaged").length}</p>
+          </button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-8 px-4 sm:px-6">
-        <div className="relative flex-1 min-w-[250px] shadow-[0px_2px_4px_0px_#00000040] rounded-md">
-          <FaSearch className="absolute top-3 left-3 text-black" />
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full justify-between mb-6">
+        <div className="relative w-full sm:w-80">
+          <FaSearch className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
           <input
             type="text"
+            placeholder="Search by name, barcode..."
+            className="pl-10 pr-4 py-2 bg-white rounded-xl border border-gray-200 outline-none text-sm font-semibold text-black shadow-sm w-full"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 pr-4 py-2 text-m rounded-md bg-[#e8e8e8] text-black placeholder-black w-full outline-none"
-            placeholder="Search by Item Name or Barcode ID"
           />
         </div>
 
-        <select
-          className="px-4 py-2 text-m rounded-md bg-[#e8e8e8] w-full sm:w-64 outline-none shadow-[0px_2px_4px_0px_#00000040]"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          {uniqueStatuses.map((status) => (
-            <option key={status} value={status}>
-              {status}
-            </option>
-          ))}
-        </select>
+        <div className="flex gap-2">
+          <select
+            className="flex-1 sm:flex-none px-4 py-2 bg-white rounded-xl outline-none text-sm font-semibold text-black shadow-sm border border-gray-200"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            {uniqueStatuses.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
 
-        <select
-          className="px-4 py-2 text-m rounded-md bg-[#e8e8e8] w-full sm:w-64 outline-none shadow-[0px_2px_4px_0px_#00000040]"
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-        >
-          {uniqueCategories.map((category) => (
-            <option key={category} value={category}>
-              {category}
-            </option>
-          ))}
-        </select>
+          <select
+            className="flex-1 sm:flex-none px-4 py-2 bg-white rounded-xl outline-none text-sm font-semibold text-black shadow-sm border border-gray-200"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+          >
+            {uniqueCategories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Table */}
-      <div className="px-4 sm:px-6">
+      <div className="w-full">
         {/* Desktop Table View */}
-        <div className="hidden sm:block rounded-2xl bg-[#BEC5AD] p-4 shadow-xl">
-          <div className="overflow-x-auto rounded-xl">
-            <table className="w-full min-w-[700px] text-center border-collapse">
+        <div className="hidden sm:block bg-[#f4f6f0] rounded-2xl shadow-lg border border-[#BEC5AD]/30 overflow-hidden mb-6" style={{ fontFamily: 'Inter' }}>
+
+          <div className="bg-[#A4AD95] px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+            <div>
+              <h2 className="text-xl font-semibold text-black">
+                Inventory List
+              </h2>
+              <p className="text-sm text-gray-700 mt-1">Total: {filteredInventory.length} records</p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto p-4">
+            <table className="w-full min-w-[900px] text-left">
               <thead>
-                <tr className="bg-white text-black text-sm">
-                  <th className="px-2 py-2">
+                <tr className="border-b-2 border-gray-200">
+                  <th className="px-2 py-3 text-sm font-semibold text-gray-700">
                     <input
                       type="checkbox"
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setSelectedItems(paginatedInventory.map((item) => item._id));
+                          setSelectedItems(filteredInventory.map((item) => item._id));
                         } else {
                           setSelectedItems([]);
                         }
                       }}
                       checked={
                         selectedItems.length > 0 &&
-                        paginatedInventory.every(item => selectedItems.includes(item._id))
+                        filteredInventory.length > 0 &&
+                        filteredInventory.every(item => selectedItems.includes(item._id))
                       }
                     />
                   </th>
                   {[
-                    "No",
+                    "Sr No",
                     "Item Name",
                     "Barcode ID",
                     "Category",
@@ -866,22 +810,17 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
                   ].map((header, idx) => (
                     <th
                       key={idx}
-                      className={`px-0 py-2 ${idx === 0 ? "rounded-tl-lg" : ""} ${idx === 6 ? "rounded-tr-lg" : ""}`}
+                      className="px-4 py-3 text-sm font-semibold text-gray-700"
                     >
-                      <div className="flex items-center pl-4 pr-4">
-                        <span className="flex-1">{header}</span>
-                        {idx < 7 && (
-                          <div className="h-6 w-px bg-black ml-4"></div>
-                        )}
-                      </div>
+                      {header}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="bg-white text-sm">
+              <tbody>
                 {paginatedInventory.map((item, index) => (
-                  <tr key={item.barcodeId} className="hover:bg-gray-100">
-                    <td className="px-2 py-2">
+                  <tr key={item.barcodeId} className="bg-white border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">
                       <input
                         type="checkbox"
                         checked={selectedItems.includes(item._id)}
@@ -897,22 +836,22 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
                       />
                     </td>
 
-                    <td className="font-semibold">
+                    <td className="px-4 py-3 text-sm text-gray-800 font-bold whitespace-nowrap">
                       {(currentPage - 1) * itemsPerPage + index + 1}
                     </td>
-                    <td className="px-4 py-2">{item.itemName}</td>
-                    <td className="px-4 py-2">{item.barcodeId}</td>
-                    <td className="px-4 py-2">{item.category}</td>
-                    <td className="px-4 py-2">{item.location}</td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-3 text-sm text-gray-600 font-bold whitespace-nowrap">{item.itemName}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600 font-medium whitespace-nowrap">{item.barcodeId}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{item.category}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{item.location}</td>
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">
                       <span
-                        className={`inline-block w-[100px] text-xs font-semibold text-center py-[6px] rounded-lg shadow-sm ${statusColor[item.status]}`}
+                        className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusColor[item.status] || "bg-gray-100 text-gray-600 border-gray-200"}`}
                       >
                         {item.status}
                       </span>
                     </td>
-                    <td className="px-4 py-2">
-                      <div className="flex justify-center gap-2">
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">
+                      <div className="flex justify-start gap-2">
                         {item.qrCodeUrl ? (
                           <button
                             onClick={() => handleDownloadQR(item)}
@@ -979,9 +918,25 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
 
                       {/* Replace Icon */}
                       <div
-                        className="cursor-pointer text-gray-600 hover:text-orange-600"
-                        title="Request Replacement"
-                        onClick={() => handleReplaceClick(item)}
+                        className="cursor-pointer text-gray-600 hover:text-blue-600"
+                        title="Replace Item"
+                        onClick={() => {
+                          setItemToReplace(item);
+                          setShowReplaceModal(true);
+                        }}
+                      >
+                        <RefreshCw size={18} />
+                      </div>
+
+                      <div className="w-[1px] h-5 bg-gray-400" />
+
+                      {/* Delete Icon */}
+                      <div
+                        className="cursor-pointer text-gray-600 hover:text-red-600"
+                        onClick={() => {
+                          setItemToDelete(item);
+                          setShowDeleteConfirm(true);
+                        }}
                       >
                         <svg
                           width="18"
@@ -993,10 +948,11 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         >
-                          <path d="M21 2v6h-6" />
-                          <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
-                          <path d="M3 22v-6h6" />
-                          <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+                          <path d="M3 6h18" />
+                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                          <line x1="10" y1="11" x2="10" y2="17" />
+                          <line x1="14" y1="11" x2="14" y2="17" />
                         </svg>
                       </div>
                     </td>
@@ -1049,10 +1005,13 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
                     Edit
                   </button>
                   <button
-                    onClick={() => handleReplaceClick(item)}
-                    className="text-orange-600 text-xs hover:underline"
+                    onClick={() => {
+                      setItemToDelete(item);
+                      setShowDeleteConfirm(true);
+                    }}
+                    className="text-red-600 text-xs hover:underline"
                   >
-                    Replace
+                    Delete
                   </button>
                 </div>
                 <div className="flex gap-2">
@@ -1089,7 +1048,7 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
               <span className="text-black font-bold">{Math.min(currentPage * itemsPerPage, filteredInventory.length)}</span> of{" "}
               <span className="text-black font-bold">{filteredInventory.length}</span> items
             </div>
-            
+
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
@@ -1098,7 +1057,7 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
               >
                 Previous
               </button>
-              
+
               <div className="flex items-center gap-1">
                 {[...Array(totalPages)].map((_, i) => {
                   const pageNum = i + 1;
@@ -1111,11 +1070,10 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
                       <button
                         key={pageNum}
                         onClick={() => setCurrentPage(pageNum)}
-                        className={`w-10 h-10 rounded-lg border text-sm font-bold transition-all shadow-sm ${
-                          currentPage === pageNum
+                        className={`w-10 h-10 rounded-lg border text-sm font-bold transition-all shadow-sm ${currentPage === pageNum
                             ? "bg-blue-600 border-blue-600 text-white"
                             : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-                        }`}
+                          }`}
                       >
                         {pageNum}
                       </button>
@@ -1280,25 +1238,25 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
 
       {/* Edit Modal */}
       {showEditModal && editData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white px-6 py-4 border-b flex justify-between items-center z-10">
-              <h3 className="text-2xl font-bold text-gray-800">Edit Inventory Item</h3>
-              <button 
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm bg-black/50 p-4 font-sans">
+          <div className="bg-[#F8F9F4] rounded-[20px] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto relative [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+            <div className="sticky top-0 bg-gradient-to-r from-[#BEC5AD] to-[#a8b096] px-8 py-5 border-b border-[#BEC5AD]/30 flex justify-between items-center z-10 rounded-t-[20px]">
+              <h3 className="text-xl font-bold text-black font-[Poppins]">Edit Inventory Item</h3>
+              <button
                 onClick={() => setShowEditModal(false)}
-                className="text-gray-500 hover:text-red-500 transition-colors text-2xl"
+                className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-black transition-colors flex items-center justify-center shadow-sm"
               >
-                &times;
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
             </div>
 
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                 {/* Item Name */}
-                <div className="space-y-1">
-                  <label className="text-sm font-semibold text-gray-700 ml-1">Item Name</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Item Name</label>
                   <input
-                    className="w-full border-gray-300 border px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
+                    className="w-full bg-white border border-gray-200 px-4 py-3 rounded-[12px] focus:ring-2 focus:ring-[#BEC5AD] outline-none transition-all shadow-sm text-sm text-gray-800 font-medium"
                     value={editData.itemName}
                     onChange={(e) => setEditData({ ...editData, itemName: e.target.value })}
                     placeholder="Item Name"
@@ -1306,10 +1264,10 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
                 </div>
 
                 {/* Barcode ID */}
-                <div className="space-y-1">
-                  <label className="text-sm font-semibold text-gray-700 ml-1">Barcode ID</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Barcode ID</label>
                   <input
-                    className="w-full border-gray-300 border px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
+                    className="w-full bg-white border border-gray-200 px-4 py-3 rounded-[12px] focus:ring-2 focus:ring-[#BEC5AD] outline-none transition-all shadow-sm text-sm text-gray-800 font-medium"
                     value={editData.barcodeId}
                     onChange={(e) => setEditData({ ...editData, barcodeId: e.target.value })}
                     placeholder="Barcode ID"
@@ -1317,15 +1275,12 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
                 </div>
 
                 {/* Category */}
-                <div className="space-y-1">
-                  <label className="text-sm font-semibold text-gray-700 ml-1">Category</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Category</label>
                   <select
+                    className="w-full bg-white border border-gray-200 px-4 py-3 rounded-[12px] focus:ring-2 focus:ring-[#BEC5AD] outline-none transition-all shadow-sm text-sm text-gray-800 font-medium appearance-none"
                     value={editData.category}
-                    onChange={(e) => {
-                      setEditData({ ...editData, category: e.target.value });
-                      if (e.target.value !== '__others__') setOtherEditCategory('');
-                    }}
-                    className="w-full border-gray-300 border px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
+                    onChange={(e) => setEditData({ ...editData, category: e.target.value })}
                   >
                     <option value="">Select Category</option>
                     {PREDEFINED_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
@@ -1343,15 +1298,15 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
                 </div>
 
                 {/* Location */}
-                <div className="space-y-1">
-                  <label className="text-sm font-semibold text-gray-700 ml-1">Location</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Location</label>
                   <select
                     value={editData.location}
                     onChange={(e) => {
                       setEditData({ ...editData, location: e.target.value });
                       if (e.target.value !== '__others__') setOtherEditLocation('');
                     }}
-                    className="w-full border-gray-300 border px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
+                    className="w-full bg-white border border-gray-200 px-4 py-3 rounded-[12px] focus:ring-2 focus:ring-[#BEC5AD] outline-none transition-all shadow-sm text-sm text-gray-800 font-medium appearance-none"
                   >
                     <option value="">Select Location</option>
                     {PREDEFINED_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
@@ -1370,14 +1325,14 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
 
                 {/* Status */}
                 <div className="space-y-1">
-                  <label className="text-sm font-semibold text-gray-700 ml-1">Status</label>
+                  <label className="text-sm font-bold text-gray-700 ml-1">Status</label>
                   <select
                     value={editData.status}
                     onChange={(e) => {
                       setEditData({ ...editData, status: e.target.value });
                       if (e.target.value !== '__others__') setOtherEditStatus('');
                     }}
-                    className="w-full border-gray-300 border px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
+                    className="w-full border-gray-300 border px-4 py-2.5 rounded-[10px] focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-sm text-sm bg-white"
                   >
                     <option value="">Select Status</option>
                     {PREDEFINED_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -1396,14 +1351,14 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
 
                 {/* Room No */}
                 <div className="space-y-1">
-                  <label className="text-sm font-semibold text-gray-700 ml-1">Room No</label>
+                  <label className="text-sm font-bold text-gray-700 ml-1">Room No</label>
                   <select
                     value={editData.roomNo}
                     onChange={(e) => {
                       setEditData({ ...editData, roomNo: e.target.value });
                       if (e.target.value !== '__others__') setOtherEditRoomNo('');
                     }}
-                    className="w-full border-gray-300 border px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
+                    className="w-full border-gray-300 border px-4 py-2.5 rounded-[10px] focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-sm text-sm bg-white"
                   >
                     <option value="">Select Room No</option>
                     {availableRoomsForInventory.map(room => <option key={room} value={room}>Room {room}</option>)}
@@ -1422,14 +1377,14 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
 
                 {/* Floor */}
                 <div className="space-y-1">
-                  <label className="text-sm font-semibold text-gray-700 ml-1">Floor</label>
+                  <label className="text-sm font-bold text-gray-700 ml-1">Floor</label>
                   <select
                     value={editData.floor}
                     onChange={(e) => {
                       setEditData({ ...editData, floor: e.target.value });
                       if (e.target.value !== '__others__') setOtherEditFloor('');
                     }}
-                    className="w-full border-gray-300 border px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
+                    className="w-full border-gray-300 border px-4 py-2.5 rounded-[10px] focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-sm text-sm bg-white"
                   >
                     <option value="">Select Floor</option>
                     {availableFloors.map(floor => <option key={floor} value={floor}>Floor {floor}</option>)}
@@ -1448,11 +1403,11 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
 
                 {/* Purchase Cost */}
                 <div className="space-y-1">
-                  <label className="text-sm font-semibold text-gray-700 ml-1">Purchase Cost (INR)</label>
+                  <label className="text-sm font-bold text-gray-700 ml-1">Purchase Cost (INR)</label>
                   <input
                     type="number"
-                    className="w-full border-gray-300 border px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
-                    value={editData.purchaseCost || ""}
+                    className="w-full border-gray-300 border px-4 py-2.5 rounded-[10px] focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-sm text-sm"
+                    value={editData.purchaseCost !== null && editData.purchaseCost !== undefined ? editData.purchaseCost : ""}
                     onChange={(e) => setEditData({ ...editData, purchaseCost: e.target.value })}
                     placeholder="Enter Cost"
                   />
@@ -1460,20 +1415,12 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
 
                 {/* Purchase Date */}
                 <div className="space-y-1">
-                  <label className="text-sm font-semibold text-gray-700 ml-1">Purchase Date</label>
+                  <label className="text-sm font-bold text-gray-700 ml-1">Purchase Date</label>
                   <input
                     type="date"
-                    className="w-full border-gray-300 border px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
-                    value={editData.purchaseDate ? editData.purchaseDate.split('-').reverse().join('-') : ""}
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        const date = new Date(e.target.value);
-                        const formatted = `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getFullYear()}`;
-                        setEditData({ ...editData, purchaseDate: formatted });
-                      } else {
-                        setEditData({ ...editData, purchaseDate: "" });
-                      }
-                    }}
+                    className="w-full border-gray-300 border px-4 py-2.5 rounded-[10px] focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-sm text-sm bg-white"
+                    value={editData.purchaseDate ? editData.purchaseDate.split('T')[0] : ""}
+                    onChange={(e) => setEditData({ ...editData, purchaseDate: e.target.value })}
                   />
                 </div>
               </div>
@@ -1488,6 +1435,46 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
                   onChange={(e) => setEditData({ ...editData, description: e.target.value })}
                   placeholder="Enter description here..."
                 />
+              </div>
+
+              {/* Receipt Upload */}
+              <div className="mt-6 space-y-1">
+                <label className="text-sm font-semibold text-gray-700 ml-1">Update Receipt</label>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="flex-1 w-full border border-gray-300 p-3 rounded-xl bg-gray-50 flex items-center justify-between">
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={(e) => setEditReceiptFile(e.target.files[0])}
+                      className="text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                  </div>
+                  
+                  {(editReceiptFile || editData.receiptUrl) && (
+                    <div className="relative group w-20 h-20 shrink-0 rounded-xl overflow-hidden border-2 border-gray-200 shadow-sm bg-white self-start sm:self-center">
+                      {((editReceiptFile && editReceiptFile.type === 'application/pdf') || (!editReceiptFile && editData.receiptUrl?.toLowerCase().endsWith('.pdf'))) ? (
+                        <div className="w-full h-full bg-red-50 flex flex-col items-center justify-center">
+                          <svg className="w-6 h-6 text-red-500 mb-1" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9.5 8.5c0 .8-.7 1.5-1.5 1.5H7v2H5.5V9H8c.8 0 1.5.7 1.5 1.5v1zm5 2c0 .8-.7 1.5-1.5 1.5h-2.5V9H13c.8 0 1.5.7 1.5 1.5v3zm4-3h-2v1.5h1.5v1.5H16.5V15H15V9h3.5v1.5zM7 10.5h1v1H7v-1zm6 0h1v2h-1v-2z"/></svg>
+                          <span className="text-[9px] font-bold text-red-500 uppercase">PDF</span>
+                        </div>
+                      ) : (
+                        <img 
+                          src={editReceiptFile ? URL.createObjectURL(editReceiptFile) : (editData.receiptUrl.startsWith('http') ? editData.receiptUrl : `${BASE_URL}${editData.receiptUrl.startsWith('/') ? '' : '/'}${editData.receiptUrl}`)} 
+                          alt="Receipt" 
+                          className="w-full h-full object-cover" 
+                        />
+                      )}
+                      <a 
+                        href={editReceiptFile ? URL.createObjectURL(editReceiptFile) : (editData.receiptUrl.startsWith('http') ? editData.receiptUrl : `${BASE_URL}${editData.receiptUrl.startsWith('/') ? '' : '/'}${editData.receiptUrl}`)}
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm cursor-pointer"
+                      >
+                        <span className="text-white text-[10px] font-bold px-2 py-1 border border-white/50 rounded-lg shadow-sm">View</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="flex justify-end gap-4 mt-8">
@@ -1509,13 +1496,39 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
         </div>
       )}
 
+      {/* Bulk Delete Confirm Modal */}
+      {showBulkDeleteConfirm && (
+        <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-[90%] max-w-md">
+            <h3 className="text-xl font-bold mb-4 text-red-600">Delete Items</h3>
+            <p className="mb-6 text-gray-700">
+              Are you sure you want to delete {selectedItems.length} selected items? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-4">
+              <button
+                onClick={() => setShowBulkDeleteConfirm(false)}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded font-medium transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-medium transition-colors cursor-pointer"
+              >
+                Delete Items
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Bulk QR Modal */}
       {showBulkQRModal && (
         <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-[90%] max-w-md">
             <h3 className="text-xl font-bold mb-4">Generate QR Codes</h3>
             <p className="mb-4">
-              Generate QR codes for {selectedItemsForQR.length} selected items?
+              Generate QR codes for {selectedItems.length} selected items?
             </p>
             <div className="flex justify-end gap-4">
               <button
@@ -1531,181 +1544,6 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
               >
                 {loading ? "Generating..." : "Generate"}
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Detail Modal */}
-      {showDetailModal && selectedItem && (
-        <div className="fixed inset-0 bg-white/30 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg p-6 shadow-lg max-w-4xl w-full h-[80%] overflow-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">Item Details</h3>
-              <button
-                className="text-gray-600 cursor-pointer hover:text-red-600 text-xl"
-                onClick={() => setShowDetailModal(false)}
-              >
-                &times;
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-bold text-lg mb-2">Basic Information</h4>
-                <div className="space-y-2">
-                  <p>
-                    <span className="font-semibold">Item Name:</span>{" "}
-                    {selectedItem.itemName}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Barcode ID:</span>{" "}
-                    {selectedItem.barcodeId}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Category:</span>{" "}
-                    {selectedItem.category}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Location:</span>{" "}
-                    {selectedItem.location}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Status:</span>
-                    <span
-                      className={`inline-block ml-2 px-2 py-1 text-xs rounded ${statusColor[selectedItem.status] || "bg-gray-200"}`}
-                    >
-                      {selectedItem.status}
-                    </span>
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-bold text-lg mb-2">
-                  Additional Information
-                </h4>
-                <div className="space-y-2">
-                  <p>
-                    <span className="font-semibold">Description:</span>{" "}
-                    {selectedItem.description || "No description available"}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Purchase Date:</span>{" "}
-                    {selectedItem.purchaseDate
-                      ? new Date(selectedItem.purchaseDate).toLocaleDateString(
-                          "en-IN",
-                          { day: "2-digit", month: "2-digit", year: "numeric" }
-                        )
-                      : "Not specified"}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Purchase Cost:</span>{" "}
-                    {selectedItem.purchaseCost
-                      ? `₹${selectedItem.purchaseCost}`
-                      : "Not specified"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* QR Code Section */}
-            <div className="mt-6">
-              <h4 className="font-bold text-lg mb-2">QR Code</h4>
-              <div className="border-2 border-dashed border-gray-300 p-4 rounded-lg">
-                {selectedItem.qrCodeUrl ? (
-                  <div className="flex flex-col items-center">
-                    <img
-                      src={resolveQRUrl(selectedItem.qrCodeUrl)}
-                      alt="QR Code"
-                      className="w-32 h-32 border border-gray-300 rounded-lg mb-2"
-                      onError={(e) => {
-                        const filename = selectedItem.qrCodeUrl.split("/").pop();
-                        const alternatives = [
-                          `${BASE_URL}/qrcodes/${filename}`,
-                          `${BASE_URL}/public/qrcodes/${filename}`,
-                          `${BASE_URL}${selectedItem.qrCodeUrl}`,
-                        ];
-                        const nextAlt = alternatives.find(
-                          (alt) => alt !== e.target.src
-                        );
-                        if (nextAlt) {
-                          e.target.src = nextAlt;
-                        } else {
-                          e.target.style.display = "none";
-                          e.target.nextElementSibling.style.display = "block";
-                        }
-                      }}
-                    />
-                    <div
-                      style={{ display: "none" }}
-                      className="w-32 h-32 border border-red-300 rounded-lg mb-2 flex items-center justify-center bg-red-50"
-                    >
-                      <span className="text-red-500 text-xs text-center">
-                        QR Code
-                        <br />
-                        Load Failed
-                      </span>
-                    </div>
-                    <p className="mb-2">QR Code generated</p>
-                    <button
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2"
-                      onClick={() => handleDownloadQR(selectedItem)}
-                    >
-                      <Download size={16} />
-                      Download QR Code
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center">
-                    <QrCode size={48} className="text-gray-400 mb-2" />
-                    <p className="mb-2">No QR code generated</p>
-                    <button
-                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-2"
-                      onClick={() => handleGenerateQR(selectedItem)}
-                    >
-                      <QrCode size={16} />
-                      Generate QR Code
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Receipt Section */}
-            <div className="mt-6">
-              <h4 className="font-bold text-lg mb-2">Receipt</h4>
-              <div className="border-2 border-dashed border-gray-300 p-4 rounded-lg">
-                {selectedItem.receiptUrl ? (
-                  <div className="flex flex-col items-center">
-                    <p>Receipt uploaded</p>
-                    <button
-                      className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                      onClick={() => {
-                        window.open(
-                          `${BASE_URL}${selectedItem.receiptUrl}`,
-                          "_blank"
-                        );
-                      }}
-                    >
-                      View Receipt
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center">
-                    <p className="mb-2">No receipt uploaded</p>
-                    <button
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                      onClick={() => {
-                        setShowDetailModal(false);
-                        setShowUploadModal(true);
-                      }}
-                    >
-                      Upload Receipt
-                    </button>
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         </div>
@@ -1771,92 +1609,6 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
           </div>
         </div>
       )}
-      {/* Replacement Request Modal */}
-      {showReplaceModal && replacingItem && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[120] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden transform transition-all animate-in fade-in zoom-in duration-300">
-            <div className="bg-orange-600 px-6 py-4 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 2v6h-6" /><path d="M3 12a9 9 0 0 1 15-6.7L21 8" /><path d="M3 22v-6h6" /><path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
-                </svg>
-                Replace Item
-              </h3>
-              <button onClick={() => setShowReplaceModal(false)} className="text-white hover:text-orange-100 transition-colors text-2xl">&times;</button>
-            </div>
-            
-            <div className="p-6">
-              <div className="mb-6 p-4 bg-orange-50 rounded-xl border border-orange-100">
-                <div className="flex justify-between mb-1">
-                  <span className="text-xs font-bold text-orange-400 uppercase tracking-wider">Item Details</span>
-                  <span className="text-xs font-medium text-orange-600">ID: {replacingItem.barcodeId}</span>
-                </div>
-                <h4 className="text-lg font-bold text-gray-800">{replacingItem.itemName}</h4>
-                <p className="text-sm text-gray-600">{replacingItem.category} • {replacingItem.location}</p>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1 ml-1">Reason for Replacement</label>
-                  <textarea
-                    className="w-full border-gray-300 border px-4 py-3 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all shadow-sm resize-none"
-                    rows={4}
-                    value={replaceReason}
-                    onChange={(e) => setReplaceReason(e.target.value)}
-                    placeholder="Describe why this item needs to be replaced (e.g., damaged beyond repair, missing parts)..."
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1 ml-1">Upload Photo (Optional)</label>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => replacePhotoRef.current.click()}
-                      className="flex-1 px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-orange-500 hover:text-orange-600 transition-all flex items-center justify-center gap-2"
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
-                      </svg>
-                      {replacePhoto ? "Change Photo" : "Add Photo"}
-                    </button>
-                    {replacePhoto && (
-                      <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-gray-200">
-                        <img src={URL.createObjectURL(replacePhoto)} alt="Preview" className="w-full h-full object-cover" />
-                        <button onClick={() => setReplacePhoto(null)} className="absolute top-0 right-0 bg-red-500 text-white rounded-bl-lg p-0.5">&times;</button>
-                      </div>
-                    )}
-                  </div>
-                  <input
-                    type="file"
-                    ref={replacePhotoRef}
-                    className="hidden"
-                    accept="image/*"
-                    onChange={(e) => setReplacePhoto(e.target.files[0])}
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-8">
-                <button
-                  onClick={() => setShowReplaceModal(false)}
-                  disabled={isSubmittingReplace}
-                  className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-all disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={submitReplacementRequest}
-                  disabled={isSubmittingReplace}
-                  className="flex-2 px-8 py-3 bg-orange-600 text-white font-bold rounded-xl hover:bg-orange-700 transition-all shadow-lg shadow-orange-200 flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {isSubmittingReplace ? "Submitting..." : "Send Request"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
@@ -1932,6 +1684,19 @@ const InventoryList = ({ onAddNewItem, inventory, setInventory, fetchInventory, 
           </div>
         </div>
       )}
+
+      {/* Replace Item Modal */}
+      <ReplaceItemModal
+        isOpen={showReplaceModal}
+        onClose={() => {
+          setShowReplaceModal(false);
+          setItemToReplace(null);
+        }}
+        oldItem={itemToReplace}
+        fetchInventory={fetchInventory}
+        availableRoomsForInventory={availableRoomsForInventory}
+        availableFloors={availableFloors}
+      />
 
       {/* Toast Notifications */}
       <Toaster position="top-right" reverseOrder={false} />
@@ -2103,7 +1868,7 @@ function AddNewItem({ onBackToInventory, onItemAdded, availableRoomsForInventory
     // Resolve "Others" values and persist them to localStorage
     let finalLocation = formData.location;
     let finalCategory = formData.category;
-    let finalStatus   = formData.status;
+    let finalStatus = formData.status;
 
     if (formData.location === '__others__') {
       finalLocation = otherLocation.trim();
@@ -2136,7 +1901,7 @@ function AddNewItem({ onBackToInventory, onItemAdded, availableRoomsForInventory
       formDataToSend.append("itemName", formData.itemName);
       formDataToSend.append("category", finalCategory);
       formDataToSend.append("location", finalLocation);
-      formDataToSend.append("status",   finalStatus);
+      formDataToSend.append("status", finalStatus);
       formDataToSend.append("description", formData.description);
       formDataToSend.append("purchaseDate", formData.purchaseDate);
       formDataToSend.append("purchaseCost", formData.purchaseCost);
@@ -2147,7 +1912,7 @@ function AddNewItem({ onBackToInventory, onItemAdded, availableRoomsForInventory
       formDataToSend.append("floor", finalFloor);
 
       const { data } = await api.post(
-        `/api/adminauth/inventory/add`,
+        `/api/wardenauth/inventory/add`,
         formDataToSend,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
@@ -2176,7 +1941,7 @@ function AddNewItem({ onBackToInventory, onItemAdded, availableRoomsForInventory
 
     try {
       const response = await api.get(
-        `/api/adminauth/inventory/${generatedItem._id}/qr-code/download`,
+        `/api/wardenauth/inventory/${generatedItem._id}/qr-code/download`,
         { responseType: "blob" }
       );
       if (response.data) {
@@ -2301,40 +2066,39 @@ function AddNewItem({ onBackToInventory, onItemAdded, availableRoomsForInventory
             </label>
             <div className="relative w-full sm:max-w-[530px] h-[40px]">
               <select
-  name="location"
-  value={formData.location}
-  onChange={(e) => {
-    handleInputChange(e);
-    if (e.target.value !== '__others__') setOtherLocation('');
-  }}
-  className={`w-full h-full px-4 bg-white rounded-[10px] border-0 outline-none cursor-pointer appearance-none text-[12px] leading-[22px] font-semibold font-[Poppins] ${
-    formData.location === "" ? "text-[#0000008A]" : "text-black"
-  } ${errors.location ? "border-2 border-red-500" : ""}`}
-  style={{
-    WebkitAppearance: "none",
-    MozAppearance: "none",
-    appearance: "none",
-    boxShadow: "0px 4px 10px 0px #00000040",
-  }}
->
-  <option value="" disabled hidden>
-    Select Location
-  </option>
+                name="location"
+                value={formData.location}
+                onChange={(e) => {
+                  handleInputChange(e);
+                  if (e.target.value !== '__others__') setOtherLocation('');
+                }}
+                className={`w-full h-full px-4 bg-white rounded-[10px] border-0 outline-none cursor-pointer appearance-none text-[12px] leading-[22px] font-semibold font-[Poppins] ${formData.location === "" ? "text-[#0000008A]" : "text-black"
+                  } ${errors.location ? "border-2 border-red-500" : ""}`}
+                style={{
+                  WebkitAppearance: "none",
+                  MozAppearance: "none",
+                  appearance: "none",
+                  boxShadow: "0px 4px 10px 0px #00000040",
+                }}
+              >
+                <option value="" disabled hidden>
+                  Select Location
+                </option>
 
-  {PREDEFINED_LOCATIONS.map((loc) => (
-    <option key={loc} value={loc}>
-      {loc}
-    </option>
-  ))}
+                {PREDEFINED_LOCATIONS.map((loc) => (
+                  <option key={loc} value={loc}>
+                    {loc}
+                  </option>
+                ))}
 
-  {customLocations.map((loc) => (
-    <option key={`cloc-${loc}`} value={loc}>
-      {loc}
-    </option>
-  ))}
+                {customLocations.map((loc) => (
+                  <option key={`cloc-${loc}`} value={loc}>
+                    {loc}
+                  </option>
+                ))}
 
-  <option value="__others__">Others</option>
-</select>
+                <option value="__others__">Others</option>
+              </select>
               <svg className="pointer-events-none absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-black" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.293l3.71-4.06a.75.75 0 111.08 1.04l-4.25 4.65a.75.75 0 01-1.08 0l-4.25-4.65a.75.75 0 01.02-1.06z" clipRule="evenodd" />
               </svg>
@@ -2404,41 +2168,40 @@ function AddNewItem({ onBackToInventory, onItemAdded, availableRoomsForInventory
               Category
             </label>
             <div className="relative w-full sm:max-w-[530px] h-[40px]">
-           <select
-  name="category"
-  value={formData.category}
-  onChange={(e) => {
-    handleInputChange(e);
-    if (e.target.value !== '__others__') setOtherCategory('');
-  }}
-  className={`w-full h-full px-4 bg-white rounded-[10px] border-0 outline-none cursor-pointer appearance-none text-[12px] leading-[22px] font-semibold font-[Poppins] ${
-    formData.category === "" ? "text-[#0000008A]" : "text-black"
-  } ${errors.category ? "border-2 border-red-500" : ""}`}
-  style={{
-    WebkitAppearance: "none",
-    MozAppearance: "none",
-    appearance: "none",
-    boxShadow: "0px 4px 10px 0px #00000040",
-  }}
->
-  <option value="" disabled hidden>
-    Select Category
-  </option>
+              <select
+                name="category"
+                value={formData.category}
+                onChange={(e) => {
+                  handleInputChange(e);
+                  if (e.target.value !== '__others__') setOtherCategory('');
+                }}
+                className={`w-full h-full px-4 bg-white rounded-[10px] border-0 outline-none cursor-pointer appearance-none text-[12px] leading-[22px] font-semibold font-[Poppins] ${formData.category === "" ? "text-[#0000008A]" : "text-black"
+                  } ${errors.category ? "border-2 border-red-500" : ""}`}
+                style={{
+                  WebkitAppearance: "none",
+                  MozAppearance: "none",
+                  appearance: "none",
+                  boxShadow: "0px 4px 10px 0px #00000040",
+                }}
+              >
+                <option value="" disabled hidden>
+                  Select Category
+                </option>
 
-  {PREDEFINED_CATEGORIES.map((cat) => (
-    <option key={cat} value={cat}>
-      {cat}
-    </option>
-  ))}
+                {PREDEFINED_CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
 
-  {customCategories.map((cat) => (
-    <option key={`ccat-${cat}`} value={cat}>
-      {cat}
-    </option>
-  ))}
+                {customCategories.map((cat) => (
+                  <option key={`ccat-${cat}`} value={cat}>
+                    {cat}
+                  </option>
+                ))}
 
-  <option value="__others__">Others</option>
-</select>
+                <option value="__others__">Others</option>
+              </select>
               <svg className="pointer-events-none absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-black" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.293l3.71-4.06a.75.75 0 111.08 1.04l-4.25 4.65a.75.75 0 01-1.08 0l-4.25-4.65a.75.75 0 01.02-1.06z" clipRule="evenodd" />
               </svg>
@@ -2769,7 +2532,7 @@ export default function InventoryManagement() {
   const fetchInventory = async () => {
     try {
       // Request a high limit to fetch all items for client-side pagination/filtering
-      const { data } = await api.get(`/api/adminauth/inventory?limit=10000`);
+      const { data } = await api.get(`/api/wardenauth/inventory?limit=10000`);
       setInventory(data.items);
     } catch (error) {
       console.error("Failed to fetch inventory:", error);
@@ -2779,7 +2542,7 @@ export default function InventoryManagement() {
   const fetchAvailableRoomsForInventoryData = async () => {
     try {
       const response = await api.get(
-        "/api/adminauth/inventory/available-rooms-floors"
+        "/api/wardenauth/inventory/available-rooms-floors"
       );
       setAvailableRoomsForInventory(response.data.rooms || []);
       setAvailableFloors(response.data.floors || []);

@@ -21,7 +21,86 @@ import api from "@/lib/api";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-export default function Complaint() {
+const AttachmentPreviewCard = ({ ticketId, attachment, onView }) => {
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (attachment.mimeType?.startsWith('image/') || attachment.mimeType === 'application/pdf') {
+      let objectUrl = null;
+      const fetchPreview = async () => {
+        setLoading(true);
+        setError(false);
+        try {
+          const response = await api.get(
+            `/api/wardenauth/complaints/${ticketId}/attachment/${attachment._id}`,
+            {
+              headers: { Authorization: `Bearer ${localStorage.getItem("adminToken")}` },
+              responseType: "blob",
+            }
+          );
+          objectUrl = URL.createObjectURL(response.data);
+          setPreviewUrl(objectUrl);
+        } catch (error) {
+          console.error("Failed to load attachment preview", error);
+          setError(true);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchPreview();
+      
+      return () => {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+      };
+    }
+  }, [ticketId, attachment]);
+
+  return (
+    <div className="border border-gray-200 rounded-xl bg-white p-4 flex flex-col hover:shadow-md transition-shadow">
+      <h4 className="text-sm font-semibold text-gray-800 mb-3 truncate" title={attachment.originalName || attachment.filename}>
+        {attachment.originalName || attachment.filename}
+      </h4>
+      <div className="bg-gray-50 border border-gray-200 border-dashed rounded-lg overflow-hidden h-32 flex items-center justify-center mb-4">
+        {previewUrl ? (
+          attachment.mimeType?.startsWith('image/') ? (
+            <img src={previewUrl} alt="preview" className="w-full h-full object-cover" />
+          ) : attachment.mimeType === 'application/pdf' ? (
+            <div className="text-gray-400 flex flex-col items-center">
+              <File size={32} className="text-red-500" />
+              <span className="text-xs mt-2 font-medium">PDF Document</span>
+            </div>
+          ) : null
+        ) : (
+          <div className="text-gray-400 flex flex-col items-center">
+            {loading ? (
+              <span className="text-xs font-medium text-gray-500 animate-pulse">Loading preview...</span>
+            ) : error ? (
+              <>
+                <File size={32} className="text-gray-300 mb-2" />
+                <span className="text-xs font-medium text-gray-500 text-center">Preview not available<br/>(File missing on server)</span>
+              </>
+            ) : attachment.mimeType?.startsWith('video/') ? (
+              <Video size={32} />
+            ) : (
+              <File size={32} />
+            )}
+          </div>
+        )}
+      </div>
+      <button
+        onClick={() => onView(attachment)}
+        className="w-full bg-[#5287c8] hover:bg-[#4070a8] text-white py-2 rounded-lg font-bold text-sm transition-colors mt-auto"
+      >
+        OPEN DOCUMENT
+      </button>
+    </div>
+  );
+};
+
+
+export default function TicketsSection() {
   const [openTickets, setOpenTickets] = useState([]);
   const [inProcessTickets, setInProcessTickets] = useState([]);
   const [resolvedTickets, setResolvedTickets] = useState([]);
@@ -32,15 +111,14 @@ export default function Complaint() {
   const [showModal, setShowModal] = useState(false);
   const [attachmentModal, setAttachmentModal] = useState({ show: false, url: '', type: '', filename: '' });
   const [activeFilter, setActiveFilter] = useState("total");
-  const [rejectionModal, setRejectionModal] = useState({ show: false, ticket: null, reason: '' });
-
-  // Pagination states
   const [openPage, setOpenPage] = useState(1);
   const [inProcessPage, setInProcessPage] = useState(1);
   const [resolvedPage, setResolvedPage] = useState(1);
   const [rejectedPage, setRejectedPage] = useState(1);
+  const [rejectionModal, setRejectionModal] = useState({ show: false, ticket: null, reason: '' });
   const ITEMS_PER_PAGE = 10;
 
+  // Calculate statistics dynamically
   const totalOpen = openTickets.length;
   const totalInProcess = inProcessTickets.length;
   const totalResolved = resolvedTickets.length;
@@ -54,6 +132,7 @@ export default function Complaint() {
     rejected: totalRejected
   };
 
+  // Pagination Helper Slicing
   const displayedOpenTickets = openTickets.slice((openPage - 1) * ITEMS_PER_PAGE, openPage * ITEMS_PER_PAGE);
   const displayedInProcessTickets = inProcessTickets.slice((inProcessPage - 1) * ITEMS_PER_PAGE, inProcessPage * ITEMS_PER_PAGE);
   const displayedResolvedTickets = resolvedTickets.slice((resolvedPage - 1) * ITEMS_PER_PAGE, resolvedPage * ITEMS_PER_PAGE);
@@ -66,11 +145,62 @@ export default function Complaint() {
     return isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString('en-GB');
   };
 
+  // Pagination Component
+  const Pagination = ({ totalItems, currentPage, onPageChange }) => {
+    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4">
+        <div className="text-sm text-gray-600 font-medium bg-white/50 px-4 py-2 rounded-full border border-white/20">
+          Showing <span className="text-black font-bold">{Math.min(totalItems, (currentPage - 1) * ITEMS_PER_PAGE + 1)}</span> -{" "}
+          <span className="text-black font-bold">{Math.min(totalItems, currentPage * ITEMS_PER_PAGE)}</span> of{" "}
+          <span className="text-black font-bold">{totalItems}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-gray-50 transition-all shadow-sm"
+          >
+            Previous
+          </button>
+          <div className="flex gap-1 hidden md:flex">
+            {[...Array(totalPages)].map((_, i) => (
+              <button
+                key={i + 1}
+                onClick={() => onPageChange(i + 1)}
+                className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${currentPage === i + 1
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
+                    : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm"
+                  }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-gray-50 transition-all shadow-sm"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   // Fetch open complaints/tickets (pending status)
   const fetchOpenTickets = async () => {
     try {
       const response = await api.get(
-        `/api/adminauth/complaints/pending`
+        `/api/wardenauth/complaints/pending`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+          },
+        }
       );
 
       const formattedTickets = response.data.complaints.map(complaint => ({
@@ -82,12 +212,11 @@ export default function Complaint() {
         raisedBy: complaint.raisedBy ? complaint.raisedBy.name : 'Unknown Student',
         studentId: complaint.raisedBy ? complaint.raisedBy.studentId : '',
         studentRoom: complaint.raisedBy ? complaint.raisedBy.roomNumber : '',
-        status: complaint.status === 'pending_approval' ? 'Pending Approval' : 'Open Ticket',
+        status: "Open Ticket",
         dateRaised: formatDate(complaint.filedDate),
         hasAttachments: complaint.hasAttachments,
         attachmentCount: complaint.attachmentCount,
-        attachments: complaint.attachments || [],
-        adminNotes: complaint.adminNotes || ""
+        attachments: complaint.attachments || []
       }));
 
       setOpenTickets(formattedTickets);
@@ -101,7 +230,12 @@ export default function Complaint() {
   const fetchInProcessTickets = async () => {
     try {
       const response = await api.get(
-        `/api/adminauth/complaints/inprogress`
+        `/api/wardenauth/complaints/inprogress`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+          },
+        }
       );
 
       const formattedTickets = response.data.complaints.map(complaint => ({
@@ -117,8 +251,7 @@ export default function Complaint() {
         dateRaised: formatDate(complaint.filedDate),
         hasAttachments: complaint.hasAttachments,
         attachmentCount: complaint.attachmentCount,
-        attachments: complaint.attachments || [],
-        adminNotes: complaint.adminNotes || ""
+        attachments: complaint.attachments || []
       }));
 
       setInProcessTickets(formattedTickets);
@@ -132,7 +265,12 @@ export default function Complaint() {
   const fetchResolvedTickets = async () => {
     try {
       const response = await api.get(
-        `/api/adminauth/complaints/resolved`
+        `/api/wardenauth/complaints/resolved`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+          },
+        }
       );
 
       const formattedTickets = response.data.complaints.map(complaint => ({
@@ -144,13 +282,12 @@ export default function Complaint() {
         raisedBy: complaint.raisedBy ? complaint.raisedBy.name : 'Unknown Student',
         studentId: complaint.raisedBy ? complaint.raisedBy.studentId : '',
         studentRoom: complaint.raisedBy ? complaint.raisedBy.roomNumber : '',
-        status: complaint.status === 'pending_approval' ? 'Pending Approval' : 'Resolved',
-        dateRaised: new Date(complaint.filedDate).toLocaleDateString('en-GB'),
-        resolvedDate: new Date(complaint.resolvedDate).toLocaleDateString('en-GB'),
+        status: "Resolved Section",
+        dateRaised: formatDate(complaint.filedDate),
+        resolvedDate: formatDate(complaint.resolvedDate || complaint.updatedAt),
         hasAttachments: complaint.hasAttachments,
         attachmentCount: complaint.attachmentCount,
-        attachments: complaint.attachments || [],
-        adminNotes: complaint.adminNotes || ""
+        attachments: complaint.attachments || []
       }));
 
       setResolvedTickets(formattedTickets);
@@ -164,7 +301,12 @@ export default function Complaint() {
   const fetchRejectedTickets = async () => {
     try {
       const response = await api.get(
-        `/api/adminauth/complaints/rejected`
+        `/api/wardenauth/complaints/rejected`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+          },
+        }
       );
 
       const formattedTickets = response.data.complaints.map(complaint => ({
@@ -176,7 +318,7 @@ export default function Complaint() {
         raisedBy: complaint.raisedBy ? complaint.raisedBy.name : 'Unknown Student',
         studentId: complaint.raisedBy ? complaint.raisedBy.studentId : '',
         studentRoom: complaint.raisedBy ? complaint.raisedBy.roomNumber : '',
-        status: "Rejected",
+        status: "Rejected Section",
         dateRaised: formatDate(complaint.filedDate),
         rejectedDate: formatDate(complaint.rejectedDate || complaint.updatedAt),
         adminNotes: complaint.adminNotes,
@@ -196,7 +338,12 @@ export default function Complaint() {
   const fetchTicketDetails = async (ticketId) => {
     try {
       const response = await api.get(
-        `/api/adminauth/complaints/${ticketId}`
+        `/api/wardenauth/complaints/${ticketId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+          },
+        }
       );
       return response.data.complaint;
     } catch (error) {
@@ -216,10 +363,21 @@ export default function Complaint() {
 
   // View attachment
   const viewAttachment = async (complaintId, attachmentId, filename, mimeType) => {
+    console.log("Viewing attachment:", { complaintId, attachmentId, filename });
+
+    if (!complaintId || !attachmentId) {
+      console.error("Missing complaintId or attachmentId", { complaintId, attachmentId });
+      toast.error("Invalid attachment reference. Please try again.");
+      return;
+    }
+
     try {
       const response = await api.get(
-        `/api/adminauth/complaints/${complaintId}/attachment/${attachmentId}`,
+        `/api/wardenauth/complaints/${complaintId}/attachment/${attachmentId}`,
         {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+          },
           responseType: 'blob'
         }
       );
@@ -241,8 +399,8 @@ export default function Complaint() {
       setLoading(true);
       try {
         await Promise.all([
-          fetchOpenTickets(), 
-          fetchInProcessTickets(), 
+          fetchOpenTickets(),
+          fetchInProcessTickets(),
           fetchResolvedTickets(),
           fetchRejectedTickets()
         ]);
@@ -265,24 +423,27 @@ export default function Complaint() {
 
     try {
       await api.put(
-        `/api/adminauth/complaints/${complaintId}/status`,
+        `/api/wardenauth/complaints/${complaintId}/status`,
         {
-          status: "pending_approval",
-          targetStatus: "in progress",
-          adminNotes: "Warden has requested to move this complaint to In-Progress."
+          status: "in progress",
+          adminNotes: "Complaint has been approved and moved to in-process."
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+          },
         }
       );
 
-      const requestedTicket = {
+      const inProcessTicket = {
         ...ticket,
-        status: "Pending Approval",
-        resolvedDate: new Date().toLocaleDateString('en-GB')
+        status: "In Progress"
       };
 
-      setResolvedTickets(prev => [requestedTicket, ...prev]);
+      setInProcessTickets(prev => [inProcessTicket, ...prev]);
       setOpenTickets(prev => prev.filter((_, i) => i !== index));
 
-      toast.success("✅ Start processing request sent for Admin Approval!");
+      toast.success("✅ Ticket has been approved and moved to In-Process!");
 
     } catch (error) {
       console.error("Failed to approve ticket:", error);
@@ -301,24 +462,28 @@ export default function Complaint() {
 
     try {
       await api.put(
-        `/api/adminauth/complaints/${complaintId}/status`,
+        `/api/wardenauth/complaints/${complaintId}/status`,
         {
-          status: "pending_approval",
-          targetStatus: "resolved",
-          adminNotes: "Warden has requested resolution approval from Admin."
+          status: "resolved",
+          adminNotes: "Complaint has been resolved by admin."
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+          },
         }
       );
 
       const resolvedTicket = {
         ...ticket,
-        status: "Pending Approval",
+        status: "Resolved",
         resolvedDate: new Date().toLocaleDateString('en-GB')
       };
 
       setResolvedTickets(prev => [resolvedTicket, ...prev]);
       setInProcessTickets(prev => prev.filter((_, i) => i !== index));
 
-      toast.success("✅ Resolution request sent for Admin Approval!");
+      toast.success("✅ Ticket has been resolved successfully!");
 
     } catch (error) {
       console.error("Failed to resolve ticket:", error);
@@ -352,27 +517,31 @@ export default function Complaint() {
 
     try {
       await api.put(
-        `/api/adminauth/complaints/${ticket._id}/status`,
+        `/api/wardenauth/complaints/${ticket._id}/status`,
         {
-          status: "pending_approval",
-          targetStatus: "rejected",
-          adminNotes: `Warden has requested to REJECT this complaint. Reason: ${reason.trim()}`
+          status: "rejected",
+          adminNotes: reason.trim()
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+          },
         }
       );
 
-      const requestedTicket = {
+      const rejectedTicket = {
         ...ticket,
-        status: "Pending Approval",
-        adminNotes: `REJECTION REQUEST: ${reason.trim()}`,
-        resolvedDate: new Date().toLocaleDateString('en-GB')
+        status: "Rejected",
+        rejectedDate: new Date().toLocaleDateString('en-GB'),
+        adminNotes: reason.trim()
       };
 
-      setResolvedTickets(prev => [requestedTicket, ...prev]);
+      setRejectedTickets(prev => [rejectedTicket, ...prev]);
       setOpenTickets(prev => prev.filter((_, i) => i !== ticket.index));
-      toast.success("✅ Rejection request sent for Admin Approval!");
+      toast.error("❌ Complaint has been rejected.");
     } catch (error) {
-      console.error("Failed to send rejection request:", error);
-      toast.error("❌ Failed to send rejection request. Please try again.");
+      console.error("Failed to reject complaint:", error);
+      toast.error("❌ Failed to reject complaint. Please try again.");
     } finally {
       setActionLoading(prev => ({ ...prev, [`reject_${ticket.index}`]: false }));
     }
@@ -384,74 +553,6 @@ export default function Complaint() {
       URL.revokeObjectURL(attachmentModal.url);
     }
     setAttachmentModal({ show: false, url: '', type: '', filename: '' });
-  };
-
-  const Pagination = ({ totalItems, itemsPerPage, currentPage, onPageChange }) => {
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
-    if (totalPages <= 1) return null;
-
-    return (
-      <div className="flex items-center justify-between bg-white px-4 py-3 sm:px-6 mt-4 rounded-xl border border-gray-100 shadow-sm">
-        <div className="flex flex-1 justify-between sm:hidden">
-          <button
-            onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
-            disabled={currentPage === 1}
-            className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-          >
-            Previous
-          </button>
-          <button
-            onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
-        <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm text-gray-700">
-              Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to{" "}
-              <span className="font-medium">{Math.min(currentPage * itemsPerPage, totalItems)}</span> of{" "}
-              <span className="font-medium">{totalItems}</span> results
-            </p>
-          </div>
-          <div>
-            <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-              <button
-                onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
-                disabled={currentPage === 1}
-                className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-              >
-                <span className="sr-only">Previous</span>
-                <Clock className="h-5 w-5 rotate-180" aria-hidden="true" />
-              </button>
-              {[...Array(totalPages)].map((_, i) => (
-                <button
-                  key={i + 1}
-                  onClick={() => onPageChange(i + 1)}
-                  className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
-                    currentPage === i + 1
-                      ? "z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                      : "text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-              <button
-                onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-              >
-                <span className="sr-only">Next</span>
-                <Clock className="h-5 w-5" aria-hidden="true" />
-              </button>
-            </nav>
-          </div>
-        </div>
-      </div>
-    );
   };
 
   // Card data for stats
@@ -467,6 +568,7 @@ export default function Complaint() {
       badgeColor: "bg-blue-50 text-blue-600",
       icon: <Ticket size={18} />,
     },
+
     {
       id: "open",
       label: "Open Ticket",
@@ -478,6 +580,7 @@ export default function Complaint() {
       badgeColor: "bg-orange-50 text-orange-600",
       icon: <MessageSquare size={18} />,
     },
+
     {
       id: "inProcess",
       label: "Inprocess Ticket",
@@ -489,6 +592,7 @@ export default function Complaint() {
       badgeColor: "bg-purple-50 text-purple-600",
       icon: <Clock size={18} />,
     },
+
     {
       id: "resolved",
       label: "Resolved Section",
@@ -500,11 +604,12 @@ export default function Complaint() {
       badgeColor: "bg-green-50 text-green-600",
       icon: <CheckCircle size={18} />,
     },
+
     {
       id: "rejected",
       label: "Rejected Section",
       value: stats.rejected,
-      subLabel: "Not Approved",
+      subLabel: "Rejected",
       borderColor: "border-red-200",
       bgColor: "bg-red-50",
       textColor: "text-red-500",
@@ -552,38 +657,60 @@ export default function Complaint() {
               onClick={() => setActiveFilter(card.id)}
               className={`bg-white rounded-2xl p-5 border ${card.borderColor} ${activeFilter === card.id ? "ring-2 ring-offset-2 ring-" + card.borderColor.split("-")[1] + "-500" : ""} shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 cursor-pointer`}
             >
-              <div className={`w-10 h-10 rounded-full ${card.bgColor} flex items-center justify-center mb-4`}>
-                <div className={card.textColor}>{card.icon}</div>
+              <div
+                className={`w-10 h-10 rounded-full ${card.bgColor} flex items-center justify-center mb-4`}
+              >
+                <div className={card.textColor}>
+                  {card.icon}
+                </div>
               </div>
-              <div className="text-4xl font-bold text-black">{card.value}</div>
-              <div className="text-gray-700 text-sm font-medium mt-1">{card.label}</div>
-              <div className={`inline-block mt-4 px-3 py-1 text-xs font-medium rounded-full ${card.badgeColor}`}>
+
+
+              <div className="text-4xl font-bold text-black">
+                {card.value}
+              </div>
+
+              <div className="text-gray-700 text-sm font-medium mt-1">
+                {card.label}
+              </div>
+
+              <div
+                className={`inline-block mt-4 px-3 py-1 text-xs font-medium rounded-full ${card.badgeColor}`}
+              >
                 {card.subLabel}
               </div>
             </div>
+
+
           ))}
+
         </div>
 
         {/* Open Tickets */}
-        {(activeFilter === "total" || activeFilter === "open" || activeFilter === "priority") && (
-          <div className="bg-[#BEC5AD] rounded-2xl p-6 shadow-inner mb-8">
-            <h2 className="text-xl font-semibold text-black mb-4 flex items-center gap-2">
-              <MessageSquare size={20} />
-              Open Ticket ({displayedOpenTickets.length})
-            </h2>
+        {(activeFilter === "total" || activeFilter === "open") && (
+          <div className="bg-[#f4f6f0] rounded-2xl shadow-lg overflow-hidden mb-8 border border-[#BEC5AD]/30 font-[Poppins]">
+            <div className="bg-gradient-to-r from-[#BEC5AD] to-[#a8b096] px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+              <div>
+                <h2 className="text-xl font-semibold text-black flex items-center gap-2 font-[Poppins]">
+                  <MessageSquare size={20} />
+                  Open Ticket
+                </h2>
+                <p className="text-sm text-gray-700 mt-1 font-medium">Total: {displayedOpenTickets.length} records</p>
+              </div>
+            </div>
 
             {/* Desktop Table View */}
-            <div className="hidden lg:block overflow-x-auto">
-              <table className="w-full text-left">
+            <div className="hidden lg:block overflow-x-auto p-4">
+              <table className="w-full text-left text-black text-xs sm:text-sm md:text-base">
                 <thead>
-                  <tr className="bg-white text-black font-semibold rounded-lg">
-                    <th className="p-3 rounded-tl-lg">Ticket ID</th>
-                    <th className="p-3">Subject & Files</th>
-                    <th className="p-3">Type</th>
-                    <th className="p-3">Raised By</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Date</th>
-                    <th className="p-3 rounded-tr-lg">Actions</th>
+                  <tr className="border-b-2 border-gray-200">
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Ticket ID</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Subject & Files</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Type</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Raised By</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Status</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Date</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -591,7 +718,7 @@ export default function Complaint() {
                     displayedOpenTickets.map((ticket, index) => (
                       <tr key={ticket.id} className="bg-white border-b border-gray-100 hover:bg-gray-50 transition-colors">
                         <td className="p-3 font-semibold text-sm">{ticket.id}</td>
-                        <td className="p-3">
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">
                           <div className="text-sm font-medium truncate max-w-[200px]" title={ticket.subject}>
                             {ticket.subject}
                           </div>
@@ -604,8 +731,8 @@ export default function Complaint() {
                             </button>
                           )}
                         </td>
-                        <td className="p-3 text-sm">{ticket.complaintType}</td>
-                        <td className="p-3">
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">{ticket.complaintType}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">
                           <div className="text-sm font-medium">{ticket.raisedBy}</div>
                           {ticket.studentId && (
                             <div className="text-xs text-gray-500">ID: {ticket.studentId}</div>
@@ -614,13 +741,13 @@ export default function Complaint() {
                             <div className="text-xs text-gray-500">Room: {ticket.studentRoom}</div>
                           )}
                         </td>
-                        <td className="p-3">
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">
                           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                             <Clock size={12} /> {ticket.status}
                           </span>
                         </td>
-                        <td className="p-3 text-sm">{ticket.dateRaised}</td>
-                        <td className="p-3">
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">{ticket.dateRaised}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">
                           <div className="flex gap-2">
                             <button
                               onClick={() => viewTicketDetails(ticket)}
@@ -631,17 +758,17 @@ export default function Complaint() {
                             </button>
                             <button
                               onClick={() => handleApprove(index)}
-                              disabled={actionLoading[`approve_${index}`] || actionLoading[`reject_${index}`] || ticket.status === 'Pending Approval'}
+                              disabled={actionLoading[`approve_${index}`] || actionLoading[`reject_${index}`]}
                               className="p-1 text-green-600 hover:text-green-800 transition-colors disabled:opacity-50"
-                              title={ticket.status === 'Pending Approval' ? "Awaiting Admin Approval" : "Approve"}
+                              title="Approve"
                             >
                               <CheckCircle size={18} />
                             </button>
                             <button
                               onClick={() => handleReject(index)}
-                              disabled={actionLoading[`approve_${index}`] || actionLoading[`reject_${index}`] || ticket.status === 'Pending Approval'}
+                              disabled={actionLoading[`approve_${index}`] || actionLoading[`reject_${index}`]}
                               className="p-1 text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
-                              title={ticket.status === 'Pending Approval' ? "Awaiting Admin Approval" : "Reject"}
+                              title="Reject"
                             >
                               <XCircle size={18} />
                             </button>
@@ -651,82 +778,123 @@ export default function Complaint() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7} className="text-center py-8 text-gray-600">No open tickets available.</td>
+                      <td colSpan={7} className="text-center py-8 text-gray-600 font-medium">
+                        No open tickets available.
+                      </td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </div>
 
-            <Pagination 
-              totalItems={totalOpen} 
-              itemsPerPage={ITEMS_PER_PAGE} 
-              currentPage={openPage} 
-              onPageChange={setOpenPage} 
-            />
-
             {/* Mobile Card View */}
             <div className="lg:hidden space-y-4">
-              {displayedOpenTickets.map((ticket, index) => (
-                <div key={ticket.id} className="bg-white rounded-xl p-4 shadow-md">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <span className="text-xs font-semibold text-gray-500">Ticket ID</span>
-                      <p className="font-bold text-sm">{ticket.id}</p>
+              {displayedOpenTickets.length > 0 ? (
+                displayedOpenTickets.map((ticket, index) => (
+                  <div key={ticket.id} className="bg-white rounded-xl p-4 shadow-md">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <span className="text-xs font-semibold text-gray-500">Ticket ID</span>
+                        <p className="font-bold text-sm">{ticket.id}</p>
+                      </div>
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        <Clock size={12} /> {ticket.status}
+                      </span>
                     </div>
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                      <Clock size={12} /> {ticket.status}
-                    </span>
+
+                    <div className="mb-2">
+                      <span className="text-xs font-semibold text-gray-500">Subject</span>
+                      <p className="text-sm font-medium">{ticket.subject}</p>
+                    </div>
+
+                    <div className="mb-2">
+                      <span className="text-xs font-semibold text-gray-500">Type</span>
+                      <p className="text-sm">{ticket.complaintType}</p>
+                    </div>
+
+                    <div className="mb-2">
+                      <span className="text-xs font-semibold text-gray-500">Raised By</span>
+                      <p className="text-sm font-medium">{ticket.raisedBy}</p>
+                      {ticket.studentId && (
+                        <p className="text-xs text-gray-500">ID: {ticket.studentId}</p>
+                      )}
+                      {ticket.studentRoom && (
+                        <p className="text-xs text-gray-500">Room: {ticket.studentRoom}</p>
+                      )}
+                    </div>
+
+                    <div className="mb-3">
+                      <span className="text-xs font-semibold text-gray-500">Date</span>
+                      <p className="text-sm">{ticket.dateRaised}</p>
+                    </div>
+
+                    {ticket.hasAttachments && (
+                      <button
+                        onClick={() => viewTicketDetails(ticket)}
+                        className="text-xs text-blue-600 hover:text-blue-800 underline flex items-center gap-1 mb-3"
+                      >
+                        <Paperclip size={12} /> {ticket.attachmentCount} attachment(s)
+                      </button>
+                    )}
+
+                    <div className="flex gap-2 pt-2 border-t border-gray-100">
+                      <button
+                        onClick={() => handleApprove(index)}
+                        disabled={actionLoading[`approve_${index}`] || actionLoading[`reject_${index}`]}
+                        className="flex-1 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        <CheckCircle size={16} /> Approve
+                      </button>
+                      <button
+                        onClick={() => handleReject(index)}
+                        disabled={actionLoading[`approve_${index}`] || actionLoading[`reject_${index}`]}
+                        className="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        <XCircle size={16} /> Reject
+                      </button>
+                    </div>
                   </div>
-                  <div className="mb-2">
-                    <span className="text-xs font-semibold text-gray-500">Subject</span>
-                    <p className="text-sm font-medium">{ticket.subject}</p>
-                  </div>
-                  <div className="mb-2">
-                    <span className="text-xs font-semibold text-gray-500">Raised By</span>
-                    <p className="text-sm font-medium">{ticket.raisedBy}</p>
-                  </div>
-                  <div className="flex gap-2 pt-2 border-t border-gray-100">
-                    <button
-                      onClick={() => handleApprove(index)}
-                      disabled={actionLoading[`approve_${index}`] || ticket.status === 'Pending Approval'}
-                      className="flex-1 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      <CheckCircle size={16} /> {ticket.status === 'Pending Approval' ? "Pending..." : "Approve"}
-                    </button>
-                    <button
-                      onClick={() => handleReject(index)}
-                      disabled={actionLoading[`reject_${index}`] || ticket.status === 'Pending Approval'}
-                      className="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      <XCircle size={16} /> {ticket.status === 'Pending Approval' ? "Pending..." : "Reject"}
-                    </button>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-600 bg-white rounded-xl">
+                  No open tickets available.
                 </div>
-              ))}
+              )}
             </div>
+
+            <Pagination
+              totalItems={totalOpen}
+              currentPage={openPage}
+              onPageChange={setOpenPage}
+            />
           </div>
         )}
 
         {/* In-Process Tickets */}
-        {(activeFilter === "total" || activeFilter === "inProcess" || activeFilter === "priority") && (
-          <div className="bg-[#D4C5E2] rounded-2xl p-6 shadow-inner mb-8">
-            <h2 className="text-xl font-semibold text-black mb-4 flex items-center gap-2">
-              <Clock size={20} />
-              Inprocess Ticket ({displayedInProcessTickets.length})
-            </h2>
+        {(activeFilter === "total" || activeFilter === "inProcess") && (
+          <div className="bg-[#f4f6f0] rounded-2xl shadow-lg overflow-hidden mb-8 border border-[#D4C5E2]/80 font-[Poppins]">
+            <div className="bg-gradient-to-r from-[#D4C5E2] to-[#bbaac9] px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+              <div>
+                <h2 className="text-xl font-semibold text-black flex items-center gap-2 font-[Poppins]">
+                  <Clock size={20} />
+                  Inprocess Ticket
+                </h2>
+                <p className="text-sm text-gray-700 mt-1 font-medium">Total: {displayedInProcessTickets.length} records</p>
+              </div>
+            </div>
 
-            <div className="hidden lg:block overflow-x-auto">
-              <table className="w-full text-left">
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto p-4">
+              <table className="w-full text-left text-black text-xs sm:text-sm md:text-base">
                 <thead>
-                  <tr className="bg-white text-black font-semibold rounded-lg">
-                    <th className="p-3 rounded-tl-lg">Ticket ID</th>
-                    <th className="p-3">Subject & Files</th>
-                    <th className="p-3">Type</th>
-                    <th className="p-3">Raised By</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Date</th>
-                    <th className="p-3 rounded-tr-lg">Actions</th>
+                  <tr className="border-b-2 border-gray-200">
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Ticket ID</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Subject & Files</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Type</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Raised By</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Status</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Date</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -734,7 +902,7 @@ export default function Complaint() {
                     displayedInProcessTickets.map((ticket, index) => (
                       <tr key={ticket.id} className="bg-white border-b border-gray-100 hover:bg-gray-50 transition-colors">
                         <td className="p-3 font-semibold text-sm">{ticket.id}</td>
-                        <td className="p-3">
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">
                           <div className="text-sm font-medium truncate max-w-[200px]" title={ticket.subject}>
                             {ticket.subject}
                           </div>
@@ -747,17 +915,23 @@ export default function Complaint() {
                             </button>
                           )}
                         </td>
-                        <td className="p-3 text-sm">{ticket.complaintType}</td>
-                        <td className="p-3">
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">{ticket.complaintType}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">
                           <div className="text-sm font-medium">{ticket.raisedBy}</div>
+                          {ticket.studentId && (
+                            <div className="text-xs text-gray-500">ID: {ticket.studentId}</div>
+                          )}
+                          {ticket.studentRoom && (
+                            <div className="text-xs text-gray-500">Room: {ticket.studentRoom}</div>
+                          )}
                         </td>
-                        <td className="p-3">
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">
                           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                             <Clock size={12} /> {ticket.status}
                           </span>
                         </td>
-                        <td className="p-3 text-sm">{ticket.dateRaised}</td>
-                        <td className="p-3">
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">{ticket.dateRaised}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">
                           <div className="flex gap-2">
                             <button
                               onClick={() => viewTicketDetails(ticket)}
@@ -770,9 +944,9 @@ export default function Complaint() {
                               onClick={() => handleResolve(index)}
                               disabled={actionLoading[`resolve_${index}`]}
                               className="p-1 text-green-600 hover:text-green-800 transition-colors disabled:opacity-50"
-                              title="Request Admin Approval"
+                              title="Approve to Resolve"
                             >
-                              <CheckSquare size={18} />
+                              <CheckCircle size={18} />
                             </button>
                           </div>
                         </td>
@@ -780,42 +954,117 @@ export default function Complaint() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7} className="text-center py-8 text-gray-600">No in-process tickets available.</td>
+                      <td colSpan={7} className="text-center py-8 text-gray-600 font-medium">
+                        No in-process tickets available.
+                      </td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </div>
 
-            <Pagination 
-              totalItems={totalInProcess} 
-              itemsPerPage={ITEMS_PER_PAGE} 
-              currentPage={inProcessPage} 
-              onPageChange={setInProcessPage} 
+            {/* Mobile Card View */}
+            <div className="lg:hidden space-y-4">
+              {displayedInProcessTickets.length > 0 ? (
+                displayedInProcessTickets.map((ticket, index) => (
+                  <div key={ticket.id} className="bg-white rounded-xl p-4 shadow-md">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <span className="text-xs font-semibold text-gray-500">Ticket ID</span>
+                        <p className="font-bold text-sm">{ticket.id}</p>
+                      </div>
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        <Clock size={12} /> {ticket.status}
+                      </span>
+                    </div>
+
+                    <div className="mb-2">
+                      <span className="text-xs font-semibold text-gray-500">Subject</span>
+                      <p className="text-sm font-medium">{ticket.subject}</p>
+                    </div>
+
+                    <div className="mb-2">
+                      <span className="text-xs font-semibold text-gray-500">Type</span>
+                      <p className="text-sm">{ticket.complaintType}</p>
+                    </div>
+
+                    <div className="mb-2">
+                      <span className="text-xs font-semibold text-gray-500">Raised By</span>
+                      <p className="text-sm font-medium">{ticket.raisedBy}</p>
+                      {ticket.studentId && (
+                        <p className="text-xs text-gray-500">ID: {ticket.studentId}</p>
+                      )}
+                      {ticket.studentRoom && (
+                        <p className="text-xs text-gray-500">Room: {ticket.studentRoom}</p>
+                      )}
+                    </div>
+
+                    <div className="mb-3">
+                      <span className="text-xs font-semibold text-gray-500">Date</span>
+                      <p className="text-sm">{ticket.dateRaised}</p>
+                    </div>
+
+                    {ticket.hasAttachments && (
+                      <button
+                        onClick={() => viewTicketDetails(ticket)}
+                        className="text-xs text-blue-600 hover:text-blue-800 underline flex items-center gap-1 mb-3"
+                      >
+                        <Paperclip size={12} /> {ticket.attachmentCount} attachment(s)
+                      </button>
+                    )}
+
+                    <div className="flex gap-2 pt-2 border-t border-gray-100">
+                      <button
+                        onClick={() => handleResolve(index)}
+                        disabled={actionLoading[`resolve_${index}`]}
+                        className="flex-1 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        <CheckCircle size={16} /> Approve
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-600 bg-white rounded-xl">
+                  No in-process tickets available.
+                </div>
+              )}
+            </div>
+
+            <Pagination
+              totalItems={totalInProcess}
+              currentPage={inProcessPage}
+              onPageChange={setInProcessPage}
             />
           </div>
         )}
 
         {/* Resolved Tickets */}
         {(activeFilter === "total" || activeFilter === "resolved") && (
-          <div className="bg-[#A4B494] rounded-2xl p-6 shadow-inner mb-8">
-            <h2 className="text-xl font-semibold text-black mb-4 flex items-center gap-2">
-              <CheckCircle size={20} />
-              Resolved Section ({totalResolved})
-            </h2>
+          <div className="bg-[#f4f6f0] rounded-2xl shadow-lg overflow-hidden mb-8 border border-[#BEC5AD]/30 font-[Poppins]">
+            <div className="bg-gradient-to-r from-[#BEC5AD] to-[#a8b096] px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+              <div>
+                <h2 className="text-xl font-semibold text-black flex items-center gap-2 font-[Poppins]">
+                  <CheckCircle size={20} />
+                  Resolved Section
+                </h2>
+                <p className="text-sm text-gray-700 mt-1 font-medium">Total: {displayedResolvedTickets.length} records</p>
+              </div>
+            </div>
 
-            <div className="hidden lg:block overflow-x-auto">
-              <table className="w-full text-left">
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto p-4">
+              <table className="w-full text-left text-black text-xs sm:text-sm md:text-base">
                 <thead>
-                  <tr className="bg-white text-black font-semibold rounded-lg">
-                    <th className="p-3 rounded-tl-lg">Ticket ID</th>
-                    <th className="p-3">Subject & Files</th>
-                    <th className="p-3">Type</th>
-                    <th className="p-3">Raised By</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Date</th>
-                    <th className="p-3">Resolved On</th>
-                    <th className="p-3 rounded-tr-lg">Actions</th>
+                  <tr className="border-b-2 border-gray-200">
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Ticket ID</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Subject & Files</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Type</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Raised By</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Status</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Filed</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Resolved</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -823,7 +1072,7 @@ export default function Complaint() {
                     displayedResolvedTickets.map((ticket) => (
                       <tr key={ticket.id} className="bg-white border-b border-gray-100 hover:bg-gray-50 transition-colors">
                         <td className="p-3 font-semibold text-sm">{ticket.id}</td>
-                        <td className="p-3 text-sm">
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">
                           <div className="text-sm font-medium truncate max-w-[200px]" title={ticket.subject}>
                             {ticket.subject}
                           </div>
@@ -836,20 +1085,21 @@ export default function Complaint() {
                             </button>
                           )}
                         </td>
-                        <td className="p-3 text-sm">{ticket.complaintType}</td>
-                        <td className="p-3 text-sm">{ticket.raisedBy}</td>
-                        <td className="p-3">
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                            ticket.status === 'Pending Approval' 
-                              ? 'bg-yellow-100 text-yellow-800' 
-                              : 'bg-green-100 text-green-800'
-                          }`}>
-                            {ticket.status === 'Pending Approval' ? <Clock size={12} /> : <CheckCircle size={12} />} {ticket.status}
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">{ticket.complaintType}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">
+                          <div className="text-sm font-medium">{ticket.raisedBy}</div>
+                          {ticket.studentId && (
+                            <div className="text-xs text-gray-500">{ticket.studentId}</div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <CheckCircle size={12} /> {ticket.status}
                           </span>
                         </td>
-                        <td className="p-3 text-sm">{ticket.dateRaised}</td>
-                        <td className="p-3 text-sm">{ticket.resolvedDate}</td>
-                        <td className="p-3">
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">{ticket.dateRaised}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">{ticket.resolvedDate || 'N/A'}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">
                           <button
                             onClick={() => viewTicketDetails(ticket)}
                             className="p-1 text-blue-600 hover:text-blue-800 transition-colors"
@@ -862,43 +1112,118 @@ export default function Complaint() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={8} className="text-center py-8 text-gray-600">No resolved tickets available.</td>
+                      <td colSpan={8} className="text-center py-8 text-gray-600 font-medium">
+                        No resolved tickets available.
+                      </td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </div>
 
-            <Pagination 
-              totalItems={totalResolved} 
-              itemsPerPage={ITEMS_PER_PAGE} 
-              currentPage={resolvedPage} 
-              onPageChange={setResolvedPage} 
+            {/* Mobile Card View */}
+            <div className="lg:hidden space-y-4">
+              {displayedResolvedTickets.length > 0 ? (
+                displayedResolvedTickets.map((ticket) => (
+                  <div key={ticket.id} className="bg-white rounded-xl p-4 shadow-md">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <span className="text-xs font-semibold text-gray-500">Ticket ID</span>
+                        <p className="font-bold text-sm">{ticket.id}</p>
+                      </div>
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <CheckCircle size={12} /> {ticket.status}
+                      </span>
+                    </div>
+
+                    <div className="mb-2">
+                      <span className="text-xs font-semibold text-gray-500">Subject</span>
+                      <p className="text-sm font-medium">{ticket.subject}</p>
+                    </div>
+
+                    <div className="mb-2">
+                      <span className="text-xs font-semibold text-gray-500">Type</span>
+                      <p className="text-sm">{ticket.complaintType}</p>
+                    </div>
+
+                    <div className="mb-2">
+                      <span className="text-xs font-semibold text-gray-500">Raised By</span>
+                      <p className="text-sm font-medium">{ticket.raisedBy}</p>
+                      {ticket.studentId && (
+                        <p className="text-xs text-gray-500">{ticket.studentId}</p>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <div>
+                        <span className="text-xs font-semibold text-gray-500">Filed</span>
+                        <p className="text-sm">{ticket.dateRaised}</p>
+                      </div>
+                      <div>
+                        <span className="text-xs font-semibold text-gray-500">Resolved</span>
+                        <p className="text-sm">{ticket.resolvedDate || 'N/A'}</p>
+                      </div>
+                    </div>
+                    {ticket.hasAttachments && (
+                      <button
+                        onClick={() => viewTicketDetails(ticket)}
+                        className="text-xs text-blue-600 hover:text-blue-800 underline flex items-center gap-1 mb-2"
+                      >
+                        <Paperclip size={12} /> {ticket.attachmentCount} attachment(s)
+                      </button>
+                    )}
+
+                    <div className="flex gap-2 pt-2 border-t border-gray-100 mt-1">
+                      <button
+                        onClick={() => viewTicketDetails(ticket)}
+                        className="flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Eye size={16} /> View Details
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-600 bg-white rounded-xl">
+                  No resolved tickets available.
+                </div>
+              )}
+            </div>
+
+            <Pagination
+              totalItems={totalResolved}
+              currentPage={resolvedPage}
+              onPageChange={setResolvedPage}
             />
           </div>
         )}
 
         {/* Rejected Tickets Section */}
         {(activeFilter === "total" || activeFilter === "rejected") && (
-          <div className="bg-[#E5D1D1] rounded-2xl p-6 shadow-inner mb-8">
-            <h3 className="text-xl font-semibold mb-4 text-black flex items-center gap-2">
-              <XCircle size={20} className="text-red-600" />
-              Rejected Section ({totalRejected})
-            </h3>
+          <div className="bg-[#f4f6f0] rounded-2xl shadow-lg overflow-hidden mb-8 border border-[#E5D1D1]/80 font-[Poppins]">
+            <div className="bg-gradient-to-r from-[#E5D1D1] to-[#e3bdbd] px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+              <div>
+                <h2 className="text-xl font-semibold text-black flex items-center gap-2 font-[Poppins]">
+                  <XCircle size={20} className="text-red-600" />
+                  Rejected Section
+                </h2>
+                <p className="text-sm text-gray-700 mt-1 font-medium">Total: {displayedRejectedTickets.length} records</p>
+              </div>
+            </div>
 
             {/* Desktop Table View */}
-            <div className="hidden lg:block overflow-x-auto">
-              <table className="w-full text-left">
+            <div className="hidden lg:block overflow-x-auto p-4">
+              <table className="w-full text-left text-black text-xs sm:text-sm md:text-base">
                 <thead>
-                  <tr className="bg-white text-black font-semibold rounded-lg">
-                    <th className="p-3 rounded-tl-lg">Ticket ID</th>
-                    <th className="p-3">Subject & Files</th>
-                    <th className="p-3">Type</th>
-                    <th className="p-3">Raised By</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Filed</th>
-                    <th className="p-3">Rejected</th>
-                    <th className="p-3 rounded-tr-lg">Actions</th>
+                  <tr className="border-b-2 border-gray-200">
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Ticket ID</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Subject & Files</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Type</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Raised By</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Status</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Filed</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Rejected</th>
+                    <th className="px-4 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -906,7 +1231,7 @@ export default function Complaint() {
                     displayedRejectedTickets.map((ticket) => (
                       <tr key={ticket.id} className="bg-white border-b border-gray-100 hover:bg-gray-50 transition-colors">
                         <td className="p-3 font-semibold text-sm">{ticket.id}</td>
-                        <td className="p-3">
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">
                           <div className="text-sm font-medium truncate max-w-[200px]" title={ticket.subject}>
                             {ticket.subject}
                           </div>
@@ -919,21 +1244,21 @@ export default function Complaint() {
                             </button>
                           )}
                         </td>
-                        <td className="p-3 text-sm">{ticket.complaintType}</td>
-                        <td className="p-3">
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">{ticket.complaintType}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">
                           <div className="text-sm font-medium">{ticket.raisedBy}</div>
                           {ticket.studentId && (
                             <div className="text-xs text-gray-500">{ticket.studentId}</div>
                           )}
                         </td>
-                        <td className="p-3">
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">
                           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
                             <XCircle size={12} /> Rejected
                           </span>
                         </td>
-                        <td className="p-3 text-sm">{ticket.dateRaised}</td>
-                        <td className="p-3 text-sm">{ticket.rejectedDate || 'N/A'}</td>
-                        <td className="p-3">
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">{ticket.dateRaised}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">{ticket.rejectedDate || 'N/A'}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">
                           <button
                             onClick={() => viewTicketDetails(ticket)}
                             className="p-1 text-blue-600 hover:text-blue-800 transition-colors"
@@ -946,7 +1271,9 @@ export default function Complaint() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={8} className="text-center py-8 text-gray-600">No rejected tickets available.</td>
+                      <td colSpan={8} className="text-center py-8 text-gray-600 font-medium">
+                        No rejected tickets available.
+                      </td>
                     </tr>
                   )}
                 </tbody>
@@ -1021,212 +1348,237 @@ export default function Complaint() {
               )}
             </div>
 
-            <Pagination 
-              totalItems={totalRejected} 
-              itemsPerPage={ITEMS_PER_PAGE} 
-              currentPage={rejectedPage} 
-              onPageChange={setRejectedPage} 
+            <Pagination
+              totalItems={totalRejected}
+              currentPage={rejectedPage}
+              onPageChange={setRejectedPage}
             />
           </div>
         )}
-      </div>
 
-      {/* Ticket Detail Modal */}
-      {showModal && selectedTicket && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300">
-          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl transform transition-all animate-in fade-in zoom-in duration-300">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-[#4F8CCF] to-[#3a6ea5] p-6 text-white flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/20 rounded-lg">
-                  <Ticket size={24} />
+        {/* Ticket Details Modal */}
+        {showModal && selectedTicket && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-[#f4f6f0] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col font-[Inter] animate-in zoom-in-95 duration-200">
+              
+              {/* Header */}
+              <div className="bg-[#BEC5AD] px-6 py-4 flex items-center justify-between shrink-0">
+                <h3 className="text-black font-bold text-xl leading-tight">Ticket Details</h3>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="text-black hover:text-gray-700 transition-colors"
+                >
+                  <XCircle size={24} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-8 overflow-y-auto">
+                <div className="grid grid-cols-2 gap-y-6 gap-x-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">Ticket ID</label>
+                    <p className="text-base text-gray-900 font-medium">{selectedTicket.id}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">Status</label>
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                      selectedTicket.status === 'Resolved' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-yellow-50 text-yellow-600 border-yellow-200'
+                    }`}>
+                      {selectedTicket.status}
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">Type</label>
+                    <p className="text-base text-gray-900 font-medium">{selectedTicket.complaintType}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">Raised By</label>
+                    <p className="text-base text-gray-900 font-medium">{selectedTicket.raisedBy}</p>
+                    {selectedTicket.studentId && (
+                      <p className="text-xs text-gray-500 font-medium">ID: {selectedTicket.studentId}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">Room</label>
+                    <p className="text-base text-gray-900 font-medium">{selectedTicket.studentRoom || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">Date</label>
+                    <p className="text-base text-gray-900 font-medium">{selectedTicket.dateRaised}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold">Ticket Details</h3>
-                  <p className="text-blue-100 text-sm">ID: {selectedTicket.id}</p>
+
+                <hr className="border-gray-200 my-6" />
+
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Subject</label>
+                    <div className="bg-white border border-gray-200 rounded-xl p-4 text-gray-800 text-sm font-medium">
+                      {selectedTicket.subject}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Description</label>
+                    <div className="bg-white border border-gray-200 rounded-xl p-4 text-gray-700 text-sm whitespace-pre-wrap break-words min-h-[80px]">
+                      {selectedTicket.description}
+                    </div>
+                  </div>
+
+                  {selectedTicket.adminNotes && (
+                    <div>
+                      <label className={`block text-sm font-bold mb-2 ${selectedTicket.status?.toLowerCase().includes("reject") ? "text-red-700" : "text-green-700"}`}>
+                        {selectedTicket.status?.toLowerCase().includes("reject") ? "Rejection Reason" : "Resolution Notes"}
+                      </label>
+                      <div className={`bg-white border rounded-xl p-4 text-sm whitespace-pre-wrap break-words ${selectedTicket.status?.toLowerCase().includes("reject") ? "border-red-200 text-red-800" : "border-green-200 text-green-800"}`}>
+                        {selectedTicket.adminNotes}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedTicket.attachments && selectedTicket.attachments.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">
+                        Attachments ({selectedTicket.attachments.length})
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {selectedTicket.attachments.map((attachment, idx) => (
+                          <AttachmentPreviewCard 
+                            key={idx} 
+                            ticketId={selectedTicket._id} 
+                            attachment={attachment} 
+                            onView={(att) => viewAttachment(selectedTicket._id, att._id, att.originalName, att.mimeType)} 
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-              <button
-                onClick={() => setShowModal(false)}
-                className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              >
-                <XCircle size={24} />
-              </button>
             </div>
+          </div>
+        )}
 
-            <div className="p-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
-              <div className="space-y-8">
-                {/* Info Grid */}
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-1">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Raised By</p>
-                    <p className="text-gray-900 font-semibold">{selectedTicket.raisedBy}</p>
-                    <p className="text-sm text-gray-500">ID: {selectedTicket.studentId}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Date Filed</p>
-                    <p className="text-gray-900 font-semibold">{selectedTicket.dateRaised}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Subject</p>
-                  <p className="text-lg text-gray-900 font-bold leading-tight break-all">{selectedTicket.subject}</p>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Description</p>
-                  <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 text-gray-700 leading-relaxed whitespace-pre-wrap break-all text-sm font-medium">
-                    {selectedTicket.description}
-                  </div>
-                </div>
-
-                {selectedTicket.adminNotes && (
-                  <div className={`p-4 rounded-2xl border ${selectedTicket.status?.toLowerCase().includes("reject") ? "bg-red-50 border-red-100" : "bg-green-50 border-green-100"}`}>
-                    <p className={`text-xs font-bold uppercase tracking-wider mb-2 ${selectedTicket.status?.toLowerCase().includes("reject") ? "text-red-500" : "text-green-500"}`}>
-                      {selectedTicket.status?.toLowerCase().includes("reject") ? "Rejection Reason" : "Resolution Notes"}
-                    </p>
-                    <p className={`text-sm font-medium break-all ${selectedTicket.status?.toLowerCase().includes("reject") ? "text-red-800" : "text-green-800"}`}>
-                      {selectedTicket.adminNotes}
-                    </p>
-                  </div>
+        {/* Attachment Viewer Modal */}
+        {attachmentModal.show && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[70] p-4">
+            <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+              <div className="p-4 border-b flex justify-between items-center">
+                <h3 className="text-lg font-bold text-gray-900 truncate">{attachmentModal.filename}</h3>
+                <button
+                  onClick={closeAttachmentModal}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="p-4 max-h-[calc(90vh-100px)] overflow-auto flex items-center justify-center bg-gray-100">
+                {attachmentModal.type === 'image' && (
+                  <img
+                    src={attachmentModal.url}
+                    alt={attachmentModal.filename}
+                    className="max-w-full max-h-full object-contain rounded-lg"
+                  />
                 )}
-
-                {/* Attachments Section */}
-                {selectedTicket.attachments && selectedTicket.attachments.length > 0 && (
-                  <div className="space-y-4">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                      Attachments ({selectedTicket.attachments.length})
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      {selectedTicket.attachments.map((file, idx) => (
-                        <div key={idx} className="border rounded-xl p-3 hover:shadow-md transition-shadow bg-white">
-                          <div className="flex items-center justify-between mb-3">
-                            <span className="text-sm font-bold text-gray-900 truncate flex-1 pr-2" title={file.originalName}>
-                              {file.originalName}
-                            </span>
-                            <div className="text-blue-500">
-                              {file.mimeType.startsWith('image/') ? <ImageIcon size={16} /> :
-                                file.mimeType.startsWith('video/') ? <Video size={16} /> : <File size={16} />}
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => viewAttachment(selectedTicket._id, file._id, file.originalName, file.mimeType)}
-                            className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 text-sm font-bold transition-colors"
-                          >
-                            View File
-                          </button>
-                        </div>
-                      ))}
+                {attachmentModal.type === 'video' && (
+                  <video
+                    src={attachmentModal.url}
+                    controls
+                    className="max-w-full max-h-full rounded-lg"
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                )}
+                {attachmentModal.type === 'document' && (
+                  <div className="w-full h-[70vh] flex flex-col">
+                    <iframe
+                      src={attachmentModal.url}
+                      title={attachmentModal.filename}
+                      className="w-full h-full rounded-lg border border-gray-200 shadow-sm flex-1"
+                    />
+                    <div className="mt-4 flex justify-end">
+                      <a
+                        href={attachmentModal.url}
+                        download={attachmentModal.filename}
+                        className="inline-flex items-center gap-2 bg-blue-500 text-white px-5 py-2.5 rounded-xl hover:bg-blue-600 transition-colors shadow-lg shadow-blue-200 font-semibold text-sm"
+                      >
+                        <FileText size={18} /> Download File
+                      </a>
                     </div>
                   </div>
                 )}
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Rejection Modal */}
-      {rejectionModal.show && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
-            <div className="bg-gradient-to-br from-red-500 to-red-700 p-8 text-white text-center">
-              <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white/30">
-                <XCircle size={40} />
-              </div>
-              <h3 className="text-2xl font-black">Reject Complaint?</h3>
-              <p className="text-red-100 mt-2 text-sm">Please provide a reason for rejecting this ticket.</p>
-            </div>
-
-            <div className="p-8">
-              <div className="mb-6">
-                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Complaint Subject</p>
-                <p className="text-gray-900 font-bold line-clamp-1">{rejectionModal.ticket?.subject}</p>
-              </div>
-
-              <div className="space-y-4">
-                <textarea
-                  className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 text-gray-900 placeholder:text-gray-400 focus:border-red-500 focus:ring-0 transition-all outline-none min-h-[120px] text-sm font-medium"
-                  placeholder="Type your reason here..."
-                  value={rejectionModal.reason}
-                  onChange={(e) => setRejectionModal(prev => ({ ...prev, reason: e.target.value }))}
-                  autoFocus
-                />
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setRejectionModal({ show: false, ticket: null, reason: '' })}
-                    className="flex-1 px-6 py-4 rounded-2xl font-black text-sm text-gray-500 hover:bg-gray-100 transition-all"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={confirmReject}
-                    className="flex-1 px-6 py-4 bg-red-600 rounded-2xl font-black text-sm text-white hover:bg-red-700 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-red-200"
-                  >
-                    Confirm Reject
-                  </button>
+        {/* Rejection Reason Modal */}
+        {rejectionModal.show && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-gray-100">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4 flex items-center gap-3">
+                <div className="bg-white/20 p-2 rounded-lg">
+                  <XCircle className="text-white" size={24} />
+                </div>
+                <div>
+                  <h3 className="text-white font-bold text-lg leading-tight">Reject Complaint</h3>
+                  <p className="text-red-100 text-xs mt-0.5">Please provide a reason for rejection</p>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Attachment Viewer Modal */}
-      {attachmentModal.show && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[100] p-4">
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
-            <div className="p-4 border-b flex justify-between items-center bg-white">
-              <h3 className="text-lg font-bold text-gray-900 truncate pr-4">{attachmentModal.filename}</h3>
-              <button
-                onClick={closeAttachmentModal}
-                className="text-gray-400 hover:text-gray-600 transition-colors text-2xl leading-none"
-              >
-                ×
-              </button>
-            </div>
-            <div className="p-4 max-h-[calc(90vh-100px)] overflow-auto flex items-center justify-center bg-gray-100">
-              {attachmentModal.type === 'image' && (
-                <img
-                  src={attachmentModal.url}
-                  alt={attachmentModal.filename}
-                  className="max-w-full max-h-full object-contain rounded-lg shadow-sm"
-                />
-              )}
-              {attachmentModal.type === 'video' && (
-                <video
-                  src={attachmentModal.url}
-                  controls
-                  autoPlay
-                  className="max-w-full max-h-full rounded-lg shadow-sm"
+              {/* Body */}
+              <div className="p-6 space-y-4">
+                <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Complaint Subject</label>
+                  <p className="text-gray-700 text-sm font-semibold truncate">{rejectionModal.ticket?.subject}</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-600 flex items-center gap-1.5">
+                    <MessageSquare size={14} className="text-red-500" />
+                    Rejection Reason
+                  </label>
+                  <textarea
+                    value={rejectionModal.reason}
+                    onChange={(e) => setRejectionModal(prev => ({ ...prev, reason: e.target.value }))}
+                    placeholder="Explain why this complaint is being rejected..."
+                    className="w-full h-32 px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all text-sm resize-none"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="bg-gray-50 px-6 py-4 flex gap-3 justify-end border-t border-gray-100">
+                <button
+                  onClick={() => setRejectionModal({ show: false, ticket: null, reason: '' })}
+                  className="px-5 py-2 text-gray-500 hover:text-gray-700 font-bold text-sm transition-colors"
                 >
-                  Your browser does not support the video tag.
-                </video>
-              )}
-              {attachmentModal.type === 'document' && (
-                <div className="text-center p-12 bg-white rounded-2xl shadow-sm border border-gray-100 max-w-md w-full">
-                  <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <File size={40} className="text-blue-500" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{attachmentModal.filename}</h3>
-                  <p className="text-gray-500 mb-8 font-medium">Preview not available for this file type</p>
-                  <a
-                    href={attachmentModal.url}
-                    download={attachmentModal.filename}
-                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
-                  >
-                    <FileText size={18} /> Download File
-                  </a>
-                </div>
-              )}
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmReject}
+                  className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-red-200 transition-all active:scale-95"
+                >
+                  Confirm Reject
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-      <ToastContainer position="top-right" autoClose={3000} theme="colored" />
+        )}
+      </div>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        closeOnClick
+        pauseOnHover
+        draggable
+        theme="colored"
+      />
     </div>
   );
 }

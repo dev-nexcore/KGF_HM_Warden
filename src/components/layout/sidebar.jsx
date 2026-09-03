@@ -42,7 +42,7 @@ export default function Sidebar() {
 
 
   return (
-    <div className="bg-[#BEC5AD] h-screen sticky top-0 z-100 ">
+    <div className="bg-[#BEC5AD] h-screen sticky top-0 z-40">
       <ToastContainer position="top-right" autoClose={3000} />
 
       {/* Mobile Menu Button handled by Navbar */}
