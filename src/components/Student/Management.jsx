@@ -2,7 +2,7 @@
 // export default StudentManagement;
 "use client";
 import { useState, useEffect } from "react";
-import { Eye, Info, Pencil } from "lucide-react";
+import { Eye, Info, Pencil, Calendar } from "lucide-react";
 import api from "@/lib/api";
 import Tesseract from "tesseract.js";
 import { ToastContainer, toast } from "react-toastify";
@@ -125,6 +125,7 @@ const StudentManagement = () => {
   });
 
   const [editingStudent, setEditingStudent] = useState(null);
+  const [editingCurrentBed, setEditingCurrentBed] = useState(null);
   const [availableRooms, setAvailableRooms] = useState([]);
   const [availableRoomNumbers, setAvailableRoomNumbers] = useState([]);
   const [students, setStudents] = useState([]);
@@ -168,6 +169,7 @@ const StudentManagement = () => {
   const [bedData, setBedData] = useState({ totalBeds: 0, occupiedBeds: 0, availableBeds: 0 });
   const [showReasonModal, setShowReasonModal] = useState(false);
   const [reasonText, setReasonText] = useState("");
+  const [idSortOrder, setIdSortOrder] = useState("asc");
   const itemsPerPage = 8;
 
   // ── Stats ──────────────────────────────────────────────────────────────────
@@ -364,6 +366,9 @@ const StudentManagement = () => {
     if (data.relation && !/^[A-Za-z\s]+$/.test(data.relation)) {
       e.relation = "Relation can only contain letters.";
     }
+    if (!data.admissionDate) {
+      e.admissionDate = "Admission Date is required.";
+    }
     return e;
   };
 
@@ -436,7 +441,10 @@ const StudentManagement = () => {
   const resetForm = () => {
     setFormData({ firstName: "", lastName: "", contactNumber: "", email: "", roomNumber: "", bedNumber: "", emergencyContactNumber: "", admissionDate: getTodaysDate(), emergencyContactName: "", feeStatus: "", hasCollegeId: true, isWorking: false, roomType: "", relation: "" });
     setStudentDocuments({ aadharCard: null, panCard: null, studentIdCard: null, feesReceipt: null });
-    setEditingStudent(null); setErrors({}); setShowEditModal(false);
+    setEditingStudent(null);
+    setEditingCurrentBed(null);
+    setErrors({});
+    setShowEditModal(false);
   };
 
   const handleSubmit = async () => {
@@ -450,22 +458,45 @@ const StudentManagement = () => {
     finally { setLoading(false); }
   };
 
-  const handleEdit = (studentId) => {
+  const handleEdit = async (studentId) => {
     const s = students.find(s => s.id === studentId); if (!s) return;
+
+    let bedItem = s.roomDetails?.inventory || (s.roomDetails?.barcodeId || s.roomDetails?.roomNo ? s.roomDetails : null) || (s.roomBedNumber && typeof s.roomBedNumber === 'object' ? s.roomBedNumber : null);
+    let bedId = bedItem?._id || s.roomObjectId || (typeof s.roomBedNumber === 'string' ? s.roomBedNumber : "");
+    let roomNo = bedItem?.roomNo || s.roomDetails?.roomNo || "";
+
+    if ((!bedItem || !roomNo) && bedId && typeof bedId === "string" && bedId.length === 24 && bedId !== "Not Assigned") {
+      try {
+        const res = await fetchRoomDetailsAPI(bedId);
+        if (res?.inventory) {
+          bedItem = res.inventory;
+          roomNo = bedItem.roomNo || roomNo;
+          bedId = bedItem._id || bedId;
+        }
+      } catch (e) {
+        console.error("Error fetching bed details on edit:", e);
+      }
+    }
+
+    setEditingCurrentBed(bedItem || null);
+
+    const rawRoomType = String(s.roomType || bedItem?.roomType || "");
+    const normalizedRoomType = rawRoomType.startsWith("3") ? "3" : rawRoomType.startsWith("4") ? "4" : rawRoomType.startsWith("5") ? "5" : rawRoomType;
+
     setFormData({
       firstName: s.firstName || "",
       lastName: s.lastName || "",
       contactNumber: s.contact,
       email: s.email || "",
-      roomNumber: s.roomDetails?.roomNo || "",
-      bedNumber: s.roomObjectId || "",
+      roomNumber: roomNo,
+      bedNumber: bedId,
       emergencyContactNumber: s.emergencyContactNumber || "",
-      admissionDate: s.admissionDate ? new Date(s.admissionDate).toISOString().split("T")[0] : "",
+      admissionDate: s.admissionDate ? (typeof s.admissionDate === "string" && /^\d{4}-\d{2}-\d{2}/.test(s.admissionDate) ? s.admissionDate.substring(0, 10) : new Date(s.admissionDate).toISOString().split("T")[0]) : "",
       emergencyContactName: s.emergencyContactName || "",
       feeStatus: s.feeStatus,
       hasCollegeId: s.hasCollegeId ?? true,
       isWorking: s.isWorking ?? false,
-      roomType: s.roomType || "",
+      roomType: normalizedRoomType,
       relation: s.relation || ""
     });
     setStudentDocuments({ aadharCard: s.documents?.aadharCard || null, panCard: s.documents?.panCard || null, studentIdCard: s.documents?.studentIdCard || null, feesReceipt: s.documents?.feesReceipt || null });
@@ -571,6 +602,9 @@ const StudentManagement = () => {
     if (data.emergencyContactName && !/^[A-Za-z\s]+$/.test(data.emergencyContactName)) {
       e.emergencyContactName = "Emergency Contact Name can only contain letters.";
     }
+    if (!data.admissionDate) {
+      e.admissionDate = "Admission Date is required.";
+    }
     return e;
   };
 
@@ -607,8 +641,20 @@ const StudentManagement = () => {
     if (s) { setStudentDetailsData(s); setShowDetailsModal(true); }
   };
 
-  const getBedsForRoom = (roomNumber) =>
-    roomNumber ? availableRooms.filter(b => b.roomNo === roomNumber) : availableRooms;
+  const getBedsForRoom = (roomNumber, rType) => {
+    if (!roomNumber) return availableRooms;
+    let beds = availableRooms.filter(b =>
+      String(b.roomNo) === String(roomNumber) &&
+      (!rType || !b.roomType || String(b.roomType) === String(rType))
+    );
+    if (editingCurrentBed && String(editingCurrentBed.roomNo) === String(roomNumber)) {
+      const alreadyInList = beds.some(b => String(b._id) === String(editingCurrentBed._id));
+      if (!alreadyInList) {
+        beds = [{ ...editingCurrentBed, isCurrentBed: true }, ...beds];
+      }
+    }
+    return beds;
+  };
 
   const getFeeStatusStyle = (status) => ({
     width: "120px", height: "26px", display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -816,8 +862,8 @@ const StudentManagement = () => {
             <select name="roomNumber" value={formData.roomNumber} onChange={e => { handleInputChange(e); setFormData(p => ({ ...p, bedNumber: "" })); }} className="w-full h-full px-4 bg-white rounded-[10px] border-0 outline-none cursor-pointer appearance-none text-[12px] font-semibold font-[Poppins]" style={{ WebkitAppearance: "none", boxShadow: "0px 4px 10px 0px #00000040", color: formData.roomNumber === "" ? "#0000008A" : "#000" }}>
               <option value="" disabled hidden>Select Room</option>
               {availableRoomNumbers
-                .filter(r => !formData.roomType || String(r.totalBeds) === formData.roomType)
-                .map(r => <option key={r._id} value={r._id}>Room {r._id} - Floor {r.floor} ({r.totalBeds} Beds)</option>)}
+                .filter(r => !formData.roomType || String(r.roomType || r.totalBeds) === formData.roomType)
+                .map(r => <option key={r._id} value={r._id}>Room {r._id} - Floor {r.floor} ({r.roomType || r.totalBeds} Beds)</option>)}
             </select>
             <ChevronDown />
           </div>
@@ -829,7 +875,7 @@ const StudentManagement = () => {
           <div className="relative h-[40px]">
             <select name="bedNumber" value={formData.bedNumber} onChange={handleInputChange} disabled={!formData.roomNumber} className={`w-full h-full px-4 bg-white rounded-[10px] border-0 outline-none cursor-pointer appearance-none text-[12px] font-semibold font-[Poppins] ${!formData.roomNumber ? "cursor-not-allowed opacity-60" : ""}`} style={{ WebkitAppearance: "none", boxShadow: "0px 4px 10px 0px #00000040", color: formData.bedNumber === "" ? "#0000008A" : "#000" }}>
               <option value="" disabled hidden>{!formData.roomNumber ? "Select Room First" : "Select Bed"}</option>
-              {getBedsForRoom(formData.roomNumber).map(b => {
+              {getBedsForRoom(formData.roomNumber, formData.roomType).map(b => {
                 const shortBarcode = (b.barcodeId || "").split("-").slice(0, 2).join("-");
                 return <option key={b._id} value={b._id}>{shortBarcode} - Floor {b.floor}</option>;
               })}
@@ -848,10 +894,19 @@ const StudentManagement = () => {
         {/* Admission Date */}
         <div className="w-full px-2">
           <label className="block mb-2 text-black ml-2" style={labelStyle}>Admission Date</label>
-          <div className="bg-gray-100 rounded-[10px] px-4 h-[38px] flex items-center font-[Poppins] font-semibold text-[15px] tracking-widest text-gray-800 shadow-[0px_4px_10px_0px_#00000040] cursor-not-allowed w-fit min-w-[200px]">
-            {formData.admissionDate}
+          <div className="relative">
+            <input
+              type="date"
+              name="admissionDate"
+              value={formData.admissionDate}
+              onChange={handleInputChange}
+              onClick={(e) => e.target.showPicker && e.target.showPicker()}
+              className="w-full px-4 text-black font-semibold text-[12px] font-[Poppins] cursor-pointer [color-scheme:light] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+              style={inputStyle}
+            />
+            <Calendar className="w-5 h-5 absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
           </div>
-          <p className="text-xs text-gray-600 mt-1 ml-2">Automatically set to today's date</p>
+          {errors.admissionDate && <p className="text-red-500 text-xs mt-1 ml-2">{errors.admissionDate}</p>}
         </div>
 
         {/* Emergency Contact Name */}
@@ -1029,8 +1084,8 @@ const StudentManagement = () => {
             <select name="roomNumber" value={workerFormData.roomNumber} onChange={handleWorkerInputChange} className="w-full h-full px-4 bg-white rounded-[10px] border-0 outline-none cursor-pointer appearance-none text-[12px] font-semibold font-[Poppins]" style={{ WebkitAppearance: "none", boxShadow: "0px 4px 10px 0px #00000040", color: workerFormData.roomNumber === "" ? "#0000008A" : "#000" }}>
               <option value="" disabled hidden>Select Room</option>
               {availableRoomNumbers
-                .filter(r => !workerFormData.roomType || String(r.totalBeds) === workerFormData.roomType)
-                .map(r => <option key={r._id} value={r._id}>Room {r._id} - Floor {r.floor} ({r.totalBeds} Beds)</option>)}
+                .filter(r => !workerFormData.roomType || String(r.roomType || r.totalBeds) === workerFormData.roomType)
+                .map(r => <option key={r._id} value={r._id}>Room {r._id} - Floor {r.floor} ({r.roomType || r.totalBeds} Beds)</option>)}
             </select>
             <ChevronDown />
           </div>
@@ -1042,7 +1097,7 @@ const StudentManagement = () => {
           <div className="relative h-[40px]">
             <select name="bedNumber" value={workerFormData.bedNumber} onChange={handleWorkerInputChange} className="w-full h-full px-4 bg-white rounded-[10px] border-0 outline-none cursor-pointer appearance-none text-[12px] font-semibold font-[Poppins]" style={{ WebkitAppearance: "none", boxShadow: "0px 4px 10px 0px #00000040", color: workerFormData.bedNumber === "" ? "#0000008A" : "#000" }}>
               <option value="" disabled hidden>{workerFormData.roomNumber ? "Select Bed" : "Select Room First"}</option>
-              {getBedsForRoom(workerFormData.roomNumber).map(b => {
+              {getBedsForRoom(workerFormData.roomNumber, workerFormData.roomType).map(b => {
                 const shortBarcode = (b.barcodeId || "").split("-").slice(0, 2).join("-");
                 return <option key={b._id} value={b._id}>{shortBarcode} - Floor {b.floor}</option>;
               })}
@@ -1068,10 +1123,19 @@ const StudentManagement = () => {
         {/* Admission Date */}
         <div className="w-full px-2">
           <label className="block mb-2 text-black ml-2" style={labelStyle}>Admission Date</label>
-          <div className="bg-gray-100 rounded-[10px] px-4 h-[38px] flex items-center font-[Poppins] font-semibold text-[15px] tracking-widest text-gray-800 shadow-[0px_4px_10px_0px_#00000040] cursor-not-allowed w-fit min-w-[200px]">
-            {workerFormData.admissionDate}
+          <div className="relative">
+            <input
+              type="date"
+              name="admissionDate"
+              value={workerFormData.admissionDate}
+              onChange={handleWorkerInputChange}
+              onClick={(e) => e.target.showPicker && e.target.showPicker()}
+              className="w-full px-4 text-black font-semibold text-[12px] font-[Poppins] cursor-pointer [color-scheme:light] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+              style={inputStyle}
+            />
+            <Calendar className="w-5 h-5 absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
           </div>
-          <p className="text-xs text-gray-600 mt-1 ml-2">Automatically set to today's date</p>
+          {workerErrors.admissionDate && <p className="text-red-500 text-xs mt-1 ml-2">{workerErrors.admissionDate}</p>}
         </div>
 
 
