@@ -295,7 +295,34 @@ const StudentManagement = () => {
         }
 
         const monthlyFee = feeValue;
-        return { id: s.id || s.studentId, firstName: s.firstName, lastName: s.lastName, name: `${s.firstName} ${s.lastName}`, room: roomDisplay, contact: s.contactNumber, email: s.email, emergencyContactNumber: s.emergencyContactNumber, admissionDate: s.admissionDate, emergencyContactName: s.emergencyContactName, feeStatus: s.feeStatus, dues: `₹ ${s.dues || 0}/-`, roomType: rType, monthlyFee, roomDetails, roomObjectId: (s.roomBedNumber && typeof s.roomBedNumber === 'object') ? s.roomBedNumber._id : s.roomBedNumber, documents: s.documents || {}, isWorking: s.isWorking, isAddedToBiometric: s.isAddedToBiometric, isPendingApproval: s.isPendingApproval, isRejected: s.isRejected, rejectReason: s.rejectReason };
+        return {
+          ...s,
+          id: s.id || s.studentId,
+          _id: s._id,
+          firstName: s.firstName,
+          lastName: s.lastName,
+          name: `${s.firstName} ${s.lastName}`,
+          room: roomDisplay,
+          contact: s.contactNumber,
+          email: s.email,
+          emergencyContactNumber: s.emergencyContactNumber,
+          admissionDate: s.admissionDate,
+          emergencyContactName: s.emergencyContactName,
+          relation: s.relation || "",
+          hasCollegeId: s.hasCollegeId ?? true,
+          feeStatus: s.feeStatus,
+          dues: `₹ ${s.dues || 0}/-`,
+          roomType: rType,
+          monthlyFee,
+          roomDetails,
+          roomObjectId: (s.roomBedNumber && typeof s.roomBedNumber === 'object') ? s.roomBedNumber._id : s.roomBedNumber,
+          documents: s.documents || {},
+          isWorking: s.isWorking,
+          isAddedToBiometric: s.isAddedToBiometric,
+          isPendingApproval: s.isPendingApproval,
+          isRejected: s.isRejected,
+          rejectReason: s.rejectReason
+        };
       }));
       setStudents(transformed);
       console.log(transformed)
@@ -478,6 +505,16 @@ const StudentManagement = () => {
       }
     }
 
+    if (!roomNo && s.room && s.room !== "Not Assigned") {
+      roomNo = s.room.includes("/") ? s.room.split("/")[0] : s.room;
+    }
+    if (bedItem && !bedItem.roomNo && roomNo) {
+      bedItem.roomNo = roomNo;
+    }
+    if (!bedItem && roomNo) {
+      bedItem = { roomNo, floor: roomNo.length >= 3 ? roomNo[0] : "1" };
+    }
+
     setEditingCurrentBed(bedItem || null);
 
     const rawRoomType = String(s.roomType || bedItem?.roomType || "");
@@ -645,7 +682,7 @@ const StudentManagement = () => {
     if (!roomNumber) return availableRooms;
     let beds = availableRooms.filter(b =>
       String(b.roomNo) === String(roomNumber) &&
-      (!rType || !b.roomType || String(b.roomType) === String(rType))
+      (!rType || !b.roomType || String(b.roomType) === String(rType) || String(b.roomType).startsWith(String(rType)))
     );
     if (editingCurrentBed && String(editingCurrentBed.roomNo) === String(roomNumber)) {
       const alreadyInList = beds.some(b => String(b._id) === String(editingCurrentBed._id));
@@ -859,11 +896,48 @@ const StudentManagement = () => {
         <div className="w-full px-2">
           <label className="block mb-1 text-black font-[500] text-[18px] leading-[22px]">Room Number</label>
           <div className="relative h-[40px]">
-            <select name="roomNumber" value={formData.roomNumber} onChange={e => { handleInputChange(e); setFormData(p => ({ ...p, bedNumber: "" })); }} className="w-full h-full px-4 bg-white rounded-[10px] border-0 outline-none cursor-pointer appearance-none text-[12px] font-semibold font-[Poppins]" style={{ WebkitAppearance: "none", boxShadow: "0px 4px 10px 0px #00000040", color: formData.roomNumber === "" ? "#0000008A" : "#000" }}>
+            <select
+              name="roomNumber"
+              value={formData.roomNumber}
+              onChange={e => {
+                const val = e.target.value;
+                setFormData(p => ({
+                  ...p,
+                  roomNumber: val,
+                  bedNumber: editingCurrentBed && String(editingCurrentBed.roomNo) === String(val)
+                    ? editingCurrentBed._id
+                    : ""
+                }));
+              }}
+              className="w-full h-full px-4 bg-white rounded-[10px] border-0 outline-none cursor-pointer appearance-none text-[12px] font-semibold font-[Poppins]"
+              style={{ WebkitAppearance: "none", boxShadow: "0px 4px 10px 0px #00000040", color: formData.roomNumber === "" ? "#0000008A" : "#000" }}
+            >
               <option value="" disabled hidden>Select Room</option>
-              {availableRoomNumbers
-                .filter(r => !formData.roomType || String(r.roomType || r.totalBeds) === formData.roomType)
-                .map(r => <option key={r._id} value={r._id}>Room {r._id} - Floor {r.floor} ({r.roomType || r.totalBeds} Beds)</option>)}
+              {(() => {
+                let rooms = availableRoomNumbers.filter(
+                  r => !formData.roomType || String(r.roomType || r.totalBeds) === formData.roomType
+                );
+                if (isEditMode && formData.roomNumber) {
+                  const exists = rooms.some(r => String(r._id || r.roomNo) === String(formData.roomNumber));
+                  if (!exists) {
+                    rooms = [
+                      {
+                        _id: formData.roomNumber,
+                        roomNo: formData.roomNumber,
+                        floor: editingCurrentBed?.floor || (formData.roomNumber.length >= 3 ? formData.roomNumber[0] : "1"),
+                        roomType: formData.roomType || "",
+                        isCurrent: true
+                      },
+                      ...rooms
+                    ];
+                  }
+                }
+                return rooms.map(r => (
+                  <option key={r._id} value={r._id}>
+                    Room {r._id} {r.floor ? `- Floor ${r.floor}` : ""} ({r.roomType || r.totalBeds || formData.roomType} Beds){r.isCurrent ? " (Current)" : ""}
+                  </option>
+                ));
+              })()}
             </select>
             <ChevronDown />
           </div>
@@ -873,11 +947,23 @@ const StudentManagement = () => {
         <div className="w-full px-2">
           <label className="block mb-1 text-black font-[500] text-[18px] leading-[22px]">Bed Number</label>
           <div className="relative h-[40px]">
-            <select name="bedNumber" value={formData.bedNumber} onChange={handleInputChange} disabled={!formData.roomNumber} className={`w-full h-full px-4 bg-white rounded-[10px] border-0 outline-none cursor-pointer appearance-none text-[12px] font-semibold font-[Poppins] ${!formData.roomNumber ? "cursor-not-allowed opacity-60" : ""}`} style={{ WebkitAppearance: "none", boxShadow: "0px 4px 10px 0px #00000040", color: formData.bedNumber === "" ? "#0000008A" : "#000" }}>
+            <select
+              name="bedNumber"
+              value={formData.bedNumber}
+              onChange={handleInputChange}
+              disabled={!formData.roomNumber}
+              className={`w-full h-full px-4 bg-white rounded-[10px] border-0 outline-none cursor-pointer appearance-none text-[12px] font-semibold font-[Poppins] ${!formData.roomNumber ? "cursor-not-allowed opacity-60" : ""}`}
+              style={{ WebkitAppearance: "none", boxShadow: "0px 4px 10px 0px #00000040", color: formData.bedNumber === "" ? "#0000008A" : "#000" }}
+            >
               <option value="" disabled hidden>{!formData.roomNumber ? "Select Room First" : "Select Bed"}</option>
               {getBedsForRoom(formData.roomNumber, formData.roomType).map(b => {
-                const shortBarcode = (b.barcodeId || "").split("-").slice(0, 2).join("-");
-                return <option key={b._id} value={b._id}>{shortBarcode} - Floor {b.floor}</option>;
+                const shortBarcode = (b.barcodeId || "").split("-").slice(0, 2).join("-") || b.barcodeId || b.itemName || "Bed";
+                const isCurrent = editingCurrentBed && String(b._id) === String(editingCurrentBed._id);
+                return (
+                  <option key={b._id} value={b._id}>
+                    {shortBarcode} {b.floor ? `- Floor ${b.floor}` : ""} {isCurrent ? "(Current Bed)" : ""}
+                  </option>
+                );
               })}
             </select>
             <ChevronDown />
