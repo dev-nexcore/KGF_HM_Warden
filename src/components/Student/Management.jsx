@@ -2,7 +2,7 @@
 // export default StudentManagement;
 "use client";
 import { useState, useEffect } from "react";
-import { Eye, Info, Pencil, Calendar } from "lucide-react";
+import { Eye, Info, Pencil, Calendar, Search, Filter, RotateCcw, X } from "lucide-react";
 import api from "@/lib/api";
 import Tesseract from "tesseract.js";
 import { ToastContainer, toast } from "react-toastify";
@@ -170,6 +170,11 @@ const StudentManagement = () => {
   const [showReasonModal, setShowReasonModal] = useState(false);
   const [reasonText, setReasonText] = useState("");
   const [idSortOrder, setIdSortOrder] = useState("asc");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterRoomType, setFilterRoomType] = useState("All");
+  const [filterFeeStatus, setFilterFeeStatus] = useState("All");
+  const [filterBiometric, setFilterBiometric] = useState("All");
+  const [filterStatus, setFilterStatus] = useState("All");
   const itemsPerPage = 8;
 
   // ── Stats ──────────────────────────────────────────────────────────────────
@@ -191,7 +196,9 @@ const StudentManagement = () => {
     }
   }, [formData.hasCollegeId]);
 
-  useEffect(() => { setCurrentPage(1); }, [activeFilter]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter, searchQuery, filterRoomType, filterFeeStatus, filterBiometric, filterStatus, activeTab]);
 
   // ── API helpers ────────────────────────────────────────────────────────────
   const registerStudentAPI = async (studentData) => {
@@ -455,14 +462,23 @@ const StudentManagement = () => {
 
   const handleDocumentUpload = async (e, documentType, formType) => {
     const file = e.target.files[0]; if (!file) return;
-    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"];
-    if (!validTypes.includes(file.type)) { toast.warning("Please upload a valid file"); return; }
+    const ext = file.name.split('.').pop().toLowerCase();
+    const validExts = ["jpg", "jpeg", "png", "webp", "pdf"];
+    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf", "application/x-pdf"];
+    if (!validTypes.includes(file.type) && !validExts.includes(ext)) {
+      toast.warning("Please upload a valid file (PDF, JPG, JPEG, PNG)");
+      return;
+    }
     const fieldMap = { aadhar: "aadharCard", pan: "panCard", studentId: "studentIdCard", feesReceipt: "feesReceipt" };
     const fieldName = fieldMap[documentType] || documentType;
     if (formType === "student") setStudentDocuments(p => ({ ...p, [fieldName]: file }));
     else if (formType === "worker") setWorkerDocuments(p => ({ ...p, [fieldName]: file }));
     else setParentDocuments(p => ({ ...p, [fieldName]: file }));
-    if (file.type.includes("image") && (documentType === "aadhar" || documentType === "pan")) await processDocument(file, documentType, formType);
+
+    const isImage = file.type?.startsWith("image/") || ["jpg", "jpeg", "png", "webp"].includes(ext);
+    if (isImage && (documentType === "aadhar" || documentType === "pan")) {
+      await processDocument(file, documentType, formType);
+    }
   };
 
   const resetForm = () => {
@@ -704,14 +720,95 @@ const StudentManagement = () => {
   const labelStyle = { fontFamily: "Poppins", fontWeight: "500", fontSize: "18px", lineHeight: "100%", textAlign: "left" };
 
   // ── Filtered + Paginated ───────────────────────────────────────────────────
+  const isFiltered = Boolean(
+    searchQuery.trim() !== "" ||
+    filterRoomType !== "All" ||
+    filterFeeStatus !== "All" ||
+    filterBiometric !== "All" ||
+    filterStatus !== "All" ||
+    activeFilter !== "All"
+  );
+
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setFilterRoomType("All");
+    setFilterFeeStatus("All");
+    setFilterBiometric("All");
+    setFilterStatus("All");
+    setActiveFilter("All");
+    setCurrentPage(1);
+  };
+
   const filteredStudents = students.filter(s => {
     if (activeTab === "worker") { if (!s.isWorking) return false; }
     else if (activeTab === "student") { if (s.isWorking) return false; }
 
-    if (activeFilter === "Total Students") return !s.isWorking;
-    if (activeFilter === "Total Workers") return s.isWorking;
-    if (activeFilter === "Occupied Beds") return s.room && s.room !== "Not Assigned";
-    // For "Total Parents" and "Available Beds", we don't have a direct student filter, so show all
+    if (activeFilter === "Total Students") { if (s.isWorking) return false; }
+    if (activeFilter === "Total Workers") { if (!s.isWorking) return false; }
+    if (activeFilter === "Occupied Beds") { if (!s.room || s.room === "Not Assigned") return false; }
+
+    // Search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const matchName = (s.name || "").toLowerCase().includes(q);
+      const matchId = (s.id || "").toLowerCase().includes(q);
+      const matchRoom = (s.room || "").toLowerCase().includes(q);
+      const matchContact = (s.contact || "").toLowerCase().includes(q);
+      const matchEmail = (s.email || "").toLowerCase().includes(q);
+      if (!matchName && !matchId && !matchRoom && !matchContact && !matchEmail) {
+        return false;
+      }
+    }
+
+    // Room Type filter
+    if (filterRoomType !== "All") {
+      const sType = String(s.roomType || "");
+      if (!sType.startsWith(filterRoomType)) return false;
+    }
+
+    // Fee Status filter
+    if (filterFeeStatus !== "All") {
+      if ((s.feeStatus || "").toLowerCase() !== filterFeeStatus.toLowerCase()) return false;
+    }
+
+    // Biometric filter
+    if (filterBiometric === "Added") {
+      if (!s.isAddedToBiometric) return false;
+    } else if (filterBiometric === "Pending") {
+      if (s.isAddedToBiometric) return false;
+    }
+
+    // Status filter
+    if (filterStatus === "Approved") {
+      if (s.isRejected || s.isPendingApproval) return false;
+    } else if (filterStatus === "Pending") {
+      if (!s.isPendingApproval) return false;
+    } else if (filterStatus === "Rejected") {
+      if (!s.isRejected) return false;
+    }
+
+    return true;
+  });
+
+  const filteredParents = parents.filter(p => {
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const fullName = `${p.firstName || ""} ${p.lastName || ""}`.toLowerCase();
+      const contact = (p.contactNumber || "").toLowerCase();
+      const sId = (p.studentId || "").toLowerCase();
+      const email = (p.email || "").toLowerCase();
+      const rel = (p.relation || "").toLowerCase();
+      if (!fullName.includes(q) && !contact.includes(q) && !sId.includes(q) && !email.includes(q) && !rel.includes(q)) {
+        return false;
+      }
+    }
+    if (filterStatus === "Approved") {
+      if (p.isRejected || p.isPendingApproval) return false;
+    } else if (filterStatus === "Pending") {
+      if (!p.isPendingApproval) return false;
+    } else if (filterStatus === "Rejected") {
+      if (!p.isRejected) return false;
+    }
     return true;
   });
 
@@ -742,6 +839,9 @@ const StudentManagement = () => {
         ? `${getParentDocumentUrl(objectId, docKey)}?token=${localStorage.getItem('wardenToken') || ''}`
         : `${getDocumentUrl(objectId, docKey)}?token=${localStorage.getItem('wardenToken') || ''}`);
     const name = isFile ? fileData.name : getDocumentName(fileData);
+    const isPdf = isFile
+      ? (fileData.type === 'application/pdf' || fileData.name.toLowerCase().endsWith('.pdf'))
+      : (typeof name === 'string' && name.toLowerCase().endsWith('.pdf'));
 
     return (
       <div className="mt-2 flex items-start gap-3 bg-white/50 p-2 rounded-lg border border-gray-100 shadow-sm">
@@ -749,15 +849,24 @@ const StudentManagement = () => {
           className="w-16 h-12 bg-white rounded border border-gray-200 overflow-hidden flex items-center justify-center cursor-pointer hover:border-[#4F8CCF] transition-colors flex-shrink-0"
           onClick={() => window.open(url, "_blank")}
         >
-          <img
-            src={url}
-            alt={`${label} Preview`}
-            className="w-full h-full object-contain"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.parentElement.innerHTML = '<div class="text-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mx-auto text-gray-400 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg><span class="text-[9px] text-gray-500 font-medium leading-tight block">File</span></div>';
-            }}
-          />
+          {isPdf ? (
+            <div className="text-center flex flex-col items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M7 3C5.9 3 5 3.9 5 5v14c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V9l-6-6H7zm6 7V4.5L17.5 10H13z" />
+              </svg>
+              <span className="text-[9px] font-bold text-red-600">PDF</span>
+            </div>
+          ) : (
+            <img
+              src={url}
+              alt={`${label} Preview`}
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.parentElement.innerHTML = '<div class="text-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mx-auto text-gray-400 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg><span class="text-[9px] text-gray-500 font-medium leading-tight block">File</span></div>';
+              }}
+            />
+          )}
         </div>
         <div className="flex flex-col justify-center h-12 min-w-0">
           <span className="text-[11px] text-green-700 font-medium truncate w-full" title={name}>✓ {name}</span>
@@ -793,7 +902,8 @@ const StudentManagement = () => {
             {/* Aadhar */}
             <div>
               <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>Aadhar Card</label>
-              <input type="file" accept="image/*" onChange={e => handleDocumentUpload(e, "aadhar", "student")} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" disabled={ocrLoading} />
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png,image/webp,application/pdf" onChange={e => handleDocumentUpload(e, "aadhar", "student")} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" disabled={ocrLoading} />
+              <p className="text-[11px] text-gray-500 mt-0.5 ml-2">Accepted formats: PDF, JPG, JPEG, PNG (Max 10MB)</p>
               <DocumentPreviewBox fileData={studentDocuments.aadharCard} docKey="aadharCard" label="Aadhar Card" />
             </div>
 
@@ -801,7 +911,8 @@ const StudentManagement = () => {
             {formData.isWorking && (
               <div>
                 <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>PAN Card</label>
-                <input type="file" accept="image/*" onChange={e => handleDocumentUpload(e, "pan", "student")} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" disabled={ocrLoading} />
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png,image/webp,application/pdf" onChange={e => handleDocumentUpload(e, "pan", "student")} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" disabled={ocrLoading} />
+                <p className="text-[11px] text-gray-500 mt-0.5 ml-2">Accepted formats: PDF, JPG, JPEG, PNG (Max 10MB)</p>
                 <DocumentPreviewBox fileData={studentDocuments.panCard} docKey="panCard" label="PAN Card" />
               </div>
             )}
@@ -817,7 +928,8 @@ const StudentManagement = () => {
                 {formData.hasCollegeId && (
                   <div>
                     <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>Student ID Card</label>
-                    <input type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={e => setStudentDocuments(p => ({ ...p, studentIdCard: e.target.files[0] }))} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" />
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png,image/webp,application/pdf" onChange={e => setStudentDocuments(p => ({ ...p, studentIdCard: e.target.files[0] }))} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" />
+                    <p className="text-[11px] text-gray-500 mt-0.5 ml-2">Accepted formats: PDF, JPG, JPEG, PNG (Max 10MB)</p>
                     <DocumentPreviewBox fileData={studentDocuments.studentIdCard} docKey="studentIdCard" label="Student ID Card" />
                   </div>
                 )}
@@ -825,7 +937,8 @@ const StudentManagement = () => {
                 {!formData.hasCollegeId && (
                   <div>
                     <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>Fees Receipt</label>
-                    <input type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={e => setStudentDocuments(p => ({ ...p, feesReceipt: e.target.files[0] }))} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" />
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png,image/webp,application/pdf" onChange={e => setStudentDocuments(p => ({ ...p, feesReceipt: e.target.files[0] }))} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" />
+                    <p className="text-[11px] text-gray-500 mt-0.5 ml-2">Accepted formats: PDF, JPG, JPEG, PNG (Max 10MB)</p>
                     <DocumentPreviewBox fileData={studentDocuments.feesReceipt} docKey="feesReceipt" label="Fees Receipt" />
                     <p className="text-xs text-gray-600 mt-1">Temporary document until student gets college ID card</p>
                   </div>
@@ -1047,7 +1160,8 @@ const StudentManagement = () => {
               return (
                 <div key={type}>
                   <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>{type === "aadhar" ? "Aadhar Card" : "PAN Card"}</label>
-                  <input type="file" accept="image/*" onChange={e => handleDocumentUpload(e, type, "parent")} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" disabled={ocrLoading} />
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png,image/webp,application/pdf" onChange={e => handleDocumentUpload(e, type, "parent")} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" disabled={ocrLoading} />
+                  <p className="text-[11px] text-gray-500 mt-0.5 ml-2">Accepted formats: PDF, JPG, JPEG, PNG (Max 10MB)</p>
                   <DocumentPreviewBox fileData={parentDocuments[docKey]} docKey={docKey} label={type === "aadhar" ? "Aadhar Card" : "PAN Card"} isParent={true} />
                 </div>
               );
@@ -1104,12 +1218,14 @@ const StudentManagement = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>Aadhar Card</label>
-                <input type="file" accept="image/*,.pdf" onChange={e => handleDocumentUpload(e, "aadhar", "worker")} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" disabled={ocrLoading} />
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png,image/webp,application/pdf" onChange={e => handleDocumentUpload(e, "aadhar", "worker")} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" disabled={ocrLoading} />
+                <p className="text-[11px] text-gray-500 mt-0.5 ml-2">Accepted formats: PDF, JPG, JPEG, PNG (Max 10MB)</p>
                 <DocumentPreviewBox fileData={workerDocuments.aadharCard} docKey="aadharCard" label="Aadhar Card" />
               </div>
               <div>
                 <label className="block mb-1 text-black ml-2 text-sm" style={labelStyle}>PAN Card</label>
-                <input type="file" accept="image/*,.pdf" onChange={e => handleDocumentUpload(e, "pan", "worker")} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" disabled={ocrLoading} />
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png,image/webp,application/pdf" onChange={e => handleDocumentUpload(e, "pan", "worker")} className="w-full px-4 py-2 bg-white rounded-lg border border-gray-300" disabled={ocrLoading} />
+                <p className="text-[11px] text-gray-500 mt-0.5 ml-2">Accepted formats: PDF, JPG, JPEG, PNG (Max 10MB)</p>
                 <DocumentPreviewBox fileData={workerDocuments.panCard} docKey="panCard" label="PAN Card" />
               </div>
             </div>
@@ -1297,14 +1413,14 @@ const StudentManagement = () => {
             </tr>
           </thead>
           <tbody>
-            {parents.length === 0 && (
+            {filteredParents.length === 0 && (
               <tr>
                 <td colSpan="7" className="text-center py-12 text-gray-500 text-lg">
-                  No parents registered yet.
+                  No parents found.
                 </td>
               </tr>
             )}
-            {parents.map((p, i) => (
+            {filteredParents.map((p, i) => (
               <tr key={p._id} className="bg-white border-b border-gray-100 hover:bg-gray-50 transition-colors">
                 <td className="px-4 py-3 text-sm text-gray-600 font-bold whitespace-nowrap">{i + 1}</td>
                 <td className="px-4 py-3 text-sm text-gray-600 font-bold whitespace-nowrap">{p.firstName} {p.lastName}</td>
@@ -1354,10 +1470,10 @@ const StudentManagement = () => {
 
       {/* Mobile view logic */}
       <div className="lg:hidden p-4 space-y-4">
-        {parents.length === 0 ? (
-          <p className="text-center text-gray-500 py-8">No parents registered yet.</p>
+        {filteredParents.length === 0 ? (
+          <p className="text-center text-gray-500 py-8">No parents found.</p>
         ) : (
-          parents.map((p, i) => (
+          filteredParents.map((p, i) => (
             <div key={p._id} className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 relative">
               <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
                 <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${p.isRejected ? 'bg-red-100 text-red-800' : p.isPendingApproval
@@ -1721,12 +1837,12 @@ const StudentManagement = () => {
                 <div className="w-full md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="w-full px-2">
                     <label className="block mb-1 text-black ml-2" style={labelStyle}>Aadhar Card</label>
-                    <input type="file" accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf" onChange={(e) => handleDocumentUpload(e, 'aadhar', 'parent')} className="w-full px-4 text-black font-semibold text-[12px]" style={inputStyle} />
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png,image/webp,application/pdf" onChange={(e) => handleDocumentUpload(e, 'aadhar', 'parent')} className="w-full px-4 text-black font-semibold text-[12px]" style={inputStyle} />
                     <DocumentPreviewBox fileData={parentDocuments?.aadharCard} docKey="aadharCard" label="Aadhar Card" isParent={true} />
                   </div>
                   <div className="w-full px-2">
                     <label className="block mb-1 text-black ml-2" style={labelStyle}>Pan Card</label>
-                    <input type="file" accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf" onChange={(e) => handleDocumentUpload(e, 'pan', 'parent')} className="w-full px-4 text-black font-semibold text-[12px]" style={inputStyle} />
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png,image/webp,application/pdf" onChange={(e) => handleDocumentUpload(e, 'pan', 'parent')} className="w-full px-4 text-black font-semibold text-[12px]" style={inputStyle} />
                     <DocumentPreviewBox fileData={parentDocuments?.panCard} docKey="panCard" label="Pan Card" isParent={true} />
                   </div>
                 </div>
@@ -1750,7 +1866,129 @@ const StudentManagement = () => {
                   {activeTab === "parent" ? "Parent List" : activeTab === "worker" ? "Worker List" : "Student List"}
                   {activeTab !== "parent" && activeFilter !== "All" && <span className="text-gray-800 text-sm ml-2 font-medium">— {activeFilter}</span>}
                 </h2>
-                <p className="text-sm text-gray-700 mt-1">Total: {activeTab === "parent" ? parents.length : filteredStudents.length} records</p>
+                <p className="text-sm text-gray-700 mt-1">
+                  Total: {activeTab === "parent" ? filteredParents.length : filteredStudents.length} records
+                  {isFiltered && (
+                    <span className="text-xs text-gray-700 ml-1.5 font-medium">
+                      (Filtered from {activeTab === "parent" ? parents.length : students.filter(s => activeTab === "worker" ? s.isWorking : !s.isWorking).length})
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* ── Search & Filter Controls ── */}
+            <div className="p-4 bg-white/70 border-b border-[#BEC5AD]/30 flex flex-col xl:flex-row gap-3 items-stretch xl:items-center justify-between">
+              {/* Search input */}
+              <div className="relative flex-1 min-w-[260px]">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder={
+                    activeTab === "parent"
+                      ? "Search parent by name, contact, student ID..."
+                      : "Search student by name, ID, room, contact..."
+                  }
+                  className="w-full pl-9 pr-8 py-2 bg-white rounded-xl border border-gray-200 outline-none text-sm text-gray-800 focus:border-[#4F8CCF] focus:ring-1 focus:ring-[#4F8CCF] shadow-sm transition-all"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded-full"
+                    title="Clear search"
+                  >
+                    <X size={15} />
+                  </button>
+                )}
+              </div>
+
+              {/* Filters & Clear Filter Button */}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 mr-1">
+                  <Filter size={14} />
+                  <span className="hidden sm:inline">Filters:</span>
+                </div>
+
+                {activeTab !== "parent" ? (
+                  <>
+                    {/* Room Type */}
+                    <select
+                      className="px-3 py-2 bg-white rounded-xl border border-gray-200 outline-none text-xs sm:text-sm font-medium text-gray-700 focus:border-[#4F8CCF] shadow-sm cursor-pointer hover:border-gray-300 transition-colors"
+                      value={filterRoomType}
+                      onChange={(e) => setFilterRoomType(e.target.value)}
+                    >
+                      <option value="All">All Room Types</option>
+                      <option value="3">3 Bed</option>
+                      <option value="4">4 Bed</option>
+                      <option value="5">5 Bed</option>
+                    </select>
+
+                    {/* Fee Status */}
+                    <select
+                      className="px-3 py-2 bg-white rounded-xl border border-gray-200 outline-none text-xs sm:text-sm font-medium text-gray-700 focus:border-[#4F8CCF] shadow-sm cursor-pointer hover:border-gray-300 transition-colors"
+                      value={filterFeeStatus}
+                      onChange={(e) => setFilterFeeStatus(e.target.value)}
+                    >
+                      <option value="All">All Fee Status</option>
+                      <option value="Paid">Paid</option>
+                      <option value="Unpaid">Unpaid</option>
+                      <option value="Partial">Partial</option>
+                      <option value="Pending">Pending</option>
+                    </select>
+
+                    {/* Biometric */}
+                    <select
+                      className="px-3 py-2 bg-white rounded-xl border border-gray-200 outline-none text-xs sm:text-sm font-medium text-gray-700 focus:border-[#4F8CCF] shadow-sm cursor-pointer hover:border-gray-300 transition-colors"
+                      value={filterBiometric}
+                      onChange={(e) => setFilterBiometric(e.target.value)}
+                    >
+                      <option value="All">All Biometric</option>
+                      <option value="Added">✅ Added</option>
+                      <option value="Pending">❌ Pending</option>
+                    </select>
+
+                    {/* Approval Status */}
+                    <select
+                      className="px-3 py-2 bg-white rounded-xl border border-gray-200 outline-none text-xs sm:text-sm font-medium text-gray-700 focus:border-[#4F8CCF] shadow-sm cursor-pointer hover:border-gray-300 transition-colors"
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                    >
+                      <option value="All">All Status</option>
+                      <option value="Approved">Approved</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Rejected">Rejected</option>
+                    </select>
+                  </>
+                ) : (
+                  /* Parent status filter */
+                  <select
+                    className="px-3 py-2 bg-white rounded-xl border border-gray-200 outline-none text-xs sm:text-sm font-medium text-gray-700 focus:border-[#4F8CCF] shadow-sm cursor-pointer hover:border-gray-300 transition-colors"
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                  >
+                    <option value="All">All Status</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Rejected">Rejected</option>
+                  </select>
+                )}
+
+                {/* Clear Filter Button */}
+                <button
+                  onClick={clearAllFilters}
+                  disabled={!isFiltered}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all border shadow-sm ${
+                    isFiltered
+                      ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:border-red-300 cursor-pointer"
+                      : "bg-white text-gray-400 border-gray-200 cursor-not-allowed opacity-60"
+                  }`}
+                  title="Clear all filters and search"
+                >
+                  <RotateCcw size={14} className={isFiltered ? "text-red-600" : "text-gray-400"} />
+                  <span>Clear Filter</span>
+                </button>
               </div>
             </div>
 
